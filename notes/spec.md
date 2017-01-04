@@ -128,6 +128,15 @@ pop
 
 Pops and discards the topmost element of the stack.
 
+goto _N_
+----------------------------------------------------------------------------------------
+
+Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current method. For instance, `goto 0` goes to the first opcode in the method (ie, the opcode represented by the first line of the method body), `goto 3` goes to the fourth, etc.
+
+goif _N_
+----------------------------------------------------------------------------------------
+
+Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
 
 type typedesc
 ----------------------------------------------------------------------------------------
@@ -174,6 +183,11 @@ ladd, lsub, ldiv, lmul
 ----------------------------------------------------------------------------------------
 
 Adds, subtracts, divides or multiplies two Longs. Pops two elements from the stack, which must both be of Long type. Pushes a Long, which is the result of the operator. In the case of lsub, the first element popped is the divisor, and the second is the numerator.
+
+l:lt, l:le, l:eq, l:ge, l:gt
+----------------------------------------------------------------------------------------
+
+Pops two elements from the stack, which must both be of Long type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
 
 debug-print
 ----------------------------------------------------------------------------------------
