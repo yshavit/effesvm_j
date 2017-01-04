@@ -118,50 +118,53 @@ Many of the operands describe popping elements from the stack. Unless noted othe
 
 Note that opcodes are only allowed immediately preceding method or function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 
-long N
+Stack manipulation
 ----------------------------------------------------------------------------------------
+
+### long N
 
 Pushes a Long to the stack. _N_ is a decimal number, which may be negative. for instance, `long 123` or `long -456`.
 
-pop
-----------------------------------------------------------------------------------------
+### pop
 
 Pops and discards the topmost element of the stack.
 
-goto _N_
-----------------------------------------------------------------------------------------
-
-Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current method. For instance, `goto 0` goes to the first opcode in the method (ie, the opcode represented by the first line of the method body), `goto 3` goes to the fourth, etc.
-
-goif _N_
-----------------------------------------------------------------------------------------
-
-Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
-
-type typedesc
-----------------------------------------------------------------------------------------
-
-Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
-
-parg N
-----------------------------------------------------------------------------------------
+### parg N
 
 Pushes the method argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
 
 Errors if the argument is out of range (that is, is ≥ the number of arguments in the current method).
 
-pvar name
+Branching
 ----------------------------------------------------------------------------------------
 
-Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
+### goto _N_
 
-rtrn
-----------------------------------------------------------------------------------------
+Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current method. For instance, `goto 0` goes to the first opcode in the method (ie, the opcode represented by the first line of the method body), `goto 3` goes to the fourth, etc.
+
+### goif _N_
+
+Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
+
+### rtrn
 
 Finishes execution of the current method. The current frame must have exactly one value on the stack, which will then be the method's result. Any other state is an error. If a value is returned, its type is not checked.
 
-call classname methodname
+Comparisons
 ----------------------------------------------------------------------------------------
+
+### type typedesc
+
+Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
+
+### l:lt, l:le, l:eq, l:ge, l:gt
+
+Pops two elements from the stack, which must both be of Long type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
+
+Methods, field access and arithmetic
+----------------------------------------------------------------------------------------
+
+### call classname methodname
 
 Calls a function or method.
 
@@ -179,17 +182,17 @@ Examples:
   - `call : myModuleFunction` calls a function
   - `call LinkedList size` calls the `size` method on the `LinkedList` instance represented by the top of the stack.
 
-ladd, lsub, ldiv, lmul
-----------------------------------------------------------------------------------------
+### pvar name
+
+Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
+
+### ladd, lsub, ldiv, lmul
 
 Adds, subtracts, divides or multiplies two Longs. Pops two elements from the stack, which must both be of Long type. Pushes a Long, which is the result of the operator. In the case of lsub, the first element popped is the divisor, and the second is the numerator.
 
-l:lt, l:le, l:eq, l:ge, l:gt
+Other
 ----------------------------------------------------------------------------------------
 
-Pops two elements from the stack, which must both be of Long type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
-
-debug-print
-----------------------------------------------------------------------------------------
+### debug-print
 
 Writes a textual representation of the topmost element of the stack to stderr. Does not modify the stack. Does not error if the stack is empty; instead, will print to stderr that the stack is empty.
