@@ -53,11 +53,11 @@ Instance method declarations
 
 Instance methods start with a declaration:
 
-    MTHD <classname> <methodname> 0 <resulType> [argType, ...]
+    MTHD <classname> <methodname> 0 <nLocal> <resulType> [argType, ...]
 
-The classname must correspond to a type declaration contained in this `.efct`, and the methodname must be unique within for a given classname.
-
-The `0` is a placeholder for generics.
+- The classname must correspond to a type declaration contained in this `.efct`, and the methodname must be unique within for a given classname.
+- nLocal is the number of local variable slots to request (see `gvar`, `svar` below)
+- The `0` is a placeholder for generics.
 
 After the MTHD line, each non-empty line represents an opcode in that function. The method's body ends at the first empty line.
 
@@ -72,9 +72,9 @@ Module functions
 
 Module functions work just like instance methods, with three exceptions:
 
-  - `MTHD` becomes `FUNC`
-  - there is no classname
-  - the _methodname_ argument is instead called _functionname_
+- `MTHD` becomes `FUNC`
+- there is no classname
+- the _methodname_ argument is instead called _functionname_
 
 The functionname must be unique within this `.efct` file.
 
@@ -99,13 +99,13 @@ The execution stack
 
 State is maintained on a LIFO stack. Every item in the stack has a type and a value. The type is one of:
 
-  - EffesRef
-  - Long (signed 64 integer)
+- EffesRef
+- Long (signed 64 integer)
 
 An EffesRef references an object that has:
 
-  - a type
-  - 0 or more constructor arguments, which can be accessed via the _pvar_ opcode (desribed below)
+- a type
+- 0 or more constructor arguments, which can be accessed via the _pvar_ opcode (described below)
 
 Operations are always executed within the context of a method (the one exception to this is the initial invocation of a `main` function to start a program, which is handled by the EVM as a special case. But within that `main` function, operands do have the function context). This context includes the number of arguments that the method has.
 
@@ -121,7 +121,7 @@ Note that opcodes are only allowed immediately preceding method or function decl
 Stack manipulation
 ----------------------------------------------------------------------------------------
 
-### long N
+### long _N_
 
 Pushes a Long to the stack. _N_ is a decimal number, which may be negative. for instance, `long 123` or `long -456`.
 
@@ -129,11 +129,19 @@ Pushes a Long to the stack. _N_ is a decimal number, which may be negative. for 
 
 Pops and discards the topmost element of the stack.
 
-### parg N
+### parg _N_
 
-Pushes the method argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
+Copies the method argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
 
 Errors if the argument is out of range (that is, is ≥ the number of arguments in the current method).
+
+### gvar _N_
+
+Gets local variable N, and pushes it to the stack. The variable itself is unaffected. This errors if the variable has not been set, or if N is out of range.
+
+### svar _N_
+
+Pops the topmost element from the stack, and sets it to local variable N. Errors if N is out of range.
 
 Branching
 ----------------------------------------------------------------------------------------
@@ -168,9 +176,9 @@ Methods, field access and arithmetic
 
 Calls a function or method.
 
-  - If _classname_ is `:`, the call is for a function
-  - If _methodname_ is the same as _classname_`, this is a constructor call
-  - Otherwise, the method is a instance method on the class.
+- If _classname_ is `:`, the call is for a function
+- If _methodname_ is the same as _classname_`, this is a constructor call
+- Otherwise, the method is a instance method on the class.
 
 This op will pop _n_ args, where _n_ is the number of args the method requires. These are provided in reverse order: the topmost value is the first argument of the method invocation. Instance methods always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance method.
 
@@ -178,9 +186,9 @@ This op will push one value to the stack, the method's return value.
 
 Examples:
 
-  - `call Pair Pair` constructs a new Pair instance
-  - `call : myModuleFunction` calls a function
-  - `call LinkedList size` calls the `size` method on the `LinkedList` instance represented by the top of the stack.
+- `call Pair Pair` constructs a new Pair instance
+- `call : myModuleFunction` calls a function
+- `call LinkedList size` calls the `size` method on the `LinkedList` instance represented by the top of the stack.
 
 ### pvar name
 
