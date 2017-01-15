@@ -20,6 +20,11 @@ public class ProgramCounter {
     this.state.restoreFrom(state);
   }
 
+  @Override
+  public String toString() {
+    return state.toString();
+  }
+
   public static class State {
     private int pc;
     private State() {}
