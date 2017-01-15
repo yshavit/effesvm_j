@@ -1,7 +1,5 @@
 package com.yuvalshavit.effesvm.runtime;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
@@ -50,7 +48,7 @@ public class ProgramCounter {
   }
 
   public boolean isAt(State state) {
-    return state.equals(state);
+    return this.state.equals(state);
   }
 
   public static class State {
@@ -90,7 +88,7 @@ public class ProgramCounter {
 
     @Override
     public String toString() {
-      return Integer.toString(pc);
+      return (this == end) ? "<end>" : String.format("%s#%d", function, pc);
     }
   }
 }

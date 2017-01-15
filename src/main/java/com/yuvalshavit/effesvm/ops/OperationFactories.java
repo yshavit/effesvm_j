@@ -24,12 +24,17 @@ public class OperationFactories {
   }
 
   private static void buildInto(Map<String,ReflectiveOperationBuilder> map, Class<?> enclosingClass) {
-    if (!isPublicStatic(enclosingClass.getModifiers())) {
-      throw new IllegalArgumentException("can only build methods from public static classes: " + enclosingClass.getName());
-    }
+    boolean classConfirmedToBePublicStatic = false;
     for (Method method : enclosingClass.getDeclaredMethods()) {
       OperationFactory factoryAnnotation = method.getAnnotation(OperationFactory.class);
       if (factoryAnnotation != null) {
+        if (!classConfirmedToBePublicStatic) {
+          // Do this check lazily, so that we don't error out on anonymous helper classes, interfaces, etc
+          classConfirmedToBePublicStatic = classIsPublicStatic(enclosingClass);
+          if (!classConfirmedToBePublicStatic) {
+            throw new IllegalArgumentException("can only build methods from public static classes: " + enclosingClass.getName());
+          }
+        }
         if (!(isPublicStatic(method.getModifiers()) && Operation.class.isAssignableFrom(method.getReturnType()))) {
           throw notAValidFactoryMethod(enclosingClass, method);
         }
@@ -52,9 +57,20 @@ public class OperationFactories {
       buildInto(map, nested);
     }
     Class<?> superclass = enclosingClass.getSuperclass();
-    if (!Object.class.equals(superclass)) {
+    if (superclass != null && !Object.class.equals(superclass)) {
       buildInto(map, superclass);
     }
+  }
+
+  private static boolean classIsPublicStatic(Class<?> clazz) {
+    int classModifiers = clazz.getModifiers();
+    if (clazz.getEnclosingClass() == null) {
+      Class<?> clazzSuper = clazz.getSuperclass();
+      if (clazzSuper == null || classIsPublicStatic(clazzSuper)) {
+        classModifiers |= Modifier.STATIC;
+      }
+    }
+    return isPublicStatic(classModifiers);
   }
 
   private static boolean isPublicStatic(int modifiers) {
@@ -112,13 +128,13 @@ public class OperationFactories {
       } catch (Exception e) {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
-      String desc = String.format("%s %s (%s::%s)", opName, Joiner.on(' ').join(strings), method.getClass().getName(), method.getName());
+      String desc = String.format("%s %s (%s::%s)", opName, Joiner.on(' ').join(strings), method.getDeclaringClass().getName(), method.getName());
       return new Op(op, desc);
     }
 
     @Override
     public String toString() {
-      return String.format("%s from %s::%s", opName, method.getClass().getName(), method.getName());
+      return String.format("%s from %s::%s", opName, method.getDeclaringClass().getName(), method.getName());
     }
   }
 

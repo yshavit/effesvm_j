@@ -29,7 +29,8 @@ public class EvmRunner {
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     while (!state.pc().isAt(ProgramCounter.end())) {
       Operation op = state.pc().getOp();
-      op.apply(state);
+      PcMove next = op.apply(state);
+      next.accept(state.pc());
     }
     return (Integer) state.pop();
   }
@@ -43,7 +44,8 @@ public class EvmRunner {
 
     Path path = FileSystems.getDefault().getPath(args[0]);
     EffesModule module = parser.parse(Files.lines(path).iterator());
-    run(module, STACK_SIZE);
+    int exitCode = run(module, STACK_SIZE);
+    System.exit(exitCode);
   }
 
 }

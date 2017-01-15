@@ -7,18 +7,23 @@ public class PcMove implements Consumer<ProgramCounter> {
   private final String description;
 
   private static final PcMove NEXT = new PcMove(pc -> pc.setOpIdx(pc.getOpIdx() + 1), "increment");
+  private static final PcMove STAY = new PcMove(pc -> {}, "no change");
 
   private PcMove(Consumer<ProgramCounter> delegate, String description) {
     this.delegate = delegate;
     this.description = description;
   }
 
+  public static PcMove absolute(int pc) {
+    return new PcMove(pcObj -> pcObj.setOpIdx(pc), "to " + pc);
+  }
+
   public static PcMove next() {
     return NEXT;
   }
 
-  public static PcMove absolute(int pc) {
-    return new PcMove(pcObj -> pcObj.setOpIdx(pc), "to " + pc);
+  public static PcMove stay() {
+    return STAY;
   }
 
   @Override

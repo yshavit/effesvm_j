@@ -2,6 +2,8 @@ package com.yuvalshavit.effesvm.runtime;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class EffesFunction {
@@ -61,6 +63,23 @@ public class EffesFunction {
     @Override
     public String toString() {
       return className + ':' + functionName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Id id = (Id) o;
+      return Objects.equals(className, id.className) && Objects.equals(functionName, id.functionName);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(className, functionName);
     }
   }
 }

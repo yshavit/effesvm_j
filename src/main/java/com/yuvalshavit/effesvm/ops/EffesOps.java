@@ -58,7 +58,10 @@ public class EffesOps {
 
   @OperationFactory("rtrn")
   public static Operation rtrn() {
-    return Operation.withIncementingPc(EffesState::closeFrame);
+    return s -> {
+      s.closeFrame();
+      return PcMove.stay();
+    };
   }
 
   @OperationFactory("i:lt")

@@ -27,7 +27,7 @@ public class Parser {
     }
     Iterator<Line> tokenizedLines = StreamSupport.stream(Spliterators.spliteratorUnknownSize(lines, Spliterator.ORDERED), false)
       .map(String::trim)
-      .filter(l -> l.startsWith("#"))
+      .filter(l -> !l.startsWith("#"))
       .map(Line::new)
       .iterator();
 
@@ -109,6 +109,11 @@ public class Parser {
 
     String[] tokensFrom(int startingIndex) {
       return Arrays.copyOfRange(tokens, startingIndex, tokens.length);
+    }
+
+    @Override
+    public String toString() {
+      return Arrays.toString(tokens);
     }
   }
 }
