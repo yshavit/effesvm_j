@@ -125,7 +125,7 @@ Stack manipulation
 
 Pushes a Long to the stack. _N_ is a decimal number, which may be negative. for instance, `long 123` or `long -456`.
 
-### pop
+### popt
 
 Pops and discards the topmost element of the stack.
 
