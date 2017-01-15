@@ -1,19 +1,43 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.base.Preconditions;
+import com.yuvalshavit.effesvm.util.LambdaHelpers;
+
 public class ProgramCounter {
+  private static final State end = LambdaHelpers.consumeAndReturn(new State(), s -> {
+    s.function = null;
+    s.pc = -1;
+  });
   private final State state = new State();
 
-  public int get() {
+  public ProgramCounter(State state) {
+    this.state.restoreFrom(state);
+  }
+
+  public static State end() {
+    return end;
+  }
+
+  public int getOp() {
     return state.pc;
   }
 
-  public void set(int pc) {
-    // TODO validation that the new pc is valid
-    state.pc = pc;
+  public void setOp(int op) {
+    Preconditions.checkElementIndex(op, state.function.opsCount());
+    state.pc = op;
+  }
+
+  public void set(EffesFunction function, int pc) {
+    state.function = checkNotNull(function, "function");
+    setOp(pc);
   }
 
   public State save() {
-    return new State(state);
+    State rv = new State();
+    rv.restoreFrom(state);
+    return rv;
   }
 
   public void restore(State state) {
@@ -26,14 +50,13 @@ public class ProgramCounter {
   }
 
   public static class State {
+    private EffesFunction function;
     private int pc;
+
     private State() {}
 
-    private State(State copyFrom) {
-      restoreFrom(copyFrom); // make sure restoreFrom stays private or final!
-    }
-
     private void restoreFrom(State from) {
+      this.function = from.function;
       this.pc = from.pc;
     }
 

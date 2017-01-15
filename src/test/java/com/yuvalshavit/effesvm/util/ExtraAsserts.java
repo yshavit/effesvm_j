@@ -11,10 +11,10 @@ public class ExtraAsserts {
   private ExtraAsserts() {}
 
   public static void assertExceptionThrown(RunnableWithException runnable, Matcher<? super Exception> checker) {
-    assertNotNull(runnable, "null runnable provided");
+    Assert.assertNotNull(runnable, "null runnable provided");
     try {
       runnable.run();
-      fail("expected exception");
+      Assert.fail("expected exception");
     } catch (Exception e) {
       try {
         MatcherAssert.assertThat(e, checker);

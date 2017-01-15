@@ -1,7 +1,7 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import static com.yuvalshavit.effesvm.util.ExtraAsserts.assertExceptionThrown;
-import static com.yuvalshavit.effesvm.util.LambdaHelpers.giveAndTake;
+import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
 import static org.testng.Assert.*;
 
 import org.testng.annotations.Test;
@@ -16,7 +16,7 @@ public class EffesStateTest {
   @Test
   public void pushThenPop() {
     EffesState state = new EffesState(0);
-    String pushed = giveAndTake("elem", state::push);
+    String pushed = consumeAndReturn("elem", state::push);
     assertEquals(state.pop(), pushed);
   }
 
@@ -51,7 +51,7 @@ public class EffesStateTest {
   @Test
   public void copyToFirstVarAndBack() {
     EffesState state = new EffesState(3);
-    String pushed = giveAndTake("test item", state::push);
+    String pushed = consumeAndReturn("test item", state::push);
     state.popToVar(0);
     // check we can't pop a variable, then copy it from the local register and try again
     assertExceptionThrown(state::pop, EffesRuntimeException.class);
@@ -62,7 +62,7 @@ public class EffesStateTest {
   @Test
   public void copyToThirdVarAndBack() {
     EffesState state = new EffesState(3);
-    String pushed = giveAndTake("test item", state::push);
+    String pushed = consumeAndReturn("test item", state::push);
     state.popToVar(2);
     // check we can't pop a variable, then copy it from the local register and try again
     assertExceptionThrown(state::pop, EffesRuntimeException.class);
@@ -115,7 +115,7 @@ public class EffesStateTest {
 
   @Test
   public void stackOverflow() {
-    EffesState state = new EffesState(new ProgramCounter().save(), 5, 0);
+    EffesState state = new EffesState(ProgramCounter.end(), 5, 0);
     state.push("three spaces left"); // one item is implicitly added for the first frame
     state.push("two spaces left");
     state.push("one spaces left");

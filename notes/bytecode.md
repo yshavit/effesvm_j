@@ -36,27 +36,28 @@ Class Declarations
 
 A class declaration creates a simple type. Its name must be unique among all type names in this module. Each declaration is on a single line, and has the format:
 
-    TYPE <name> 0 [constructorArgType, ...]
+    TYPE <name> 0 [constructorArg, ...]
 
 The `0` is a placeholder for generics.
 
-Each constructor arg is of the form _name:type_, where _name_ is a textual name and _type_ is a type specifier, without spaces.
+Each constructor arg is specified by name.
 
 Examples:
 
   TYPE 0 Nothing
-  TYPE 0 Id id:Long
-  TYPE 0 Pet species:Dog|Cat|Bird name:String
+  TYPE 0 Id id
+  TYPE 0 Pet species legCount
 
 Instance method declarations
 ----------------------------------------------------------------------------------------
 
 Instance methods start with a declaration:
 
-    MTHD <classname> <methodname> 0 <nLocal> <resulType> [argType, ...]
+    MTHD <classname> <methodname> 0 <nLocal> <nArgs>
 
 - The classname must correspond to a type declaration contained in this `.efct`, and the methodname must be unique within for a given classname.
 - nLocal is the number of local variable slots to request (see `gvar`, `svar` below)
+- nArgs is the number of arguments this method takes
 - The `0` is a placeholder for generics.
 
 After the MTHD line, each non-empty line represents an opcode in that function. The method's body ends at the first empty line.
@@ -80,7 +81,7 @@ The functionname must be unique within this `.efct` file.
 
 A special case of a function declaration is for `main`. The `main` function must have the following declaration:
 
-    FUNC main 0 Void
+    FUNC main 0 <nLocal> 0
 
 This will serve as the entry point for the `.efct`'s execution.
 
@@ -89,10 +90,10 @@ Implicit type declarations
 
 The following types are implicitly part of any `.efct` file:
 
-    TYPE Long 0
+    TYPE Integer 0
     TYPE Void 0
-    TYPE True
-    TYPE False
+    TYPE True 0
+    TYPE False 0
     
 The execution stack
 ========================================================================================
@@ -100,7 +101,7 @@ The execution stack
 State is maintained on a LIFO stack. Every item in the stack has a type and a value. The type is one of:
 
 - EffesRef
-- Long (signed 64 integer)
+- Integer (signed 64 integer)
 
 An EffesRef references an object that has:
 
@@ -121,11 +122,11 @@ Note that opcodes are only allowed immediately preceding method or function decl
 Stack manipulation
 ----------------------------------------------------------------------------------------
 
-### long _N_
+### int _N_
 
-Pushes a Long to the stack. _N_ is a decimal number, which may be negative. for instance, `long 123` or `long -456`.
+Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
 
-### popt
+### pop
 
 Pops and discards the topmost element of the stack.
 
@@ -135,13 +136,13 @@ Copies the method argument specified by N onto the stack. N is a textual represe
 
 Errors if the argument is out of range (that is, is ≥ the number of arguments in the current method).
 
-### gvar _N_
+### pvar _N_
 
 Gets local variable N, and pushes it to the stack. The variable itself is unaffected. This errors if the variable has not been set, or if N is out of range.
 
 ### svar _N_
 
-Pops the topmost element from the stack, and sets it to local variable N. Errors if N is out of range.
+Pops the topmost element from the stack, and stores it in local variable N. Errors if N is out of range.
 
 Branching
 ----------------------------------------------------------------------------------------
@@ -165,9 +166,9 @@ Comparisons
 
 Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
 
-### l:lt, l:le, l:eq, l:ge, l:gt
+### i:lt, i:le, i:eq, i:ge, i:gt
 
-Pops two elements from the stack, which must both be of Long type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
+Pops two elements from the stack, which must both be of Integer type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
 
 Methods, field access and arithmetic
 ----------------------------------------------------------------------------------------
@@ -177,7 +178,7 @@ Methods, field access and arithmetic
 Calls a function or method.
 
 - If _classname_ is `:`, the call is for a function
-- If _methodname_ is the same as _classname_`, this is a constructor call
+- Otherwise, if _methodname_ is the same as _classname_`, this is a constructor call
 - Otherwise, the method is a instance method on the class.
 
 This op will pop _n_ args, where _n_ is the number of args the method requires. These are provided in reverse order: the topmost value is the first argument of the method invocation. Instance methods always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance method.
@@ -194,13 +195,13 @@ Examples:
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
 
-### ladd, lsub, ldiv, lmul
+### iadd, isub, idiv, imul
 
-Adds, subtracts, divides or multiplies two Longs. Pops two elements from the stack, which must both be of Long type. Pushes a Long, which is the result of the operator. In the case of lsub, the first element popped is the divisor, and the second is the numerator.
+Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator. In the case of lsub and idiv, the first element is the RHS and the second is the LHS.
 
 Other
 ----------------------------------------------------------------------------------------
 
 ### debug-print
 
-Writes a textual representation of the topmost element of the stack to stderr. Does not modify the stack. Does not error if the stack is empty; instead, will print to stderr that the stack is empty.
+Writes a textual representation of the topmost element of the local stack to stderr. Does not modify the stack. Does not error if the local stack is empty; instead, will print to stderr that it is empty.

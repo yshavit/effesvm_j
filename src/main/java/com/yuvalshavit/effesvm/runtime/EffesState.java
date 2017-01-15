@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 
 public class EffesState {
@@ -18,13 +19,13 @@ public class EffesState {
     for (Object arg : args) {
       push(arg);
     }
-    regPc = new ProgramCounter();
-    regPc.restore(pcState);
+    regPc = new ProgramCounter(pcState);
     doOpenFrame(args.length, nLocalVars);
   }
 
+  @VisibleForTesting
   EffesState(int nLocalVars, Object... args) {
-    this(new ProgramCounter().save(), 500, nLocalVars, args);
+    this(ProgramCounter.end(), 500, nLocalVars, args);
   }
 
   public void push(Object o) {
@@ -42,6 +43,12 @@ public class EffesState {
     Object popped = stack[regSp];
     stack[regSp--] = null;
     return popped;
+  }
+
+  public Object peek() {
+    return regSp <= regFp + (fp().nLocalVars)
+      ? null
+      : stack[regSp];
   }
 
   public void pushArg(int n) {
@@ -136,6 +143,7 @@ public class EffesState {
     return Collections.unmodifiableList(res);
   }
 
+  @SuppressWarnings("unused") // useful in a debugger
   String toStringFull() {
     return Joiner.on("\n").join(toStringList());
   }

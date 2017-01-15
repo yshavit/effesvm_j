@@ -99,7 +99,7 @@ public class OperationFactoriesTest {
 
   private static void checkOp(String expected, OperationFactories.ReflectiveOperationBuilder builder, String... args) {
     Operation op = builder.apply(Arrays.asList(args));
-    EffesState state = new EffesState(new ProgramCounter().save(), 10, 0);
+    EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
     op.apply(state);
     assertEquals(state.pop(), expected);
   }
