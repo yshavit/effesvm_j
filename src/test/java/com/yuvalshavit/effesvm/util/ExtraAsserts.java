@@ -1,11 +1,9 @@
 package com.yuvalshavit.effesvm.util;
 
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.fail;
-
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
+import org.testng.Assert;
 
 public class ExtraAsserts {
   private ExtraAsserts() {}

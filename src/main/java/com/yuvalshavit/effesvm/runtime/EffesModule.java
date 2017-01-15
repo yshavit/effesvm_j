@@ -1,15 +1,21 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Map;
-
-import com.yuvalshavit.effesvm.ops.Operation;
+import java.util.NoSuchElementException;
 
 public class EffesModule {
-  private final Map<String,EffesFunction> functionsByName;
+  private final Map<EffesFunction.Id,EffesFunction> functionsById;
 
-  public EffesModule(Map<String,EffesFunction> functionsByName) {
-    this.functionsByName = functionsByName;
+  public EffesModule(Map<EffesFunction.Id,EffesFunction> functionsById) {
+    this.functionsById = functionsById;
   }
 
+  public EffesFunction getFunction(EffesFunction.Id id) {
+    EffesFunction res = functionsById.get(id);
+    if (res == null) {
+      throw new NoSuchElementException(id.toString());
+    }
+    return res;
+  }
 
 }

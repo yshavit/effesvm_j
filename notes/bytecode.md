@@ -11,8 +11,7 @@ After that, an `.efct` file may contain zero or more of the following, in any or
 
 - declarations:
   - class declarations
-  - instance methods
-  - module functions (i.e., static functions)
+  - functions
 - no-ops:
   - comment lines
   - empty lines
@@ -23,7 +22,7 @@ Sum types are not declared in module files. They are fully resolved at compile t
 Comments and empty lines
 ========================================================================================
 
-An empty line is one with no characters. It is a no-op, except when it serves as the marker for a method or function body's end, as described below.
+An empty line is one with no characters. It is a no-op, except when it serves as the marker for a function body's end, as described below.
 
 A comment line starts with a hash (`#`). Comment lines are also no-ops.
 
@@ -48,49 +47,38 @@ Examples:
   TYPE 0 Id id
   TYPE 0 Pet species legCount
 
-Instance method declarations
+Function declarations
 ----------------------------------------------------------------------------------------
 
-Instance methods start with a declaration:
+Functions start with a declaration:
 
-    MTHD <classname> <methodname> 0 <nLocal> <nArgs>
+    FUNC <classname> <functionname> 0 <nLocal> <nArgs>
 
-- The classname must correspond to a type declaration contained in this `.efct`, and the methodname must be unique within for a given classname.
-- nLocal is the number of local variable slots to request (see `gvar`, `svar` below)
-- nArgs is the number of arguments this method takes
+- The classname must correspond to a type declaration contained in this `.efct` (or `:`, as noted below), and the functionname must be unique within for a given classname.
+- nLocal is the number of local variable slots to request (see `pvar`, `svar` below)
+- nArgs is the number of arguments this function takes
 - The `0` is a placeholder for generics.
 
-After the MTHD line, each non-empty line represents an opcode in that function. The method's body ends at the first empty line.
+After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
 
 For instance:
 
     # FriendBuilder : Person.createFriendBuilder(relationship: Friend | Family | Acquaintance)
-    MTHD Person FriendBuilder createFriendBuilder Friend|Family|Acquaintance
+    FUNC Person FriendBuilder createFriendBuilder Friend|Family|Acquaintance
     <ops...>
 
-Module functions
-----------------------------------------------------------------------------------------
+If the classname is `:`, this defines a module function.
 
-Module functions work just like instance methods, with three exceptions:
+A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
-- `MTHD` becomes `FUNC`
-- there is no classname
-- the _methodname_ argument is instead called _functionname_
+    FUNC : main 0 <nLocal> 0
 
-The functionname must be unique within this `.efct` file.
-
-A special case of a function declaration is for `main`. The `main` function must have the following declaration:
-
-    FUNC main 0 <nLocal> 0
-
-This will serve as the entry point for the `.efct`'s execution.
+This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`.
 
 Implicit type declarations
 ========================================================================================
 
 The following types are implicitly part of any `.efct` file:
-
-    TYPE Integer 0
     TYPE Void 0
     TYPE True 0
     TYPE False 0
@@ -108,7 +96,7 @@ An EffesRef references an object that has:
 - a type
 - 0 or more constructor arguments, which can be accessed via the _pvar_ opcode (described below)
 
-Operations are always executed within the context of a method (the one exception to this is the initial invocation of a `main` function to start a program, which is handled by the EVM as a special case. But within that `main` function, operands do have the function context). This context includes the number of arguments that the method has.
+Operations are always executed within the context of a function (the one exception to this is the initial invocation of a `main` function to start a program, which is handled by the EVM as a special case. But within that `main` function, operands do have the function context). This context includes the number of arguments that the function has.
 
 ops
 ========================================================================================
@@ -117,7 +105,7 @@ Each op is on a line of its own. The first letters of the line define which op i
 
 Many of the operands describe popping elements from the stack. Unless noted otherwise, this results in an error if the stack is empty.
 
-Note that opcodes are only allowed immediately preceding method or function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
+Note that opcodes are only allowed immediately preceding function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 
 Stack manipulation
 ----------------------------------------------------------------------------------------
@@ -132,9 +120,9 @@ Pops and discards the topmost element of the stack.
 
 ### parg _N_
 
-Copies the method argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
+Copies the function argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
 
-Errors if the argument is out of range (that is, is ≥ the number of arguments in the current method).
+Errors if the argument is out of range (that is, is ≥ the number of arguments in the current function).
 
 ### pvar _N_
 
@@ -149,7 +137,7 @@ Branching
 
 ### goto _N_
 
-Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current method. For instance, `goto 0` goes to the first opcode in the method (ie, the opcode represented by the first line of the method body), `goto 3` goes to the fourth, etc.
+Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current function. For instance, `goto 0` goes to the first opcode in the function (ie, the opcode represented by the first line of the function body), `goto 3` goes to the fourth, etc.
 
 ### goif _N_
 
@@ -157,7 +145,7 @@ Pops the topmost element, which must be an EffesRef whose type is True or False.
 
 ### rtrn
 
-Finishes execution of the current method. The current frame must have exactly one value on the stack, which will then be the method's result. Any other state is an error. If a value is returned, its type is not checked.
+Finishes execution of the current function. The current frame must have exactly one value on the stack, which will then be the function's result. Any other state is an error. If a value is returned, its type is not checked.
 
 Comparisons
 ----------------------------------------------------------------------------------------
@@ -170,26 +158,26 @@ Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef w
 
 Pops two elements from the stack, which must both be of Integer type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
 
-Methods, field access and arithmetic
+Functions, field access and arithmetic
 ----------------------------------------------------------------------------------------
 
-### call classname methodname
+### call classname functionname
 
-Calls a function or method.
+Calls a function.
 
-- If _classname_ is `:`, the call is for a function
-- Otherwise, if _methodname_ is the same as _classname_`, this is a constructor call
-- Otherwise, the method is a instance method on the class.
+- If _classname_ is `:`, the call is for a module function
+- Otherwise, if _functionname_ is the same as _classname_`, this is a constructor call
+- Otherwise, the function is a instance method on the class.
 
-This op will pop _n_ args, where _n_ is the number of args the method requires. These are provided in reverse order: the topmost value is the first argument of the method invocation. Instance methods always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance method.
+This op will pop _n_ args, where _n_ is the number of args the function requires. These are provided in reverse order: the topmost value is the first argument of the function invocation. Instance functions always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance function.
 
-This op will push one value to the stack, the method's return value. 
+This op will push one value to the stack, the function's return value. 
 
 Examples:
 
 - `call Pair Pair` constructs a new Pair instance
 - `call : myModuleFunction` calls a function
-- `call LinkedList size` calls the `size` method on the `LinkedList` instance represented by the top of the stack.
+- `call LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
 ### pvar name
 

@@ -47,7 +47,7 @@ public class EffesOps {
   }
 
   @OperationFactory("goif")
-  public static Operation goIf(String n) {
+  public static Operation gotoIf(String n) {
     int idx = nonNegative(n);
     PcMove to = PcMove.absolute(idx);
     return s -> {

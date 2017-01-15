@@ -2,15 +2,14 @@ package com.yuvalshavit.effesvm.runtime;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+
 import com.google.common.base.Preconditions;
-import com.yuvalshavit.effesvm.util.LambdaHelpers;
+import com.yuvalshavit.effesvm.ops.Operation;
 
 public class ProgramCounter {
-  private static final State end = LambdaHelpers.consumeAndReturn(new State(), s -> {
-    s.function = null;
-    s.pc = -1;
-  });
-  private final State state = new State();
+  private static final State end = new State(null, -1);
+  private final State state = new State(end);
 
   public ProgramCounter(State state) {
     this.state.restoreFrom(state);
@@ -20,24 +19,21 @@ public class ProgramCounter {
     return end;
   }
 
-  public int getOp() {
+  public int getOpIdx() {
     return state.pc;
   }
 
-  public void setOp(int op) {
-    Preconditions.checkElementIndex(op, state.function.opsCount());
+  public void setOpIdx(int op) {
+    Preconditions.checkElementIndex(op, state.function.nOps());
     state.pc = op;
   }
 
-  public void set(EffesFunction function, int pc) {
-    state.function = checkNotNull(function, "function");
-    setOp(pc);
+  public Operation getOp() {
+    return state.function.opAt(getOpIdx());
   }
 
   public State save() {
-    State rv = new State();
-    rv.restoreFrom(state);
-    return rv;
+    return new State(state);
   }
 
   public void restore(State state) {
@@ -49,15 +45,47 @@ public class ProgramCounter {
     return state.toString();
   }
 
+  public static State firstLineOfFunction(EffesFunction function) {
+    return new State(function, 0);
+  }
+
+  public boolean isAt(State state) {
+    return state.equals(state);
+  }
+
   public static class State {
     private EffesFunction function;
     private int pc;
 
-    private State() {}
+    private State(EffesFunction function, int pc) {
+      this.function = function;
+      this.pc = pc;
+    }
+
+    private State(State copyFom) {
+      restoreFrom(copyFom);
+    }
 
     private void restoreFrom(State from) {
       this.function = from.function;
       this.pc = from.pc;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      State state = (State) o;
+      return pc == state.pc && Objects.equals(function, state.function);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(function, pc);
     }
 
     @Override

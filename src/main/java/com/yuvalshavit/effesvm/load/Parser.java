@@ -1,38 +1,114 @@
 package com.yuvalshavit.effesvm.load;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.BiFunction;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 
+import com.google.common.base.Preconditions;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
+import com.yuvalshavit.effesvm.runtime.EffesFunction;
+import com.yuvalshavit.effesvm.runtime.EffesModule;
 
 public class Parser {
+  public static final String EFCT_0_HEADER = "efct 0";
   private final Function<String,OperationFactories.ReflectiveOperationBuilder> opsFactories;
 
   public Parser(Function<String,OperationFactories.ReflectiveOperationBuilder> opsFactories) {
     this.opsFactories = opsFactories;
   }
 
-  public Operation opLine(String line) {
-    return opLine(line, (op, args) -> {
-      OperationFactories.ReflectiveOperationBuilder builder = opsFactories.apply(op);
-      if (builder == null) {
-        throw new EffesLoadExeption("no such opcode: " + op);
+  public EffesModule parse(Iterator<String> lines) {
+    if (!lines.hasNext()) {
+      return new EffesModule(Collections.emptyMap());
+    }
+    if (!lines.next().equals(EFCT_0_HEADER)) {
+      throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
+    }
+    Iterator<Line> tokenizedLines = StreamSupport.stream(Spliterators.spliteratorUnknownSize(lines, Spliterator.ORDERED), false)
+      .map(String::trim)
+      .filter(l -> l.startsWith("#"))
+      .map(Line::new)
+      .iterator();
+
+    Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
+    while (tokenizedLines.hasNext()) {
+      Line line = tokenizedLines.next();
+      if (line.isEmpty()) {
+        continue;
       }
-      return builder.apply(args);
-    });
+      switch (line.get(0, "declaration type")) {
+        case "FUNC":
+          String className = line.get(1, "classname");
+          String functionName = line.get(2, "functionname");
+          EffesFunction parsedFunction = parseFunction(
+            tokenizedLines,
+            className,
+            functionName,
+            line.get(3, "nGenerics", Integer::parseInt),
+            line.get(4, "nLocal", Integer::parseInt),
+            line.get(5, "nArgs", Integer::parseInt));
+          functions.put(new EffesFunction.Id(className, functionName), parsedFunction);
+          break;
+        default:
+          throw new IllegalArgumentException("unrecognized declaration type");
+      }
+    }
+    return new EffesModule(Collections.unmodifiableMap(functions));
   }
 
-  private <T> T opLine(String line, BiFunction<String,List<String>,T> handler) {
-    // TODO quoting, etc
-    String[] split = line.split(" ");
-    String op = split[0];
-    List<String> args = (split.length == 1)
-      ? Collections.emptyList()
-      : Arrays.asList(split).subList(1, split.length);
-    return handler.apply(op, args);
+  private EffesFunction parseFunction(Iterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
+    Preconditions.checkArgument(nGenerics == 0, "nGenerics");
+    Preconditions.checkArgument(nLocal >= 0, "nLocal: " + nLocal);
+    Preconditions.checkArgument(nArgs >= 0, "nArgs: " + nArgs);
+
+    Preconditions.checkArgument(className.equals(EffesFunction.MODULE_CLASSNAME), "classname: " + className); // no instance methods yet!
+
+    List<Operation> ops = new ArrayList<>();
+    while (lines.hasNext()) {
+      Line line = lines.next();
+      if (line.isEmpty()) {
+        break;
+      }
+      OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(line.get(0, "opcode"));
+      // TODO any validation we want to do? e.g. that we never fetch out of range args or locals?
+      Operation op = opBuilder.build(line.tokensFrom(1));
+      ops.add(op);
+    }
+    return new EffesFunction(functionName, nLocal, nArgs, ops.toArray(new Operation[0]));
+  }
+
+  private static class Line {
+    private final String[] tokens;
+
+    Line(String line) {
+      this.tokens = line.trim().split(" +"); // TODO better tokenization!
+    }
+
+    boolean isEmpty() {
+      return tokens == null;
+    }
+
+    <T> T get(int idx, String attrDescription, Function<String,T> tokenParser) {
+      String tokenText;
+      try {
+        tokenText = tokens[idx];
+      } catch (ArrayIndexOutOfBoundsException e) {
+        throw new IllegalArgumentException("missing " + attrDescription);
+      }
+      try {
+        return tokenParser.apply(tokenText);
+      } catch (Exception e) {
+        throw new IllegalArgumentException("invalid " + attrDescription, e);
+      }
+    }
+
+    String get(int idx, String attrDescription) {
+      return get(idx, attrDescription, Function.identity());
+    }
+
+    String[] tokensFrom(int startingIndex) {
+      return Arrays.copyOfRange(tokens, startingIndex, tokens.length);
+    }
   }
 }
