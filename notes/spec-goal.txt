@@ -1,0 +1,154 @@
+requirements
+========================================================================================
+stack based
+text-based
+security and integrity etc are _not_ a concern -- assume everything is good. (can revisit that later!)
+jvm-based, with escape hatches for running bytecode (future)
+
+Outline of a module file
+========================================================================================
+
+The module file consists of zero or more of the following:
+
+  - class declaration
+  - virtual type declaration
+  - instance methods
+  - module functions (i.e., static functions)
+
+Algebraic types are _not_ declared in module files. They are fully resolved at compile time.
+
+----------------------------------------------------------------------------------------
+
+A class declaration creates a concrete (non-virtual) method. Its name must be unique among all type names in this module. Each declaration is on a single line, and has the format:
+
+  type <name> <nGenerics> [constructor arg, ...]
+
+nGenerics is the number of generic parameters this class defines.
+
+Each constructor arg is of the form "name : type", where "name" is a textual name and "type" is a type specifier, without spaces. Within the type specifiers, any type that starts with a digit must be all digits, and represents a 0-based lookup into the nGenerics. For instance, 0 is the first generic parameter, 1 is the second, etc.
+
+Examples:
+
+  Nothing 0
+  Pair 2 first:0 second:1
+  LinkedList 1 head:LinkedList[0] tail:LinkedList[0] 
+
+----------------------------------------------------------------------------------------
+
+A virtual type declaration is of the form:
+
+  vtyp <name> <nGenerics>
+
+Generics work the same way that class declarations do.
+
+----------------------------------------------------------------------------------------
+
+Instance methods start with a declaration:
+
+  meth <classname> <methodname> <resulType> [argType, ...]
+
+In both the result type and argTypes, a number represents a generic as defined by the class name. For instance:
+
+  meth LinkedList add Boolean 0
+
+This represents a method that in Effes might be written as: "LinkedList[T] add(elem:T) -> Boolean"
+
+(Note for future: I may add an optional argument after <methodname>, an integer representing a generic parameter for the method. In this case, this generic would work just as the class generics, except offset by the number of class generics. For instance, if LinkedList has 1 generic, then "meth LinkedList 1 map LinkedList[1] builtin.Function[0,1]" would represent a method like "LinkedList[T] map(f:Function[T,R]) -> LinkedList[R]".)
+
+After the "meth" line, each non-empty line represents an opcode for that function. The method's body ends at the first empty line.
+
+----------------------------------------------------------------------------------------
+
+Module functions work just like instance methods, with two exceptions:
+
+  - "meth" becomes "func"
+  - there is no classname
+
+
+stack
+========================================================================================
+
+Every item in the stack has a type and a value. The type is one of:
+  - EffesRef
+  - Long (signed 64)
+  - Double (64)
+  - Bool
+  - String (in future, will replace with java String type)
+
+An EffesRef has:
+
+  - a type, which is fully reified (e.g. List[Set[Optional[MyType]]], but never just List or even List[?])
+  - 0 or more constructor arguments, which can be accessed via pvar
+
+ops
+========================================================================================
+
+Ops are separated by a newline char. The first letters of the op define which op it is, and any arguments are separated by spaces. Multiple or trailing spaces are not allowed.
+
+----------------------------------------------------------------------------------------
+
+type <typedesc>
+
+  Pops the topmost item. Pushes a Boolean to the stack, which is True iff the item was an EffesRef whose type matched the typedesc, which is something like "List[Foo]", "List[Map[*,MyVal]]" etc.
+
+----------------------------------------------------------------------------------------
+parg <N>
+
+  Pushes the argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
+
+  Errors if the argument is out of range (that is, is ≥ the number of arguments in the current method).
+
+----------------------------------------------------------------------------------------
+
+pvar <name>
+  
+  Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (specified by name) to the stack.
+
+----------------------------------------------------------------------------------------
+
+popr
+
+  Pops the topmost item and sets it as the return type. The current method must have a return type. The type is not checked.
+
+----------------------------------------------------------------------------------------
+call <modulename> <classname> <methodname> [generic0, ...]
+
+  Statically a method.
+
+  A class name always starts with an uppercase letter, and a method name always starts with a lowercase letter. At least one must be provided.
+    - If the class name is ::, the method is a module function ("static function").
+    - If the method name is the same as the class name, the method is the class's constructor
+    - Otherwise, the method is a instance method on the class.
+
+  The genericN list defines the generic reification for this call. For static calls, its length must equal the nGenerics for the function. For constructors, its length must equal the nGenerics for the type. For instance methods, its length must equal the sum of the type's nGenerics and the method's nGenerics.
+  
+  pops <n> args, where <n> is the number of args the method requires. These are provided in reverse order: the first value popped is the last argument to the method.
+       Instance methods always take at least one argument, and it must be an EffesRef of the same type that defines the instance method.
+  pushes 0 or 1 arg, the result of the call
+
+----------------------------------------------------------------------------------------
+
+btin <methodname>
+
+  Calls a built-in method. The number of arguments it pops and pushes it up to it, as are any side effects.
+ 
+future ops
+========================================================================================
+virt <modulename> <typename> <methodname>
+  Makes a virtual call.
+
+  The module and class names must specify a virtual type. The method name must be a method on that type. The number of arguments is resolved by looking at the virtual method's definition. Once that is resolved, the first argument (which is N arguments away, since the first item to be popped is the last argument) must be an EffesRef, and its type resolves the call. The type must be a class that implements the virtual type.
+
+  Once the method is resolved, this works exactly as the "call" op works.
+
+----------------------------------------------------------------------------------------
+
+jmet <methodname> [argType0, ... argTypeN]
+
+  tbd
+
+----------------------------------------------------------------------------------------
+
+jfun <classname> <methodname> [argType0, ... argTypeN]
+
+  tbd

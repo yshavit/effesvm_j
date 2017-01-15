@@ -11,9 +11,9 @@ Optimization is not a main concern, for several reasons:
 
 The Effes stack's elements are references to the following classes:
 
-- EffesObj
-- java.lang.Long
 - FrameInfo
+- EffesObj
+- other Java classes used to represent Effes native types (ints, etc)
 
 An EffesObj contains:
 
@@ -43,7 +43,7 @@ The stack's registers are:
 
 - _$rv_: the return value for the current stack frame
 - _$fp_: the current stack frame's FrameInfo reference
-- _$sp_: the top of the stack
+- _$sp_: the top of the stack, inclusive
 - _$pc_: the program counter (format not specified in this document)
 
 These registers cannot be manipulated directly by opcodes.
@@ -112,3 +112,4 @@ As mentioned above, can't just pop by setting registers, as a real stack would, 
 - pop elements from the stack while _$sp > $fp - fp.nArgs_
 - set _$fp = fp.previousFp_
 - set _$pc = fp.returningPc_
+- push _$rv_, and null it
