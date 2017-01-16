@@ -50,16 +50,16 @@ public class EffesOps {
   public static Operation gotoIf(String n) {
     int idx = nonNegative(n);
     PcMove to = PcMove.absolute(idx);
-    return s -> {
-      Boolean top = (Boolean) s.pop();
+    return c -> {
+      Boolean top = (Boolean) c.state().pop();
       return top ? to : PcMove.next();
     };
   }
 
   @OperationFactory("rtrn")
   public static Operation rtrn() {
-    return s -> {
-      s.closeFrame();
+    return c -> {
+      c.state().closeFrame();
       return PcMove.stay();
     };
   }

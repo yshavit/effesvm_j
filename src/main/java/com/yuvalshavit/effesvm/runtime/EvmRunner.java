@@ -24,12 +24,13 @@ public class EvmRunner {
     }
 
     EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
-    // if we had args to add, they would go here
+    // if main() took any args, here is where we'd push them
+    OpContext opContext = new OpContext(state, module);
 
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     while (!state.pc().isAt(ProgramCounter.end())) {
       Operation op = state.pc().getOp();
-      PcMove next = op.apply(state);
+      PcMove next = op.apply(opContext);
       next.accept(state.pc());
     }
     return (Integer) state.pop();

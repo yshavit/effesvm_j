@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 import com.yuvalshavit.effesvm.runtime.EffesState;
+import com.yuvalshavit.effesvm.runtime.OpContext;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public class OperationFactories {
@@ -148,8 +149,8 @@ public class OperationFactories {
     }
 
     @Override
-    public PcMove apply(EffesState effesState) {
-      return delegate.apply(effesState);
+    public PcMove apply(OpContext context) {
+      return delegate.apply(context);
     }
 
     @Override
