@@ -14,6 +14,7 @@ public class EffesFunction {
   private final int nArgs;
   private final int nVars;
   private final Operation[] ops;
+  private PcMove jumpToMe;
 
   public EffesFunction(String name, int nVars, int nArgs, Operation[] ops) {
     this.name = name;
@@ -40,6 +41,17 @@ public class EffesFunction {
 
   public String name() {
     return name;
+  }
+
+  public PcMove getJumpToMe() {
+    PcMove res = this.jumpToMe;
+    if (jumpToMe == null) {
+      // TODO this is a data race, but benign since PcMove happens to use all final fields. But yuck, not great architecture here.
+      // Need to rethink dependencies a bit!
+      res = PcMove.firstCallIn(this);
+      jumpToMe = res;
+    }
+    return res;
   }
 
   @Override

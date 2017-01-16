@@ -45,6 +45,15 @@ public class EffesState {
     return popped;
   }
 
+  Object getFinalPop() {
+    // Special variant of pop() for when the item to be popped is the last one there. This should only be called after the very earlier frame,
+    // the one that was implicitly created in the constructor, has been closed.
+    if (regSp != 0) {
+      throw new EffesStackException("items left on the stack");
+    }
+    return stack[0];
+  }
+
   public Object peek() {
     return regSp <= regFp + (fp().nLocalVars)
       ? null
@@ -106,7 +115,7 @@ public class EffesState {
       throw new EffesStackException("$rv not set");
     }
     FrameInfo closingFp = fp();
-    for (int targetSp = this.regFp - closingFp.nArgs; regSp > targetSp; regSp--) {
+    for (int targetSp = this.regFp - closingFp.nArgs - 1; regSp > targetSp; regSp--) {
       stack[regSp] = null;
     }
     regFp = closingFp.previousFp;

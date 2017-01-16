@@ -18,6 +18,10 @@ public class PcMove implements Consumer<ProgramCounter> {
     return new PcMove(pcObj -> pcObj.setOpIdx(pc), "to " + pc);
   }
 
+  public static PcMove firstCallIn(EffesFunction function) {
+    return new PcMove(pc -> pc.set(function, 0), "start of " + function);
+  }
+
   public static PcMove next() {
     return NEXT;
   }

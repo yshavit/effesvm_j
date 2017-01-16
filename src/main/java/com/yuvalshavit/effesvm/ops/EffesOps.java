@@ -5,6 +5,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.function.IntBinaryOperator;
 
 import com.google.common.base.MoreObjects;
+import com.yuvalshavit.effesvm.load.EffesLoadExeption;
+import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
@@ -64,6 +66,11 @@ public class EffesOps {
     };
   }
 
+  @OperationFactory("type")
+  public static Operation type() {
+    throw new UnsupportedOperationException(); // TODO
+  }
+
   @OperationFactory("i:lt")
   public static Operation lt() {
     return intCmp((l, r) -> (l < r));
@@ -87,6 +94,20 @@ public class EffesOps {
   @OperationFactory("i:gt")
   public static Operation gt() {
     return intCmp((l, r) -> (l > r));
+  }
+
+  @OperationFactory("call")
+  public static Operation call(String className, String functionName) {
+    EffesFunction.Id id = new EffesFunction.Id(className, functionName);
+    return c -> {
+      EffesFunction f = c.module().getFunction(id);
+      if (f == null) {
+        throw new EffesLoadExeption("link error: no function " + id);
+      }
+      PcMove.next().accept(c.state().pc()); // set up the return jump point
+      c.state().openFrame(f.nArgs(), f.nVars());
+      return f.getJumpToMe();
+    };
   }
 
   @OperationFactory("iadd")

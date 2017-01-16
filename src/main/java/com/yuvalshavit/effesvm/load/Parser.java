@@ -70,8 +70,12 @@ public class Parser {
       if (line.isEmpty()) {
         break;
       }
-      OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(line.get(0, "opcode"));
+      String opcode = line.get(0, "opcode");
+      OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(opcode);
       // TODO any validation we want to do? e.g. that we never fetch out of range args or locals?
+      if (opBuilder == null) {
+        throw new EffesLoadExeption("no such op: " + opcode);
+      }
       Operation op = opBuilder.build(line.tokensFrom(1));
       ops.add(op);
     }
@@ -82,7 +86,8 @@ public class Parser {
     private final String[] tokens;
 
     Line(String line) {
-      this.tokens = line.trim().split(" +"); // TODO better tokenization!
+      line = line.trim();
+      this.tokens = line.isEmpty() ? null : line.split(" +"); // TODO better tokenization!
     }
 
     boolean isEmpty() {

@@ -33,7 +33,7 @@ public class EvmRunner {
       PcMove next = op.apply(opContext);
       next.accept(state.pc());
     }
-    return (Integer) state.pop();
+    return (Integer) state.getFinalPop();
   }
 
   public static void main(String[] args) throws IOException {

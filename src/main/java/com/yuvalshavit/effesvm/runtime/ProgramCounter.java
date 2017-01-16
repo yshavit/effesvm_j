@@ -1,6 +1,9 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
+import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 import com.yuvalshavit.effesvm.ops.Operation;
@@ -24,6 +27,12 @@ public class ProgramCounter {
   public void setOpIdx(int op) {
     Preconditions.checkElementIndex(op, state.function.nOps());
     state.pc = op;
+  }
+
+  public void set(EffesFunction function, int op) {
+    checkNotNull(function, "function");
+    state.function = function;
+    setOpIdx(op);
   }
 
   public Operation getOp() {
