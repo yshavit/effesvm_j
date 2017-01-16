@@ -3,7 +3,6 @@ package com.yuvalshavit.effesvm.runtime;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 import com.yuvalshavit.effesvm.ops.Operation;
@@ -97,7 +96,7 @@ public class ProgramCounter {
 
     @Override
     public String toString() {
-      return (this == end) ? "<end>" : String.format("%s#%d", function, pc);
+      return (this == end) ? "<end>" : String.format("%s[%d]", function, pc);
     }
   }
 }

@@ -76,7 +76,7 @@ public class Parser {
       if (opBuilder == null) {
         throw new EffesLoadExeption("no such op: " + opcode);
       }
-      Operation op = opBuilder.build(line.tokensFrom(1));
+      Operation op = opBuilder.build(line.tailTokens());
       ops.add(op);
     }
     return new EffesFunction(functionName, nLocal, nArgs, ops.toArray(new Operation[0]));
@@ -112,8 +112,8 @@ public class Parser {
       return get(idx, attrDescription, Function.identity());
     }
 
-    String[] tokensFrom(int startingIndex) {
-      return Arrays.copyOfRange(tokens, startingIndex, tokens.length);
+    String[] tailTokens() {
+      return Arrays.copyOfRange(tokens, 1, tokens.length);
     }
 
     @Override

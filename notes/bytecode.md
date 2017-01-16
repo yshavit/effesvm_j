@@ -75,20 +75,13 @@ A special case of a function declaration is for the module function `main`. The 
 
 This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`.
 
-Implicit type declarations
-========================================================================================
-
-The following types are implicitly part of any `.efct` file:
-    TYPE Void 0
-    TYPE True 0
-    TYPE False 0
-    
 The execution stack
 ========================================================================================
 
 State is maintained on a LIFO stack. Every item in the stack has a type and a value. The type is one of:
 
 - EffesRef
+- Boolean
 - Integer (signed 64 integer)
 
 An EffesRef references an object that has:
@@ -103,7 +96,7 @@ ops
 
 Each op is on a line of its own. The first letters of the line define which op it is, and any arguments are separated by spaces. Multiple or trailing spaces are not allowed.
 
-Many of the operands describe popping elements from the stack. Unless noted otherwise, this results in an error if the stack is empty.
+Many of the operands describe popping elements from the stack. Unless noted otherwise, this results in an error if the local stack is empty.
 
 Note that opcodes are only allowed immediately preceding function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 

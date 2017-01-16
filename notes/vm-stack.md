@@ -41,7 +41,6 @@ Stack frames look like:
 
 The stack's registers are:
 
-- _$rv_: the return value for the current stack frame
 - _$fp_: the current stack frame's FrameInfo reference
 - _$sp_: the top of the stack, inclusive
 - _$pc_: the program counter (format not specified in this document)
@@ -63,15 +62,23 @@ The FrameInfo contains:
 Stack operations
 ========================================================================================
 
-Pushing a value
+Pushing and popping
 ----------------------------------------------------------------------------------------
 
 Several opcodes push a value to the stack. These operations succeed as long as there is room on the stack. They increment the _$sp_ register.
 
-Popping a value
-----------------------------------------------------------------------------------------
-
 Several opcodes pop values from the stack. These operations succeeds as long as there are elements on the local stack; that is, that _$sp > $fp + nLocal_, where _nLocal_ is the number of local variables. Popping a value not only decrements _$sp_, but also nulls out the value being popped.
+
+When multiple items need to be pushed or popped as part of a single semantic action (for instance, invoking a function or performing arithmetic), the convention is for them to be pushed in caller-order. That is, the first element pushed is the first element as seen from the caller's perspective. This means that the receiver will see them in the _opposite_ order. For instance, to perform `5 - 3`, you would do:
+
+    int  5
+    int  3
+    isub
+
+From the perspective of `isub`, these seem to come in reverse order. The first item it sees is 3, and the second is 5.
+
+This is a convention, not a rule. If a specific opcode finds it much more convenient to work in a different order, it may do so.
+  
 
 Opening a frame
 ----------------------------------------------------------------------------------------
@@ -89,27 +96,17 @@ To invoke a method with N arguments:
   - push the new FrameInfo object to the stack, and set _$fp_ to point to it
   - set _$sp_ to _$fp + nLocal_, where _nLocal_ is the number of local variable for the method being called
   - update _$pc_ to point to the new method's first opcode
-
-Copying an argument or local variable to the stack
-----------------------------------------------------------------------------------------
-
-The `parg` opcode copies argument methods to the top of the stack. It first checks that the requested argument is witing range (that is, that _0 ≤ N < nArgs_, where N is the argument being requested and nArgs is the number of arguments in the current stack frame). It then pushes this argument to the top of the local stack.
-
-The `gvar` opcode copies a variable to the top of the stack. It works similarly, except that there is also a check that the variable has been set.
-
-Popping a local stack value to a local variable
-----------------------------------------------------------------------------------------
-
-This pops a value from the local stack to a local variable. No type checking is done. The variable must be in range for the current FrameInfo's local variables cont.
     
 Closing a frame
 ----------------------------------------------------------------------------------------
 
 As mentioned above, can't just pop by setting registers, as a real stack would, because we need to null out elements so that the JVM's GC can collect those objects.
 
-- Check that _$rv_ has been set
+The steps to closing a frame are:
+
+- require exactly one element on the local stack; pop it, and store it as this frame's return value
 - Let _fp_ be current FramePointer info
 - pop elements from the stack while _$sp > $fp - fp.nArgs_
 - set _$fp = fp.previousFp_
 - set _$pc = fp.returningPc_
-- push _$rv_, and null it
+- push the return value from the first step
