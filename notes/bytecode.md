@@ -115,6 +115,9 @@ Many of the operands describe popping elements from the stack. Unless noted othe
 
 Note that opcodes are only allowed immediately preceding function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 
+Description conventions
+----------------------------------------------------------------------------------------
+
 The following opcodes have the following format:
 
 > `opcode` _arg0_ ... _argN_ @pop0 ... @popM -> pushVar
@@ -143,6 +146,21 @@ The opcode might be invoked as:
     regx full      # test whether local arg 0 matches "foo(.*)" in full
 
 [vm-stack]: vm-stack.md
+
+Ops on native types
+----------------------------------------------------------------------------------------
+
+Native function calls ("native" in the sense of being handled directly by the EVM) are specified as a separate opcode per call.
+
+These all follow the convention of `call_<type>:<function>`. For instance, `call_String:regex` calls the native `regex` function for String types.
+
+This convention lets the underscore match up with the spaces following 4-char opcodes, such that things line up and generally look nice:
+
+    parg 3
+    call : myfunction
+    pstr "hello world"
+    pstr ".*"
+    call_String:regex
 
 Stack manipulation
 ----------------------------------------------------------------------------------------
@@ -216,11 +234,15 @@ Integer operations
 
 Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
 
-### i:lt, i:le, i:eq, i:ge, i:gt @lhs @rhs -> comparisonResult
+### call_Integer:&lt;cmp&gt;
+
+_&lt;cmp&gt;_ is one of: lt, le, eq, ge, gt
 
 Pops two elements from the stack, which must both be of Integer type. Pushes a True if @lhs is less than, less than or equal to, equal to, greater than, or greater than or equal to @rhs (respectively, per opcode). Pushes a False otherwise.
 
-### iadd, isub, idiv, imul @lhs @rhs -> result
+### call_Integer:&lt;op&gt; @lhs @rhs -> result
+
+_&lt;op&gt;_ is one of: add, sub, div, mult
 
 Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator.
 

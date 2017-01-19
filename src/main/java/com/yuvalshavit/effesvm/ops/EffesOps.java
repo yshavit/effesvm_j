@@ -71,27 +71,27 @@ public class EffesOps {
     throw new UnsupportedOperationException(); // TODO
   }
 
-  @OperationFactory("i:lt")
+  @OperationFactory("call_Integer:lt")
   public static Operation lt() {
     return intCmp((l, r) -> (l < r));
   }
 
-  @OperationFactory("i:le")
+  @OperationFactory("call_Integer:le")
   public static Operation le() {
     return intCmp((l, r) -> (l <= r));
   }
 
-  @OperationFactory("i:eq")
+  @OperationFactory("call_Integer:eq")
   public static Operation eq() {
     return intCmp((l, r) -> (l == r));
   }
 
-  @OperationFactory("i:ge")
+  @OperationFactory("call_Integer:ge")
   public static Operation ge() {
     return intCmp((l, r) -> (l >= r));
   }
 
-  @OperationFactory("i:gt")
+  @OperationFactory("call_Integer:gt")
   public static Operation gt() {
     return intCmp((l, r) -> (l > r));
   }
@@ -110,22 +110,22 @@ public class EffesOps {
     };
   }
 
-  @OperationFactory("iadd")
+  @OperationFactory("call_Integer:add")
   public static Operation iAdd() {
     return intArith((l, r) -> (l + r));
   }
 
-  @OperationFactory("isub")
+  @OperationFactory("call_Integer:sub")
   public static Operation iSub() {
     return intArith((l, r) -> (l - r));
   }
 
-  @OperationFactory("imul")
+  @OperationFactory("call_Integer:mult")
   public static Operation iMul() {
     return intArith((l, r) -> (l * r));
   }
 
-  @OperationFactory("idiv")
+  @OperationFactory("call_Integer:div")
   public static Operation iDiv() {
     return intArith((l, r) -> (l / r));
   }
