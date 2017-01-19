@@ -179,6 +179,21 @@ Pops two elements from the stack, which must both be of Integer type. The first 
 
 Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator. In the case of lsub and idiv, the first element is the RHS and the second is the LHS.
 
+String operations
+----------------------------------------------------------------------------------------
+
+### str _value_
+
+Pushes a String of type _value_ to the stack.
+
+### call_String:len
+
+Pops an element from the stack, which must be a String. Pushes an Integer representing its length (in number of code points, _not_ in terms of 2-byte chars as Java naturally does) to the stack.
+
+### call_String:regex
+
+Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or True if it does.
+
 Other
 ----------------------------------------------------------------------------------------
 
