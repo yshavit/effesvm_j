@@ -115,24 +115,53 @@ Many of the operands describe popping elements from the stack. Unless noted othe
 
 Note that opcodes are only allowed immediately preceding function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 
+The following opcodes have the following format:
+
+> `opcode` _arg0_ ... _argN_ @pop0 ... @popM -> pushVar
+
+That represents an operation that:
+
+- is identified as `opcode`
+- takes N arguments (within the efct line)
+- pops M elements from the stack.
+- pushes `pushVar` to the stack
+
+All elements other than the opcode name itself are optional in the opcode's description. If they are mentioned in the description, they are _not_ optional when invoking the opcode unless they're surrounded by square brackets.
+
+As mentioned in the [vm-stack][vm-stack] document, elements are described in caller-order, which is the reverse order by which the opcode will see them as it pops them off the stack.
+
+For instance, consider an opcode descibed as:
+
+    regx _where_ @lookIn @pattern -> match
+
+This opcode takes one argument in the `.efct` file, _where_, which for sake of argument we'll say must be either "anywhere" or "full", describing essentially whether to use Java's `Matcher.find` or `Matcher.matches` when executing the regular expression. It will also pop two values off the stack. The first value to be popped is `@pattern` (_not_ `@lookIn`). It will evaluate the regular expression, and then push the match result to the stack.
+
+The opcode might be invoked as:
+
+    str  "foo(.*)" # push the string to the stack
+    pvar 0         # pushes local arg 0 to the stack
+    regx full      # test whether local arg 0 matches "foo(.*)" in full
+
+[vm-stack]: vm-stack.md
+
 Stack manipulation
 ----------------------------------------------------------------------------------------
 
-### pop
+### pop @ignored
 
 Pops and discards the topmost element of the stack.
 
-### parg _N_
+### parg _N_ -> argValue
 
 Copies the function argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
 
 Errors if the argument is out of range (that is, is ≥ the number of arguments in the current function).
 
-### pvar _N_
+### pvar _N_ -> varValue
 
 Gets local variable N, and pushes it to the stack. The variable itself is unaffected. This errors if the variable has not been set, or if N is out of range.
 
-### svar _N_
+### svar _N_ @varValue
 
 Pops the topmost element from the stack, and stores it in local variable N. Errors if N is out of range.
 
@@ -143,7 +172,7 @@ Branching
 
 Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current function. For instance, `goto 0` goes to the first opcode in the function (ie, the opcode represented by the first line of the function body), `goto 3` goes to the fourth, etc.
 
-### goif _N_
+### goif _N_ @condition
 
 Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
 
@@ -154,11 +183,11 @@ Finishes execution of the current function. The current frame must have exactly 
 Functions, field access and object manipulation
 ----------------------------------------------------------------------------------------
 
-### type typedesc
+### type typedesc @item -> isOfRightType
 
 Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
 
-### call classname functionname
+### call classname functionname [@arg0 ... arg@1] -> result
 
 Calls a function.
 
@@ -176,37 +205,37 @@ Examples:
 - `call : myModuleFunction` calls a function
 - `call LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
-### pvar name
+### pvar name @effesItem -> effesItemField
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
 
 Integer operations
 ----------------------------------------------------------------------------------------
 
-### int _N_
+### int _N_ -> N
 
 Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
 
-### i:lt, i:le, i:eq, i:ge, i:gt
+### i:lt, i:le, i:eq, i:ge, i:gt @lhs @rhs -> comparisonResult
 
-Pops two elements from the stack, which must both be of Integer type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
+Pops two elements from the stack, which must both be of Integer type. Pushes a True if @lhs is less than, less than or equal to, equal to, greater than, or greater than or equal to @rhs (respectively, per opcode). Pushes a False otherwise.
 
-### iadd, isub, idiv, imul
+### iadd, isub, idiv, imul @lhs @rhs -> result
 
-Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator. In the case of lsub and idiv, the first element is the RHS and the second is the LHS.
+Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator.
 
 String operations
 ----------------------------------------------------------------------------------------
 
-### str _value_
+### str _value_ -> value
 
 Pushes a String of type _value_ to the stack.
 
-### call_String:len
+### call_String:len @str -> len
 
 Pops an element from the stack, which must be a String. Pushes an Integer representing its length (in number of code points, _not_ in terms of 2-byte chars as Java naturally does) to the stack.
 
-### call_String:regex
+### call_String:regex @lookIn @pattern -> didMatch
 
 Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or True if it does.
 
