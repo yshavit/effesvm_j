@@ -75,9 +75,9 @@ When multiple items need to be pushed or popped as part of a single semantic act
     int  3
     isub
 
-From the perspective of `isub`, these seem to come in reverse order. The first item it sees is 3, and the second is 5.
+From the perspective of `isub`, these seem to come in reverse order. The first item it sees is 3, and the second is 5. This is a convention, not a rule. If a specific opcode finds it much more convenient to work in a different order, it may do so.
 
-This is a convention, not a rule. If a specific opcode finds it much more convenient to work in a different order, it may do so.
+Pushing items in caller order has the advantage of having bytecode execution more closely mirror code. For instance, if a program executes `foo() + bar()`, pushing `foo()`'s result first is more intuitive. If `foo()` and `bar()` have side effects, this is visible to end users.
   
 
 Opening a frame
