@@ -26,7 +26,6 @@ An empty line is one with no characters. It is a no-op, except when it serves as
 
 A comment line starts with a hash (`#`). Comment lines are also no-ops.
 
-
 Declarations
 ========================================================================================
 
@@ -103,10 +102,6 @@ Note that opcodes are only allowed immediately preceding function declarations, 
 Stack manipulation
 ----------------------------------------------------------------------------------------
 
-### int _N_
-
-Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
-
 ### pop
 
 Pops and discards the topmost element of the stack.
@@ -140,19 +135,12 @@ Pops the topmost element, which must be an EffesRef whose type is True or False.
 
 Finishes execution of the current function. The current frame must have exactly one value on the stack, which will then be the function's result. Any other state is an error. If a value is returned, its type is not checked.
 
-Comparisons
+Functions, field access and object manipulation
 ----------------------------------------------------------------------------------------
 
 ### type typedesc
 
 Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
-
-### i:lt, i:le, i:eq, i:ge, i:gt
-
-Pops two elements from the stack, which must both be of Integer type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
-
-Functions, field access and arithmetic
-----------------------------------------------------------------------------------------
 
 ### call classname functionname
 
@@ -175,6 +163,17 @@ Examples:
 ### pvar name
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
+
+Integer operations
+----------------------------------------------------------------------------------------
+
+### int _N_
+
+Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
+
+### i:lt, i:le, i:eq, i:ge, i:gt
+
+Pops two elements from the stack, which must both be of Integer type. The first one popped is the RHS, and the second one is the LHS. Pushes a True if the LHS is less than, less than or equal to, equal to, greater than, or greater than or equal to the RHS (respectively, per opcode). Pushes a False otherwise.
 
 ### iadd, isub, idiv, imul
 
