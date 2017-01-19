@@ -9,6 +9,7 @@ import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesModule;
+import com.yuvalshavit.effesvm.util.SimpleTokenizer;
 
 public class Parser {
   public static final String EFCT_0_HEADER = "efct 0";
@@ -86,12 +87,13 @@ public class Parser {
     private final String[] tokens;
 
     Line(String line) {
-      line = line.trim();
-      this.tokens = line.isEmpty() ? null : line.split(" +"); // TODO better tokenization!
+      List<String> tokensList = new ArrayList<>();
+      SimpleTokenizer.tokenize(line).forEachRemaining(tokensList::add);
+      this.tokens = tokensList.toArray(new String[tokensList.size()]);
     }
 
     boolean isEmpty() {
-      return tokens == null;
+      return tokens.length == 0;
     }
 
     <T> T get(int idx, String attrDescription, Function<String,T> tokenParser) {
