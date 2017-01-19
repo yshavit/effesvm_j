@@ -4,6 +4,7 @@ import static org.testng.Assert.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,6 +44,11 @@ public class SimpleTokenizerTest {
 
       new Object[] { "bareword \\n escape", Arrays.asList("bareword", "\n", "escape")},
       new Object[] { "quoted \"line \\n escape\"", Arrays.asList("quoted", "line \n escape")},
+
+      new Object[] { "# comment line", Collections.emptyList()},
+      new Object[] { "bareword then #comment line", Arrays.asList("bareword", "then")},
+      new Object[] { "bareword then# comment line without a space", Arrays.asList("bareword", "then")},
+      new Object[] { "quoted \"then # a hash\"", Arrays.asList("quoted", "then # a hash")},
     };
   }
 
@@ -61,6 +67,9 @@ public class SimpleTokenizerTest {
       new Object[] { "invalid old-style unicode \\uZEBRA"},
       new Object[] { "invalid new-style unicode \\u{ZEBRA}"},
       new Object[] { "unclosed \"quotation mark"},
+      new Object[] { "java-style \"continuation \\uD83D\\uDE80 sequences\""},
+      new Object[] { "java-style \"continuation \\uD83D sequences (just high)\""},
+      new Object[] { "java-style \"continuation \\uDE80 sequences (just low)\""},
     };
   }
 }

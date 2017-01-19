@@ -1,30 +1,46 @@
 Outline of a module file
 ========================================================================================
 
-A text-based Effes bytecode file (`.efct`) is a semi-human-readable, text-based format for defining an Effes module. Lines are delimited by a single newline (`\n`) character. When this document discusses any line's contents, it does not specify the newline character. It is implied. For instance, if the document specifies a line with contents `foo`, the on-disk representation of that line would actually be `foo\n`.
+A text-based Effes bytecode file (`.efct`) is a semi-human-readable, text-based format for defining an Effes module. 
 
-The first line of an `.efct` file _must_ consist of the following text, exactly:
-
-    efct 0
-
-After that, an `.efct` file may contain zero or more of the following, in any order:
+An `.efct` file may contain zero or more of the following, in any order:
 
 - declarations:
   - class declarations
   - functions
-- no-ops:
-  - comment lines
-  - empty lines
+- empty lines
 
 Sum types are not declared in module files. They are fully resolved at compile time.
 
+File format
+----------------------------------------------------------------------------------------
 
-Comments and empty lines
-========================================================================================
+An `.efct` file is a UTF-8 encoded text file that consists of one or more lines, each of which consist of zero or more tokens. Lines are delimited by a single newline (`\n`) character. When this document discusses any line's contents, those contents do not inlude the trailing newline character. For instance, if the document specifies a line with contents `foo`, the on-disk representation of that line would be `foo\n`.
 
-An empty line is one with no characters. It is a no-op, except when it serves as the marker for a function body's end, as described below.
+Within each line, all tokens are strings. If certain opcodes or declarations require non-string operands, the onus is on them (not the `.efct` format parser) to parse the strings.
 
-A comment line starts with a hash (`#`). Comment lines are also no-ops.
+Tokens are separated by whitespace, as defined by Java's `Character.isWhitespace(int)` function. Tokens have two forms:
+
+- bareword tokens, consiting of one or more non-whitespace, non-hash (`#`) characters (e.g. `foo`)
+- quoted tokens, consisting of a double quote (`"`), followed by zero or more characters other than a newline or non-escaped quote, followed by a closing double quoted (e.g. `"foo bar"`)
+
+For both kinds of tokens, the following escape sequences are allowed:
+
+- `\b`, `\t`, `\n`, `\f`, `\r`, `\"`, `\'`, or `\\`, as defined in [JLS 3.10.6][jls-3.10.6]
+- `\uXXXX`, where XXXX is a four-digit hexadecimal representing a _single_ code point
+- `\u{...}`, where `...` is an arbitrary-length hexadecimal representing a single code point
+
+Note that unlike in Java, higher-plane (supplementary) code points cannot be represented as two `\uXXXX` escapes. For instance, `\uD83D\uDE80` does not represent the rocket character. You should instead use the `\u{...}` form for these code points, as in `\u{1F680}`.
+
+[jls-3.10.6]: http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.6
+
+The first line of an `.efct` file _must_ consist of the following tokens, exactly:
+
+    efct 0
+
+A hash (`#`) not within a quoted token begins a comment. It and the rest of the line are ignored.
+    
+An empty line is one with no tokens. It is a no-op, except when it serves as the marker for a function body's end, as described below.
 
 Declarations
 ========================================================================================

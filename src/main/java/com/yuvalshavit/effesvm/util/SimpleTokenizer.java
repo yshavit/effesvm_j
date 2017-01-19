@@ -3,20 +3,12 @@ package com.yuvalshavit.effesvm.util;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.PrimitiveIterator;
+import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
 
-public class SimpleTokenizer implements Iterable<String> {
+public class SimpleTokenizer {
 
-  private final String string;
-
-  public SimpleTokenizer(String string) {
-    this.string = string;
-  }
-
-  @Override
-  public Iterator<String> iterator() {
-    return tokenize(string);
-  }
+  private SimpleTokenizer() { }
 
   public static Iterator<String> tokenize(String string) {
     return new TokenizingIterator(string);
@@ -28,7 +20,7 @@ public class SimpleTokenizer implements Iterable<String> {
     private final LookaheadIntIterator source;
     private String pending;
 
-    public TokenizingIterator(String source) {
+    TokenizingIterator(String source) {
       this.source = new LookaheadIntIterator(source.codePoints().iterator());
       this.scratch = new StringBuilder(source.length());
       this.unicodeEscapeScratch = new StringBuilder(6);
@@ -52,6 +44,9 @@ public class SimpleTokenizer implements Iterable<String> {
       }
       if (!foundNonWhitespace) {
         return false;
+      } else if (firstNonWhitespace == '#') {
+        source.forEachRemaining((IntConsumer) i -> {});
+        return false;
       }
       if (firstNonWhitespace == '"') {
         if (!parseUntil(c -> c == '"')) {
@@ -59,12 +54,25 @@ public class SimpleTokenizer implements Iterable<String> {
         }
       } else {
         source.pushBack(firstNonWhitespace);
-        parseUntil(Character::isWhitespace);
+        parseUntil(c -> {
+          if (Character.isWhitespace(c)) {
+            return true;
+          } else if (c == '#') {
+            source.pushBack(c); // so that the next call to hasNext will find it
+            return true;
+          } else {
+            return false;
+          }
+        });
       }
       pending = scratch.toString();
       return true;
     }
 
+    /**
+     * Parses until the either the end condition is met or the stream ends.
+     * @return whether the end condition was met (as compared to the stream ending)
+     */
     private boolean parseUntil(IntPredicate endCondition) {
       scratch.setLength(0);
       while (source.hasNext()) {
@@ -73,49 +81,7 @@ public class SimpleTokenizer implements Iterable<String> {
           return true;
         }
         if (codePoint == '\\') {
-          // escape sequence
-          if (!source.hasNext()) {
-            throw new TokenizationException("line may not end in backslash (\\)");
-          }
-          if (source.hasNext()) {
-            final char escaped;
-            switch (source.nextInt()) {
-              case 'b':
-                escaped = '\b';
-                break;
-              case 't':
-                escaped = '\t';
-                break;
-              case 'n':
-                escaped = '\n';
-                break;
-              case 'f':
-                escaped = '\f';
-                break;
-              case 'r':
-                escaped = '\r';
-                break;
-              case '"':
-                escaped = '"';
-                break;
-              case '\'':
-                escaped = '\'';
-                break;
-              case '\\':
-                escaped = '\\';
-                break;
-              case 'u':
-                escaped = 'u';
-                break;
-              default:
-                throw new TokenizationException("illegal escape sequence");
-            }
-            if (escaped == 'u') {
-              unicodeEscape();
-            } else {
-              scratch.append(escaped);
-            }
-          }
+          handleEscapeSequence();
         } else {
           scratch.appendCodePoint(codePoint);
         }
@@ -123,24 +89,77 @@ public class SimpleTokenizer implements Iterable<String> {
       return false;
     }
 
+    private void handleEscapeSequence() {
+      // escape sequence
+      if (!source.hasNext()) {
+        throw new TokenizationException("line may not end in backslash (\\)");
+      }
+      if (source.hasNext()) {
+        final char escaped;
+        switch (source.nextInt()) {
+          case 'b':
+            escaped = '\b';
+            break;
+          case 't':
+            escaped = '\t';
+            break;
+          case 'n':
+            escaped = '\n';
+            break;
+          case 'f':
+            escaped = '\f';
+            break;
+          case 'r':
+            escaped = '\r';
+            break;
+          case '"':
+            escaped = '"';
+            break;
+          case '\'':
+            escaped = '\'';
+            break;
+          case '\\':
+            escaped = '\\';
+            break;
+          case 'u':
+            escaped = 'u';
+            break;
+          default:
+            throw new TokenizationException("illegal escape sequence");
+        }
+        if (escaped == 'u') {
+          unicodeEscape();
+        } else {
+          scratch.append(escaped);
+        }
+      }
+    }
+
     private void unicodeEscape() {
       unicodeEscapeScratch.setLength(0);
+      final boolean fourDigitStyle;
       char c = escapeSequenceChar();
       if (c == '{') {
         for (c = escapeSequenceChar(); c != '}'; c = escapeSequenceChar()) {
           unicodeEscapeScratch.append(c);
         }
+        fourDigitStyle = false;
       } else {
         unicodeEscapeScratch.append(c);
         unicodeEscapeScratch.append(escapeSequenceChar());
         unicodeEscapeScratch.append(escapeSequenceChar());
         unicodeEscapeScratch.append(escapeSequenceChar());
+        fourDigitStyle = true;
       }
       int codePoint;
       try {
         codePoint = Integer.parseInt(unicodeEscapeScratch.toString(), 16);
       } catch (NumberFormatException e) {
         throw new TokenizationException("invalid unicode escape sequence");
+      }
+
+      if (fourDigitStyle && Character.isSurrogate((char) codePoint)) {
+        throw new TokenizationException("surrogate pairs are not allowed");
       }
       scratch.appendCodePoint(codePoint);
     }
@@ -170,7 +189,7 @@ public class SimpleTokenizer implements Iterable<String> {
   }
 
   public static class TokenizationException extends RuntimeException {
-    public TokenizationException(String message) {
+    TokenizationException(String message) {
       super(message);
     }
   }
@@ -181,7 +200,7 @@ public class SimpleTokenizer implements Iterable<String> {
     private int lookaheadInt;
     private final OfInt delegateIter;
 
-    public LookaheadIntIterator(OfInt delegateIter) {
+    LookaheadIntIterator(OfInt delegateIter) {
       hasLookaheadInt = false;
       this.delegateIter = delegateIter;
     }
@@ -201,14 +220,14 @@ public class SimpleTokenizer implements Iterable<String> {
       return hasLookaheadInt || delegateIter.hasNext();
     }
 
-    public void pushBack(int theInt) {
+    void pushBack(int theInt) {
       lookaheadInt = theInt;
       hasLookaheadInt = true;
     }
   }
 
   public static void main(String[] args) {
-    String s = "\uD83D\uDE80";
+    String s = "";
     System.out.println("s: " + s);
     System.out.println("len: " + s.length());
     System.out.println("code points: " + s.codePointCount(0, s.length()));

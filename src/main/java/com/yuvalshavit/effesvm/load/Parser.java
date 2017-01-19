@@ -1,10 +1,16 @@
 package com.yuvalshavit.effesvm.load;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.StreamSupport;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
@@ -26,11 +32,7 @@ public class Parser {
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
     }
-    Iterator<Line> tokenizedLines = StreamSupport.stream(Spliterators.spliteratorUnknownSize(lines, Spliterator.ORDERED), false)
-      .map(String::trim)
-      .filter(l -> !l.startsWith("#"))
-      .map(Line::new)
-      .iterator();
+    Iterator<Line> tokenizedLines = Iterators.transform(lines, Line::new);
 
     Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
     while (tokenizedLines.hasNext()) {
