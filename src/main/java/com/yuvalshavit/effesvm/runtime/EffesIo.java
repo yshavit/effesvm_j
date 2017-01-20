@@ -11,7 +11,13 @@ public interface EffesIo {
   }
 
   String readLine();
-  void write(String string);
+  void out(String string);
+  void err(String string);
+
+  default void errLine(String string) {
+    err(string);
+    err("\n");
+  }
 
   class Stdio implements EffesIo {
     private static final Stdio instance = new Stdio();
@@ -29,8 +35,13 @@ public interface EffesIo {
     }
 
     @Override
-    public void write(String string) {
+    public void out(String string) {
       System.out.print(string);
+    }
+
+    @Override
+    public void err(String string) {
+      System.err.print(string);
     }
   }
 }

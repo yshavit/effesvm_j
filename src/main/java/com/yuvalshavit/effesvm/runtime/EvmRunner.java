@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.load.Parser;
@@ -40,13 +41,20 @@ public class EvmRunner {
     if (args.length != 1) {
       throw new IllegalArgumentException("must take exactly one file, an efct file");
     }
-    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(EffesIo.stdio()));
-    Parser parser = new Parser(ops);
 
     Path path = FileSystems.getDefault().getPath(args[0]);
-    EffesModule module = parser.parse(Files.lines(path).iterator());
-    int exitCode = run(module, STACK_SIZE);
+    Iterator<String> lines = Files.lines(path).iterator();
+    EffesIo io = EffesIo.stdio();
+
+    int exitCode = run(lines, io);
     System.exit(exitCode);
+  }
+
+  public static int run(Iterator<String> efctLines, EffesIo io) {
+    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
+    Parser parser = new Parser(ops);
+    EffesModule module = parser.parse(efctLines);
+    return run(module, STACK_SIZE);
   }
 
 }
