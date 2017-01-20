@@ -261,6 +261,14 @@ Pops an element from the stack, which must be a String. Pushes an Integer repres
 
 Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or True if it does.
 
+### call_String:sin -> string
+
+Reads a single line from stdin and pushes it to the stack (without the trailing newline), or pushes False is no more lines are available.
+
+### call_String:sout @string
+
+Pops a string from the stack and writes it to stdout. No newline is added.
+
 Other
 ----------------------------------------------------------------------------------------
 

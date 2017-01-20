@@ -3,10 +3,13 @@ package com.yuvalshavit.effesvm.ops;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.function.IntBinaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.common.base.MoreObjects;
 import com.yuvalshavit.effesvm.load.EffesLoadExeption;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
+import com.yuvalshavit.effesvm.runtime.EffesIo;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
@@ -135,6 +138,41 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> System.err.println(MoreObjects.firstNonNull(
       s.peek(),
       "<the local stack for this frame is empty>")));
+  }
+
+  @OperationFactory("str")
+  public static Operation strPush(String value) {
+    return Operation.withIncementingPc(s -> s.push(value));
+  }
+
+  @OperationFactory("call_String:len")
+  public static Operation stringLen() {
+    return Operation.withIncementingPc(s -> {
+      String str = (String) s.pop();
+      int len = str.codePointCount(0, str.length());
+      s.push(len);
+    });
+  }
+
+  @OperationFactory("call_String:regex")
+  public static Operation stringRegex() {
+    return Operation.withIncementingPc(s -> {
+      String patternStr = (String) s.pop();
+      String lookFor = (String) s.pop();
+      Matcher matcher = Pattern.compile(patternStr).matcher(lookFor);
+      boolean found = matcher.find();
+      s.push(found);
+    });
+  }
+
+  @OperationFactory("call_String:sout")
+  public static Operation sout() {
+    return Operation.withIncementingPc(s -> EffesIo.write((String) s.pop()));
+  }
+
+  @OperationFactory("call_String:sin")
+  public static Operation sin() {
+    return Operation.withIncementingPc(s -> s.push(MoreObjects.firstNonNull(EffesIo.readLine(), false)));
   }
 
   private static int nonNegative(String n) {
