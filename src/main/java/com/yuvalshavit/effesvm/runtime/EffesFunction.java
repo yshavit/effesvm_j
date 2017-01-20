@@ -10,14 +10,14 @@ public class EffesFunction {
   
   public static String MODULE_CLASSNAME = ":";
   
-  private final String name;
+  private final Id id;
   private final int nArgs;
   private final int nVars;
   private final Operation[] ops;
   private PcMove jumpToMe;
 
-  public EffesFunction(String name, int nVars, int nArgs, Operation[] ops) {
-    this.name = name;
+  public EffesFunction(Id id, int nVars, int nArgs, Operation[] ops) {
+    this.id = id;
     this.nArgs = nArgs;
     this.nVars = nVars;
     this.ops = ops;
@@ -39,8 +39,8 @@ public class EffesFunction {
     return ops[idx];
   }
 
-  public String name() {
-    return name;
+  public Id id() {
+    return id;
   }
 
   public PcMove getJumpToMe() {
@@ -56,7 +56,7 @@ public class EffesFunction {
 
   @Override
   public String toString() {
-    return name;
+    return String.valueOf(id);
   }
   
   public static class Id {

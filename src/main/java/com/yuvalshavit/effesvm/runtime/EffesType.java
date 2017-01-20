@@ -28,6 +28,10 @@ public class EffesType {
     return idx;
   }
 
+  public String argAt(int idx) {
+    return arguments.get(idx);
+  }
+
   @Override
   public String toString() {
     return name;

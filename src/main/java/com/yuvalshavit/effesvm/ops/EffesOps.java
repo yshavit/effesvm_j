@@ -138,14 +138,14 @@ public class EffesOps {
         return PcMove.next();
       };
     } else {
-      // module (static) function
+      // non-constructor function
       return c -> {
         EffesFunction f = c.module().getFunction(id);
         if (f == null) {
           throw new EffesLoadExeption("link error: no function " + id);
         }
-        if (!EffesFunction.MODULE_CLASSNAME.endsWith(id.functionName())) {
-          int nArgs = f.nArgs(); // does not count the "this" reference
+        int nArgs = f.nArgs(); // does not count the "this" reference
+        if (!EffesFunction.MODULE_CLASSNAME.equals(id.typeName())) {
           Object instance = c.state().peek(nArgs);
           if (!(instance instanceof EffesObject)) {
             throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
@@ -154,9 +154,10 @@ public class EffesOps {
           if (!id.typeName().equals(instanceType.name())) { // TODO multi-module will need to tweak this a bit
             throw new EffesRuntimeException(String.format("instance function %s invoked on wrong EffesObject instance: %s", id, instance));
           }
+          ++nArgs; // to include the "this" reference
         }
         PcMove.next().accept(c.state().pc()); // set up the return jump point
-        c.state().openFrame(f.nArgs(), f.nVars());
+        c.state().openFrame(nArgs, f.nVars());
         return f.getJumpToMe();
       };
     }

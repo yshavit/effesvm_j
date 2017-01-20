@@ -55,7 +55,7 @@ public class Parser {
             line.get(3, "nGenerics", Integer::parseInt),
             line.get(4, "nLocal", Integer::parseInt),
             line.get(5, "nArgs", Integer::parseInt));
-          functions.put(new EffesFunction.Id(className, functionName), parsedFunction);
+          functions.put(parsedFunction.id(), parsedFunction);
           break;
         case "TYPE":
           EffesType type = parseType(line);
@@ -72,8 +72,6 @@ public class Parser {
     Preconditions.checkArgument(nGenerics == 0, "nGenerics");
     Preconditions.checkArgument(nLocal >= 0, "nLocal: " + nLocal);
     Preconditions.checkArgument(nArgs >= 0, "nArgs: " + nArgs);
-
-    Preconditions.checkArgument(className.equals(EffesFunction.MODULE_CLASSNAME), "classname: " + className); // no instance methods yet!
 
     List<Operation> ops = new ArrayList<>();
     while (lines.hasNext()) {
@@ -92,7 +90,7 @@ public class Parser {
       Operation op = opBuilder.build(line.tailTokens(1));
       ops.add(op);
     }
-    return new EffesFunction(functionName, nLocal, nArgs, ops.toArray(new Operation[0]));
+    return new EffesFunction(new EffesFunction.Id(className, functionName), nLocal, nArgs, ops.toArray(new Operation[0]));
   }
 
   private EffesType parseType(Line line) {

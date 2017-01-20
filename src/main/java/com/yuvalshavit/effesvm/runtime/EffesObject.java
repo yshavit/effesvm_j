@@ -1,6 +1,8 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Arrays;
+import java.util.StringJoiner;
+import java.util.stream.IntStream;
 
 import com.google.common.base.Joiner;
 
@@ -29,7 +31,11 @@ public class EffesObject {
     if (args.length == 0) {
       return type.toString();
     } else {
-      return String.format("%s(%s)", type, Joiner.on(", ").join(args));
+      StringJoiner joiner = new StringJoiner(", ", type + "{", "}");
+      IntStream.range(0, args.length)
+        .mapToObj(i -> String.format("%s=%s", type.argAt(i), args[i]))
+        .forEachOrdered(joiner::add);
+      return joiner.toString();
     }
   }
 }

@@ -68,7 +68,7 @@ public class EffesState {
   public void pushArg(int n) {
     FrameInfo frameInfo = fp();
     if (n < 0 || n >= frameInfo.nArgs) {
-      throw new EffesStackException("arg out of range: n");
+      throw new EffesStackException("arg out of range: " + n);
     }
     // args are like:
     // [ FrameInfo ] <- $fp
