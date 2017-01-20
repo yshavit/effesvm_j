@@ -43,4 +43,9 @@ runs:
     how are you
   out: ''
   exit: 0
-- exit: 1
+- in: |
+    onlyThePattern
+  out: ''
+  exit: 0
+- in: null
+  exit: 1
