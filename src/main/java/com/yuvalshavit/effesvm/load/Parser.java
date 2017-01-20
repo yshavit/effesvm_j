@@ -14,7 +14,9 @@ import com.google.common.collect.Iterators;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
+import com.yuvalshavit.effesvm.runtime.EffesLoadException;
 import com.yuvalshavit.effesvm.runtime.EffesModule;
+import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;
 
 public class Parser {
@@ -27,7 +29,7 @@ public class Parser {
 
   public EffesModule parse(Iterator<String> lines) {
     if (!lines.hasNext()) {
-      return new EffesModule(Collections.emptyMap());
+      return new EffesModule(Collections.emptyMap(), Collections.emptyMap());
     }
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
@@ -35,6 +37,7 @@ public class Parser {
     Iterator<Line> tokenizedLines = Iterators.transform(lines, Line::new);
 
     Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
+    Map<String,EffesType> types = new HashMap<>();
     while (tokenizedLines.hasNext()) {
       Line line = tokenizedLines.next();
       if (line.isEmpty()) {
@@ -53,11 +56,15 @@ public class Parser {
             line.get(5, "nArgs", Integer::parseInt));
           functions.put(new EffesFunction.Id(className, functionName), parsedFunction);
           break;
+        case "TYPE":
+          EffesType type = parseType(line);
+          types.put(type.name(), type);
+          break;
         default:
           throw new IllegalArgumentException("unrecognized declaration type");
       }
     }
-    return new EffesModule(Collections.unmodifiableMap(functions));
+    return new EffesModule(types, Collections.unmodifiableMap(functions));
   }
 
   private EffesFunction parseFunction(Iterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
@@ -79,10 +86,20 @@ public class Parser {
       if (opBuilder == null) {
         throw new EffesLoadExeption("no such op: " + opcode);
       }
-      Operation op = opBuilder.build(line.tailTokens());
+      Operation op = opBuilder.build(line.tailTokens(1));
       ops.add(op);
     }
     return new EffesFunction(functionName, nLocal, nArgs, ops.toArray(new Operation[0]));
+  }
+
+  private EffesType parseType(Line line) {
+    String reserved = line.get(1, "reserved");
+    if (!"0".equals(reserved)) {
+      throw new EffesLoadException("second token in a TYPE line must be 0");
+    }
+    String name = line.get(2, "typename");
+    List<String> args = Arrays.asList(line.tailTokens(3));
+    return new EffesType(name, args);
   }
 
   private static class Line {
@@ -116,8 +133,8 @@ public class Parser {
       return get(idx, attrDescription, Function.identity());
     }
 
-    String[] tailTokens() {
-      return Arrays.copyOfRange(tokens, 1, tokens.length);
+    String[] tailTokens(int from) {
+      return Arrays.copyOfRange(tokens, from, tokens.length);
     }
 
     @Override

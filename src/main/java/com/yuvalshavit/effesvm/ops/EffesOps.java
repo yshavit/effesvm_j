@@ -10,7 +10,10 @@ import com.google.common.base.MoreObjects;
 import com.yuvalshavit.effesvm.load.EffesLoadExeption;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesIo;
+import com.yuvalshavit.effesvm.runtime.EffesObject;
+import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
 import com.yuvalshavit.effesvm.runtime.EffesState;
+import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public class EffesOps {
@@ -70,8 +73,21 @@ public class EffesOps {
   }
 
   @OperationFactory("type")
-  public static Operation type() {
-    throw new UnsupportedOperationException(); // TODO
+  public static Operation type(String typeName) {
+    return Operation.withIncementingPc(s -> {
+      Object item = s.pop();
+      boolean rightType = (item instanceof EffesObject) && ((EffesObject) item).type().name().equals(typeName); // TODO will need to beef up for multi-module
+      s.push(rightType);
+    });
+  }
+
+  @OperationFactory("oarg")
+  public static Operation objectArg(String name) {
+    return Operation.withIncementingPc(s -> {
+      EffesObject obj = (EffesObject) s.pop();
+      Object arg = obj.getArg(name);
+      s.push(arg);
+    });
   }
 
   @OperationFactory("call_Integer:lt")
@@ -102,15 +118,42 @@ public class EffesOps {
   @OperationFactory("call")
   public static Operation call(String className, String functionName) {
     EffesFunction.Id id = new EffesFunction.Id(className, functionName);
-    return c -> {
-      EffesFunction f = c.module().getFunction(id);
-      if (f == null) {
-        throw new EffesLoadExeption("link error: no function " + id);
-      }
-      PcMove.next().accept(c.state().pc()); // set up the return jump point
-      c.state().openFrame(f.nArgs(), f.nVars());
-      return f.getJumpToMe();
-    };
+    if (id.typeName().equals(id.functionName())) {
+      String typeName = id.typeName();
+      // constructor
+      return c -> {
+        EffesType type = c.module().getType(typeName);
+        Object[] args = new Object[type.nArgs()];
+        for (int i = args.length - 1; i >= 0; --i) {
+          args[i] = c.state().pop();
+        }
+        EffesObject obj = new EffesObject(type, args);
+        c.state().push(obj);
+        return PcMove.next();
+      };
+    } else {
+      // module (static) function
+      return c -> {
+        EffesFunction f = c.module().getFunction(id);
+        if (f == null) {
+          throw new EffesLoadExeption("link error: no function " + id);
+        }
+        if (!EffesFunction.MODULE_CLASSNAME.endsWith(id.functionName())) {
+          int nArgs = f.nArgs(); // does not count the "this" reference
+          Object instance = c.state().peek(nArgs);
+          if (!(instance instanceof EffesObject)) {
+            throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
+          }
+          EffesType instanceType = ((EffesObject) instance).type();
+          if (!id.typeName().equals(instanceType.name())) { // TODO multi-module will need to tweak this a bit
+            throw new EffesRuntimeException(String.format("instance function %s invoked on wrong EffesObject instance: %s", id, instance));
+          }
+        }
+        PcMove.next().accept(c.state().pc()); // set up the return jump point
+        c.state().openFrame(f.nArgs(), f.nVars());
+        return f.getJumpToMe();
+      };
+    }
   }
 
   @OperationFactory("call_Integer:add")
@@ -135,9 +178,9 @@ public class EffesOps {
 
   @OperationFactory("debug-print")
   public static Operation debugPrint() {
-    return Operation.withIncementingPc(s -> System.err.println(MoreObjects.firstNonNull(
-      s.peek(),
-      "<the local stack for this frame is empty>")));
+    return Operation.withIncementingPc(s -> System.err.println(s.getLocalStackSize() >= 0
+      ? s.peek(0)
+      : "<the local stack for this frame is empty>"));
   }
 
   @OperationFactory("call_Boolean:negate")

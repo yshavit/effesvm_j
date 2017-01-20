@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 
+import com.sun.tools.javac.util.List;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class EffesFunction {
@@ -60,11 +61,11 @@ public class EffesFunction {
   }
   
   public static class Id {
-    private final String className;
+    private final String typeName;
     private final String functionName;
 
-    public Id(String className, String functionName) {
-      this.className = checkNotNull(className, "className");
+    public Id(String typeName, String functionName) {
+      this.typeName = checkNotNull(typeName, "typeName");
       this.functionName = checkNotNull(functionName, "functionName");
     }
 
@@ -72,9 +73,17 @@ public class EffesFunction {
       this(MODULE_CLASSNAME, functionName);
     }
 
+    public String typeName() {
+      return typeName;
+    }
+
+    public String functionName() {
+      return functionName;
+    }
+
     @Override
     public String toString() {
-      return className + ':' + functionName;
+      return typeName + ':' + functionName;
     }
 
     @Override
@@ -86,12 +95,13 @@ public class EffesFunction {
         return false;
       }
       Id id = (Id) o;
-      return Objects.equals(className, id.className) && Objects.equals(functionName, id.functionName);
+      return Objects.equals(typeName, id.typeName) && Objects.equals(functionName, id.functionName);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(className, functionName);
+      return Objects.hash(typeName, functionName);
     }
+
   }
 }

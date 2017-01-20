@@ -113,7 +113,7 @@ public class OperationFactoriesTest {
   private static void checkOp(String expected, OperationFactories.ReflectiveOperationBuilder builder, String... args) {
     Operation op = builder.apply(Arrays.asList(args));
     EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
-    op.apply(new OpContext(state, new EffesModule(Collections.emptyMap())));
+    op.apply(new OpContext(state, new EffesModule(types, Collections.emptyMap())));
     assertEquals(state.pop(), expected);
   }
 

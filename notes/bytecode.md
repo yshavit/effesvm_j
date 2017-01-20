@@ -82,7 +82,7 @@ For instance:
     FUNC Person FriendBuilder createFriendBuilder Friend|Family|Acquaintance
     <ops...>
 
-If the classname is `:`, this defines a module function.
+If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nLocal + 1` arguments. For instance, `FUNC Dog eat 0 0 2` will actually take 3 args: a `Dog` reference and the two declared arguments.
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
@@ -223,7 +223,7 @@ Examples:
 - `call : myModuleFunction` calls a function
 - `call LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
-### pvar name @effesItem -> effesItemField
+### oarg name @effesItem -> effesItemField
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
 

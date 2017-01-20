@@ -54,10 +54,15 @@ public class EffesState {
     return stack[0];
   }
 
-  public Object peek() {
-    return regSp <= regFp + (fp().nLocalVars)
-      ? null
-      : stack[regSp];
+  /**
+   * Returns the element at <i>$sp - distanceFromSp</i> on the local stack. For instance, <code>peek(0)</code> returns the top of the local stack,
+   * <code>peek(1)</code> returns the element right before it, etc.
+   */
+  public Object peek(int distanceFromSp) {
+    if (distanceFromSp >= getLocalStackSize()) {
+      throw new EffesStackException("out of range peek: " + distanceFromSp);
+    }
+    return stack[regSp - distanceFromSp];
   }
 
   public void pushArg(int n) {
@@ -157,7 +162,7 @@ public class EffesState {
     return Joiner.on("\n").join(toStringList());
   }
 
-  private int getLocalStackSize() {
+  public int getLocalStackSize() {
     int callerFrameSize = regSp - regFp;
     assert callerFrameSize >= 0 : callerFrameSize;
     return callerFrameSize - fp().nLocalVars;
