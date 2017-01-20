@@ -3,11 +3,12 @@ package com.yuvalshavit.effesvm.ops;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.function.IntBinaryOperator;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.MoreObjects;
-import com.yuvalshavit.effesvm.load.EffesLoadExeption;
+import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesIo;
 import com.yuvalshavit.effesvm.runtime.EffesObject;
@@ -62,12 +63,12 @@ public class EffesOps {
 
   @OperationFactory("goif")
   public static Operation gotoIf(String n) {
-    int idx = nonNegative(n);
-    PcMove to = PcMove.absolute(idx);
-    return c -> {
-      Boolean top = (Boolean) c.state().pop();
-      return top ? to : PcMove.next();
-    };
+    return buildGoif(n, Boolean::booleanValue);
+  }
+
+  @OperationFactory("gofi")
+  public static Operation gotoIfNot(String n) {
+    return buildGoif(n, b -> !b);
   }
 
   @OperationFactory("rtrn")
@@ -93,6 +94,31 @@ public class EffesOps {
       EffesObject obj = (EffesObject) s.pop();
       Object arg = obj.getArg(name);
       s.push(arg);
+    });
+  }
+
+  @OperationFactory("call_native:toString")
+  public static Operation nativeToString() {
+    return Operation.withIncementingPc(s -> {
+      Object top = s.pop();
+      if (top instanceof EffesObject) {
+        throw new EffesRuntimeException("can't invoke call_native:toString on an EffesObject");
+      }
+      s.push(top.toString());
+    });
+  }
+
+  @OperationFactory("call_Integer:parse")
+  public static Operation parseInt() {
+    return Operation.withIncementingPc(s -> {
+      String str = (String) s.pop();
+      Object parseResult;
+      try {
+        parseResult = Integer.parseInt(str);
+      } catch (NumberFormatException e) {
+        parseResult = Boolean.FALSE;
+      }
+      s.push(parseResult);
     });
   }
 
@@ -142,7 +168,7 @@ public class EffesOps {
       return c -> {
         EffesFunction f = c.module().getFunction(id);
         if (f == null) {
-          throw new EffesLoadExeption("link error: no function " + id);
+          throw new EffesLoadException("link error: no function " + id);
         }
         int nArgs = f.nArgs(); // does not count the "this" reference
         if (!EffesFunction.MODULE_CLASSNAME.equals(id.typeName())) {
@@ -188,6 +214,19 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> io.errLine(s.getLocalStackSize() >= 0
       ? String.valueOf(s.peek(0))
       : "<the local stack for this frame is empty>"));
+  }
+
+  @OperationFactory("bool")
+  public static Operation bool(String sValue) {
+    boolean bValue;
+    if ("True".equals(sValue)) {
+      bValue = true;
+    } else if ("False".equals(sValue)) {
+      bValue = false;
+    } else {
+      throw new EffesLoadException("invalid argument: " + sValue);
+    }
+    return Operation.withIncementingPc(s -> s.push(bValue));
   }
 
   @OperationFactory("call_Boolean:negate")
@@ -241,6 +280,15 @@ public class EffesOps {
   @OperationFactory("call_String:sin")
   public Operation sin() {
     return Operation.withIncementingPc(s -> s.push(MoreObjects.firstNonNull(io.readLine(), false)));
+  }
+
+  private static Operation buildGoif(String loc, Predicate<Boolean> condition) {
+    int idx = nonNegative(loc);
+    PcMove to = PcMove.absolute(idx);
+    return c -> {
+      Boolean top = (Boolean) c.state().pop();
+      return condition.test(top) ? to : PcMove.next();
+    };
   }
 
   private static int nonNegative(String n) {

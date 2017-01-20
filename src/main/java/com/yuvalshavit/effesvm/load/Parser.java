@@ -14,7 +14,6 @@ import com.google.common.collect.Iterators;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
-import com.yuvalshavit.effesvm.runtime.EffesLoadException;
 import com.yuvalshavit.effesvm.runtime.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;
@@ -85,7 +84,7 @@ public class Parser {
       OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(opcode);
       // TODO any validation we want to do? e.g. that we never fetch out of range args or locals?
       if (opBuilder == null) {
-        throw new EffesLoadExeption("no such op: " + opcode);
+        throw new EffesLoadException("no such op: " + opcode);
       }
       Operation op = opBuilder.build(line.tailTokens(1));
       ops.add(op);
@@ -96,7 +95,7 @@ public class Parser {
   private EffesType parseType(Line line) {
     String reserved = line.get(1, "reserved");
     if (!"0".equals(reserved)) {
-      throw new EffesLoadException("second token in a TYPE line must be 0");
+      throw new com.yuvalshavit.effesvm.runtime.EffesLoadException("second token in a TYPE line must be 0");
     }
     String name = line.get(2, "typename");
     List<String> args = Arrays.asList(line.tailTokens(3));

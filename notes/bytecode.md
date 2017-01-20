@@ -194,6 +194,10 @@ Moves the program counter to the specified opcode. The opcode is an absolute num
 
 Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
 
+### gofi _N_ @condition
+
+Pops the topmost element, which must be a True or False. Iff the type is False, behaves as the `goto` opcode
+
 ### rtrn
 
 Finishes execution of the current function. The current frame must have exactly one value on the stack, which will then be the function's result. Any other state is an error. If a value is returned, its type is not checked.
@@ -227,8 +231,16 @@ Examples:
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
 
+### call_native:toString @obj -> string
+
+Pops the topmost item, which must be a built-in type (ie, not an EffesRef). Pushes its toString representation as a String.
+
 Boolean operations
 ----------------------------------------------------------------------------------------
+
+### bool str -> boolean
+
+Pushes a True or False to the stack. `str` must be one of `True` or `False` (case sensitive).
 
 ### call_Boolean:negate @value -> negation
 
@@ -248,6 +260,12 @@ Integer operations
 ### int _N_ -> N
 
 Pushes an Integer to the stack. _N_ is a decimal number, which may be negative. for instance, `int 123` or `int -456`.
+
+### call_Integer:parse @sVal -> iVal
+
+Pops a String from the stack and tries to parse it as an Integer. Pushes the parsed Integer or False if the parsing failed.
+
+Parsing is done via Java's `Integer.parseInt`
 
 ### call_Integer:&lt;cmp&gt;
 
