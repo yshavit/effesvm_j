@@ -140,6 +140,24 @@ public class EffesOps {
       "<the local stack for this frame is empty>")));
   }
 
+  @OperationFactory("call_Boolean:negate")
+  public static Operation negate() {
+    return Operation.withIncementingPc(s -> {
+      Boolean value = (Boolean) s.pop();
+      s.push(!value);
+    });
+  }
+
+  @OperationFactory("call_Boolean:isTrue")
+  public static Operation isTrue() {
+    return Operation.withIncementingPc(s -> s.push(Boolean.TRUE.equals(s.pop())));
+  }
+
+  @OperationFactory("call_Boolean:isFalse")
+  public static Operation isFalse() {
+    return Operation.withIncementingPc(s -> s.push(Boolean.FALSE.equals(s.pop())));
+  }
+
   @OperationFactory("str")
   public static Operation strPush(String value) {
     return Operation.withIncementingPc(s -> s.push(value));

@@ -227,6 +227,21 @@ Examples:
 
 Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
 
+Boolean operations
+----------------------------------------------------------------------------------------
+
+### call_Boolean:negate @value -> negation
+
+Pops an element from the stack, which must be True or False, and pushes its negation (False or True, respectively).
+
+### call_Boolean:isTrue @value
+
+Pops an element from the stack, and pushes a True if it is True, or else a False. (In other words, replaces any non-True value with False).
+
+### call_Boolean:isFalse @value
+
+Pops an element from the stack, and pushes a True if it is False, or else a False. 
+
 Integer operations
 ----------------------------------------------------------------------------------------
 
