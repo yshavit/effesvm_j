@@ -18,6 +18,12 @@ import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public class EffesOps {
 
+  private final EffesIo io;
+
+  public EffesOps(EffesIo io) {
+    this.io = io;
+  }
+
   @OperationFactory("int")
   public static Operation pushInt(String value) {
     int asInt = Integer.parseInt(value);
@@ -227,13 +233,13 @@ public class EffesOps {
   }
 
   @OperationFactory("call_String:sout")
-  public static Operation sout() {
-    return Operation.withIncementingPc(s -> EffesIo.write((String) s.pop()));
+  public Operation sout() {
+    return Operation.withIncementingPc(s -> io.write((String) s.pop()));
   }
 
   @OperationFactory("call_String:sin")
-  public static Operation sin() {
-    return Operation.withIncementingPc(s -> s.push(MoreObjects.firstNonNull(EffesIo.readLine(), false)));
+  public Operation sin() {
+    return Operation.withIncementingPc(s -> s.push(MoreObjects.firstNonNull(io.readLine(), false)));
   }
 
   private static int nonNegative(String n) {
