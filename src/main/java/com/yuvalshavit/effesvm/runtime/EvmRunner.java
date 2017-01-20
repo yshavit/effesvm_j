@@ -40,7 +40,7 @@ public class EvmRunner {
     if (args.length != 1) {
       throw new IllegalArgumentException("must take exactly one file, an efct file");
     }
-    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.inClass(EffesOps.class);
+    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps());
     Parser parser = new Parser(ops);
 
     Path path = FileSystems.getDefault().getPath(args[0]);

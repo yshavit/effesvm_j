@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 
-import com.sun.tools.javac.util.List;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class EffesFunction {

@@ -19,61 +19,48 @@ public class OperationFactoriesTest {
 
   @Test
   public void zeroArgs() {
-    OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(Basic.class, "zero-args");
+    OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "zero-args");
     assertExceptionThrown(() -> builder.build("arg1"));
     checkOp("zero-args result", builder);
   }
 
   @Test
   public void twoArgs() {
-    OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(Basic.class, "two-args");
+    OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "two-args");
     assertExceptionThrown(builder::build);
     checkOp("two-args result: hello, world", builder, "hello", "world");
     assertExceptionThrown(() -> builder.build("one", "two", "three"));
   }
 
-  @Test
-  public void varArgs() {
-    OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(Basic.class, "var-args");
-    assertExceptionThrown(builder::build);
-    checkOp("var-args: only []", builder, "only");
-    checkOp("var-args: many [things, to, say]", builder, "many", "things", "to", "say");
-  }
-
-  @Test
+  @Test(enabled = false, description = "https://trello.com/c/owvHdZCx")
   public void findWithinNested() {
-    getOpBuilder(WithNested.class, "nested"); // reflection is tested in other things, we just want to make sure it gets found!
+    getOpBuilder(new WithNested(), "nested"); // reflection is tested in other things, we just want to make sure it gets found!
   }
 
   @Test
   public void inheritFromSuper() {
-    getOpBuilder(Sub.class, "in-super");
+    getOpBuilder(new Sub(), "in-super");
   }
 
-  @Test
+  @Test(enabled = false, description = "https://trello.com/c/owvHdZCx")
   public void classNotPublic() {
-    assertExceptionThrown(() -> OperationFactories.inClass(NotPublic.class));
+    assertExceptionThrown(() -> OperationFactories.fromInstance(new NotPublic()));
   }
 
-  @Test
+  @Test(enabled = false, description = "https://trello.com/c/owvHdZCx")
   public void classNotStatic() {
-    assertExceptionThrown(() -> OperationFactories.inClass(NotStatic.class));
+    assertExceptionThrown(() -> OperationFactories.fromInstance(new NotStatic()));
   }
 
   public static class Basic {
     @OperationFactory("zero-args")
-    public static Operation build0() {
+    public Operation build0() {
       return Operation.withIncementingPc(s -> s.push("zero-args result"));
     }
 
     @OperationFactory("two-args")
     public static Operation build2(String first, String second) {
       return Operation.withIncementingPc(s -> s.push(String.format("two-args result: %s, %s", first, second)));
-    }
-
-    @OperationFactory("var-args")
-    public static Operation build1Var(String required, String... extras) {
-      return Operation.withIncementingPc(s -> s.push(String.format("var-args: %s %s", required, Arrays.toString(extras))));
     }
   }
 
@@ -113,12 +100,12 @@ public class OperationFactoriesTest {
   private static void checkOp(String expected, OperationFactories.ReflectiveOperationBuilder builder, String... args) {
     Operation op = builder.apply(Arrays.asList(args));
     EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
-    op.apply(new OpContext(state, new EffesModule(types, Collections.emptyMap())));
+    op.apply(new OpContext(state, new EffesModule(Collections.emptyMap(), Collections.emptyMap())));
     assertEquals(state.pop(), expected);
   }
 
-  private static OperationFactories.ReflectiveOperationBuilder getOpBuilder(Class<?> inClass, String opName) {
-    Function<String,OperationFactories.ReflectiveOperationBuilder> factories = OperationFactories.inClass(inClass);
+  private static OperationFactories.ReflectiveOperationBuilder getOpBuilder(Object suiteInstance, String opName) {
+    Function<String,OperationFactories.ReflectiveOperationBuilder> factories = OperationFactories.fromInstance(suiteInstance);
     OperationFactories.ReflectiveOperationBuilder result = factories.apply(opName);
     assertNotNull(result);
     return result;
