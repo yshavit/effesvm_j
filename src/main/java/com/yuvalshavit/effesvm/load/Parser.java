@@ -40,7 +40,7 @@ public class Parser {
     Map<String,EffesType> types = new HashMap<>();
     while (tokenizedLines.hasNext()) {
       Line line = tokenizedLines.next();
-      if (line.isEmpty()) {
+      if (line.isEmptyOrComment()) {
         continue;
       }
       String declarationType = line.get(0, "declaration type");
@@ -80,6 +80,8 @@ public class Parser {
       Line line = lines.next();
       if (line.isEmpty()) {
         break;
+      } else if (line.isEmptyOrComment()) {
+        continue;
       }
       String opcode = line.get(0, "opcode");
       OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(opcode);
@@ -104,16 +106,27 @@ public class Parser {
   }
 
   private static class Line {
-    private final String[] tokens;
+    private final String[] tokens; // null if the line was actually empty, 0-element if a comment
 
     Line(String line) {
-      List<String> tokensList = new ArrayList<>();
-      SimpleTokenizer.tokenize(line).forEachRemaining(tokensList::add);
-      this.tokens = tokensList.toArray(new String[tokensList.size()]);
+      line = line.trim();
+      if (line.isEmpty()) {
+        tokens = null;
+      } else {
+        List<String> tokensList = new ArrayList<>();
+        SimpleTokenizer.tokenize(line).forEachRemaining(tokensList::add);
+        this.tokens = tokensList.toArray(new String[tokensList.size()]);
+      }
     }
 
-    boolean isEmpty() {
-      return tokens.length == 0;
+    /** the line was literally empty, other than whitespace */
+    public boolean isEmpty() {
+      return tokens == null;
+    }
+
+    /** the line was either empty, or entirely a comment */
+    boolean isEmptyOrComment() {
+      return tokens == null || tokens.length == 0;
     }
 
     <T> T get(int idx, String attrDescription, Function<String,T> tokenParser) {

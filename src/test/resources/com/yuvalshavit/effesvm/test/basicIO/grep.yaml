@@ -1,5 +1,8 @@
 efct: |
-  FUNC : main 0 2 0  # local args: (0) pattern to look for (1) each str as it comes in
+  FUNC : main 0 2 0
+  # We have two local args:
+  # arg0 -> the pattern to look for
+  # arg1 -> each stdin line as it comes in
   call_String:sin
   svar 0
   pvar 0
