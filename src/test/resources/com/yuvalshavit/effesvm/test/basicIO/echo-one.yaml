@@ -1,0 +1,16 @@
+efct: |
+  FUNC : main 0 0 0
+  call_String:sin
+  call_String:sout
+  int  0
+  rtrn
+runs:
+- in: |
+    hello there
+  out: hello there
+  exit: 0
+- in: |
+    hello there
+    how are you
+  out: hello there
+  exit: 0

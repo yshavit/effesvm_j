@@ -43,7 +43,8 @@ public class Parser {
       if (line.isEmpty()) {
         continue;
       }
-      switch (line.get(0, "declaration type")) {
+      String declarationType = line.get(0, "declaration type");
+      switch (declarationType) {
         case "FUNC":
           String className = line.get(1, "classname");
           String functionName = line.get(2, "functionname");
@@ -61,7 +62,7 @@ public class Parser {
           types.put(type.name(), type);
           break;
         default:
-          throw new IllegalArgumentException("unrecognized declaration type");
+          throw new IllegalArgumentException("unrecognized declaration type: " + declarationType);
       }
     }
     return new EffesModule(types, Collections.unmodifiableMap(functions));

@@ -1,0 +1,43 @@
+efct: |
+  FUNC : main 0 2 0  # local args: (0) pattern to look for (1) each str as it comes in
+  call_String:sin
+  svar 0
+  pvar 0
+  call_Boolean:isFalse
+  call_Boolean:negate
+  goif 8                 # goif pattern != False
+  int  1
+  rtrn
+  call_String:sin        # jump point for if pattern != False
+  svar 1
+  pvar 1
+  call_Boolean:isFalse
+  goif 23                # goif to exit point stdin == False
+  pvar 1
+  pvar 0
+  call_String:regex
+  call_Boolean:negate
+  goif 8                 # back to reading next stdin
+  pvar 1
+  call_String:sout
+  str  \n
+  call_String:sout
+  goto 8                 # back to reading next stdin
+  int 0                  # exit point (jump point for goif stdin == False, or
+  rtrn
+runs:
+- in: |
+    hello
+    hello there
+    this one is not matched
+    hello this is
+  out: |
+    hello there
+    hello this is
+  exit: 0
+- in: |
+    hello
+    how are you
+  out: ''
+  exit: 0
+- exit: 1

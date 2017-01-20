@@ -12,32 +12,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
-import org.reflections.util.ClasspathHelper;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.collect.Iterables;
-import com.google.common.io.Resources;
 import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.runtime.EffesIo;
 import com.yuvalshavit.effesvm.runtime.EvmRunner;
 
 public class EndToEndTest {
-  /*
-  efct: |
-  FUNC : main 0 0 0
-  int  0
-  debug-print
-  rtrn
-runs:
-- stderr: 0
-  exit: 0
-
-   */
   @DataProvider(name = "tests")
   public Iterator<Object[]> tests() throws IOException {
     String packageName = getClass().getPackage().getName();
@@ -53,7 +39,9 @@ runs:
           throw new IllegalArgumentException("no runs in " + yamlPaths);
         }
         for (Run run : testCase.runs) {
-          tests.add(new Object[] { testCase, run });
+          run.efct = testCase.efct;
+          run.description = path;
+          tests.add(new Object[] { run });
         }
       }
     }
@@ -61,10 +49,10 @@ runs:
   }
 
   @Test(dataProvider = "tests")
-  public void run(Case testCase, Run run) {
+  public void run(Run run) {
     Iterator<String> efct = Iterables.concat(
       Collections.singleton(Parser.EFCT_0_HEADER),
-      Arrays.asList(testCase.efct.split("\\n")))
+      Arrays.asList(run.efct.split("\\n")))
       .iterator();
 
     InMemoryIo io = new InMemoryIo(run.in);
@@ -80,10 +68,17 @@ runs:
   }
 
   public static class Run {
-    public String in = "";
+    private String efct;
+    private String description;
+    public String in;
     public String out = "";
     public String err = "";
     public int exit = -1;
+
+    @Override
+    public String toString() {
+      return description == null ? super.toString() : description;
+    }
   }
 
   private static class InMemoryIo implements EffesIo {
@@ -92,7 +87,8 @@ runs:
     private final StringBuilder err;
 
     private InMemoryIo(String in) {
-      this.in = Arrays.asList(in.split("\\n")).iterator();
+      List<String> inLines = in == null ? Collections.emptyList() : Arrays.asList(in.split("\\n"));
+      this.in = inLines.iterator();
       out = new StringBuilder();
       err = new StringBuilder();
     }

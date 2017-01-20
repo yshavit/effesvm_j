@@ -31,7 +31,12 @@ public class EvmRunner {
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     while (!state.pc().isAt(ProgramCounter.end())) {
       Operation op = state.pc().getOp();
-      PcMove next = op.apply(opContext);
+      PcMove next;
+      try {
+        next = op.apply(opContext);
+      } catch (Exception e) {
+        throw new EvmRuntimeException("with pc " + state.pc(), e);
+      }
       next.accept(state.pc());
     }
     return (Integer) state.getFinalPop();
@@ -57,4 +62,9 @@ public class EvmRunner {
     return run(module, STACK_SIZE);
   }
 
+  public static class EvmRuntimeException extends RuntimeException {
+    public EvmRuntimeException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
 }

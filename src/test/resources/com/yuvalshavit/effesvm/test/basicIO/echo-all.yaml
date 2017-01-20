@@ -1,0 +1,28 @@
+efct: |
+  FUNC : main 0 1 0  # local args is the line we read from stdin
+  call_String:sin
+  svar 0
+  pvar 0
+  call_Boolean:isFalse
+  goif 10  # goif stdin == False
+  pvar 0
+  call_String:sout
+  str  \n
+  call_String:sout
+  goto 0
+  int 0    # jump point for goif stdin == False
+  rtrn
+runs:
+- in: |
+    hello there
+  out: hello there
+  exit: 0
+- in: |
+    hello there
+    how are you
+  out: |
+    hello there
+    how are you
+  exit: 0
+- out: ''
+  exit: 0
