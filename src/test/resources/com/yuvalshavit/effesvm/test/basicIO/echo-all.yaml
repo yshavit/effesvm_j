@@ -13,16 +13,19 @@ efct: |
   int 0    # jump point for goif stdin == False
   rtrn
 runs:
-- in: |
+- description: one line
+  in: |
     hello there
   out: hello there
   exit: 0
-- in: |
+- description: two lines
+  in: |
     hello there
     how are you
   out: |
     hello there
     how are you
   exit: 0
-- out: ''
+- description: empty
+  out: ''
   exit: 0

@@ -40,7 +40,9 @@ public class EndToEndTest {
         }
         for (Run run : testCase.runs) {
           run.efct = testCase.efct;
-          run.description = path;
+          run.description = (run.description == null)
+            ? path
+            : (path + ": " + run.description);
           tests.add(new Object[] { run });
         }
       }
@@ -69,7 +71,7 @@ public class EndToEndTest {
 
   public static class Run {
     private String efct;
-    private String description;
+    public String description;
     public String in;
     public String out = "";
     public String err = "";

@@ -29,7 +29,8 @@ efct: |
   int 0                  # exit point (jump point for goif stdin == False, or
   rtrn
 runs:
-- in: |
+- description: match some
+  in: |
     hello
     hello there
     this one is not matched
@@ -38,14 +39,17 @@ runs:
     hello there
     hello this is
   exit: 0
-- in: |
+- description: match none
+  in: |
     hello
     how are you
   out: ''
   exit: 0
-- in: |
+- description: only pattern provided
+  in: |
     onlyThePattern
   out: ''
   exit: 0
-- in: null
+- description: no stdin
+  in: null
   exit: 1

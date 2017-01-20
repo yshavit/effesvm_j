@@ -5,11 +5,13 @@ efct: |
   int  0
   rtrn
 runs:
-- in: |
+- description: one line
+  in: |
     hello there
   out: hello there
   exit: 0
-- in: |
+- description: two lines
+  in: |
     hello there
     how are you
   out: hello there
