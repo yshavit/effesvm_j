@@ -14,6 +14,15 @@ public class EffesOps {
     this.io = io;
   }
 
+  @OperationFactory("arry")
+  public static Operation createArray() {
+    return Operation.withIncementingPc(s -> {
+      int size = popInt(s);
+      EffesRef<?> arr = new EffesNativeObject.EffesArray(size);
+      s.push(arr);
+    });
+  }
+
   @OperationFactory("int")
   public static Operation pushInt(String value) {
     int asInt = Integer.parseInt(value);
@@ -84,6 +93,34 @@ public class EffesOps {
       EffesObject obj = (EffesObject) s.pop();
       EffesRef<?> arg = obj.getArg(name);
       s.push(arg);
+    });
+  }
+
+  @OperationFactory("call_Array:store")
+  public static Operation arrayStore() {
+    return Operation.withIncementingPc(s -> {
+      EffesRef<?> value = s.pop();
+      int idx = popInt(s);
+      EffesNativeObject.EffesArray arr = (EffesNativeObject.EffesArray) s.pop();
+      arr.store(idx, value);
+    });
+  }
+
+  @OperationFactory("call_Array:get")
+  public static Operation arrayGet() {
+    return Operation.withIncementingPc(s -> {
+      int idx = popInt(s);
+      EffesNativeObject.EffesArray arr = (EffesNativeObject.EffesArray) s.pop();
+      EffesRef<?> value = arr.get(idx);
+      s.push(value);
+    });
+  }
+
+  @OperationFactory("call_Array:len")
+  public static Operation arrayLen() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesArray arr = (EffesNativeObject.EffesArray) s.pop();
+      s.push(EffesNativeObject.forInt(arr.length()));
     });
   }
 

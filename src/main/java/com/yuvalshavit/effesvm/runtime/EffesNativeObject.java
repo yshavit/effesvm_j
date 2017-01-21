@@ -1,6 +1,8 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -66,7 +68,38 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     } else {
       return EffesBoolean.FALSE;
     }
+  }
 
+  public static class EffesArray extends EffesNativeObject {
+    private final EffesRef<?>[] data;
+
+    public EffesArray(int size) {
+      super(NativeType.ARRAY);
+      data = new EffesRef<?>[size];
+      Arrays.fill(data, EffesBoolean.FALSE);
+    }
+
+    public void store(int idx, EffesRef<?> obj) {
+      data[idx] = obj;
+    }
+
+    public EffesRef<?> get(int idx) {
+      return data[idx];
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Array{size=%d}", data.length);
+    }
+
+    @Override
+    protected Object equalityState() {
+      return Collections.unmodifiableList(Arrays.asList(data));
+    }
+
+    public int length() {
+      return data.length;
+    }
   }
 
   public static class EffesBoolean extends EffesNativeObject {
@@ -181,11 +214,12 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   }
 
   static class NativeType extends BaseEffesType {
-    public static final NativeType TRUE = new NativeType("True");
-    public static final NativeType FALSE = new NativeType("False");
-    public static final NativeType INTEGER = new NativeType("Integer");
-    public static final NativeType STRING = new NativeType("String");
-    public static final NativeType MATCH = new NativeType("Match");
+    private static final NativeType TRUE = new NativeType("True");
+    private static final NativeType FALSE = new NativeType("False");
+    private static final NativeType INTEGER = new NativeType("Integer");
+    private static final NativeType STRING = new NativeType("String");
+    private static final NativeType MATCH = new NativeType("Match");
+    private static final NativeType ARRAY = new NativeType("Array");
 
     private NativeType(String name) {
       super(name);

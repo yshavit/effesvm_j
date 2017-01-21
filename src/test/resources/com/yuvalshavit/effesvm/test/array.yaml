@@ -1,0 +1,55 @@
+efct: |
+  TYPE 0 Dog name
+  FUNC : main 0 2 0
+  # local0: the array
+  # local1: idx
+  int  5
+  arry
+  svar 0
+  pvar 0
+  int  2
+  str  "some value"
+  call_Array:store
+  str  "array of length "
+  call_String:sout
+  pvar 0
+  call_Array:len
+  call_native:toString
+  call_String:sout
+  str  "\n"
+  call_String:sout
+  int  0                   # for idx = 0 ...
+  svar 1
+  pvar 1                   # idx < array.len
+  pvar 0
+  call_Array:len
+  call_Integer:lt
+  gofi 39                  # jump to after the loops
+  pvar 1                   # print "{idx} = {value}"
+  call_native:toString
+  call_String:sout
+  str  " = "
+  call_String:sout
+  pvar 0
+  pvar 1
+  call_Array:get
+  call_native:toString
+  call_String:sout
+  str  "\n"
+  call_String:sout
+  pvar 1                   # ++idx
+  int  1
+  call_Integer:add
+  svar 1
+  goto 17                 # jump to top of loop
+  int  0
+  rtrn
+runs:
+- exit: 0
+  out: |
+    array of length 5
+    0 = False
+    1 = False
+    2 = some value
+    3 = False
+    4 = False

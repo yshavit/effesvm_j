@@ -235,6 +235,25 @@ Pops the topmost item, which must be an EffesRef. Pushes the specified construct
 
 Pops the topmost item, which must be a built-in type (ie, not an EffesRef). Pushes its toString representation as a String.
 
+Array operations
+----------------------------------------------------------------------------------------
+
+### arry @size -> array
+
+Creates an array of size `@size`.
+
+### call_Array:store @idx @value
+
+Pops an array, an Integer, and an object of unchecked type. Stores the `@value` reference into the array at the specified index.
+
+### call_Array:get @idx -> value
+
+Pops an array and an Integer, and pushes the array value at that index to the stack. If no value has been stored at that index, pushes a `False`.
+
+### call_Array:len -> length
+
+Pops an array, and pushes its length as an Integer.
+
 Boolean operations
 ----------------------------------------------------------------------------------------
 
