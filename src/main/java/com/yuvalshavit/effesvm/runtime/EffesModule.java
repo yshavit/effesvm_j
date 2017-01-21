@@ -20,7 +20,7 @@ public class EffesModule {
       .collect(Collectors.toSet());
     if (!functionsToUnknownTypes.isEmpty()) {
       String plural = functionsToUnknownTypes.size() == 1 ? "" : "s";
-      throw new EffesLoadException(String.format("function%s defined on unknown type%s: %s", plural, plural, functionsToUnknownTypes));
+      throw new EffesLinkException(String.format("function%s defined on unknown type%s: %s", plural, plural, functionsToUnknownTypes));
     }
   }
 

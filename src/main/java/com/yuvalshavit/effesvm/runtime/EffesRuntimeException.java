@@ -1,6 +1,8 @@
 package com.yuvalshavit.effesvm.runtime;
 
-public class EffesRuntimeException extends RuntimeException {
+import com.yuvalshavit.effesvm.EffesException;
+
+public class EffesRuntimeException extends EffesException {
 
   public EffesRuntimeException(String message, Throwable cause) {
     super(message, cause);

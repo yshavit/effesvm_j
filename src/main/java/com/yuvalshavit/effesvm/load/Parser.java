@@ -88,7 +88,7 @@ public class Parser {
   private EffesType parseType(Line line) {
     String reserved = line.get(1, "reserved");
     if (!"0".equals(reserved)) {
-      throw new com.yuvalshavit.effesvm.runtime.EffesLoadException("second token in a TYPE line must be 0");
+      throw new EffesLoadException("second token in a TYPE line must be 0");
     }
     String name = line.get(2, "typename");
     List<String> args = Arrays.asList(line.tailTokens(3));

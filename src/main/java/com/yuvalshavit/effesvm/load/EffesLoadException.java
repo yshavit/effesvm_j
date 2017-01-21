@@ -1,6 +1,8 @@
 package com.yuvalshavit.effesvm.load;
 
-public class EffesLoadException extends RuntimeException {
+import com.yuvalshavit.effesvm.EffesException;
+
+public class EffesLoadException extends EffesException {
   public EffesLoadException(String msg) {
     super(msg);
   }

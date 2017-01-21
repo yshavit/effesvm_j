@@ -35,7 +35,7 @@ public class EvmRunner {
       try {
         next = op.apply(opContext);
       } catch (Exception e) {
-        throw new EvmRuntimeException("with pc " + state.pc(), e);
+        throw new EffesRuntimeException("with pc " + state.pc(), e);
       }
       next.accept(state.pc());
     }
@@ -61,11 +61,5 @@ public class EvmRunner {
     Parser parser = new Parser(ops);
     EffesModule module = parser.parse(efctLines);
     return run(module, STACK_SIZE);
-  }
-
-  public static class EvmRuntimeException extends RuntimeException {
-    public EvmRuntimeException(String message, Throwable cause) {
-      super(message, cause);
-    }
   }
 }
