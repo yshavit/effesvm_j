@@ -6,7 +6,7 @@ efct: |
   call_String:sin
   svar 0
   pvar 0
-  call_Boolean:isFalse
+  type False
   call_Boolean:negate
   goif 8                 # goif pattern != False
   int  1
@@ -14,7 +14,7 @@ efct: |
   call_String:sin        # jump point for if pattern != False
   svar 1
   pvar 1
-  call_Boolean:isFalse
+  type False
   goif 23                # goif to exit point stdin == False
   pvar 1
   pvar 0

@@ -3,7 +3,7 @@ efct: |
   call_String:sin
   svar 0
   pvar 0
-  call_Boolean:isFalse
+  type False
   goif 10  # goif stdin == False
   pvar 0
   call_String:sout

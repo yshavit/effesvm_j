@@ -228,16 +228,6 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Boolean:isTrue")
-  public static Operation isTrue() {
-    return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forBoolean(s.pop() == EffesNativeObject.EffesBoolean.TRUE)));
-  }
-
-  @OperationFactory("call_Boolean:isFalse")
-  public static Operation isFalse() {
-    return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forBoolean(s.pop() == EffesNativeObject.EffesBoolean.FALSE)));
-  }
-
   @OperationFactory("call_Match:igroup")
   public static Operation matchIndexedGroup() {
     return Operation.withIncementingPc(s -> {

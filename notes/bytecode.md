@@ -246,14 +246,6 @@ Pushes a True or False to the stack. `str` must be one of `True` or `False` (cas
 
 Pops an element from the stack, which must be True or False, and pushes its negation (False or True, respectively).
 
-### call_Boolean:isTrue @value
-
-Pops an element from the stack, and pushes a True if it is True, or else a False. (In other words, replaces any non-True value with False).
-
-### call_Boolean:isFalse @value
-
-Pops an element from the stack, and pushes a True if it is False, or else a False. 
-
 Integer operations
 ----------------------------------------------------------------------------------------
 

@@ -7,14 +7,14 @@ efct: |
   call : readInt          # read min
   svar 0
   pvar 0
-  call_Boolean:isFalse
+  type False
   gofi 7                  # jump to reading max
   int  1
   rtrn
   call : readInt          # read max
   svar 1
   pvar 1
-  call_Boolean:isFalse
+  type False
   gofi 14                 # jump to the "for" loop initializer
   int  2
   rtrn
@@ -43,7 +43,7 @@ efct: |
   call_String:sin
   svar 0
   pvar 0
-  call_Boolean:isFalse
+  type False
   goif 8               # jump to bool False
   pvar 0
   call_Integer:parse
