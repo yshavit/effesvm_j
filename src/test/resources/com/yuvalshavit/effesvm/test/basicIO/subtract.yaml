@@ -1,0 +1,12 @@
+efct: |
+  FUNC : main 0 0 0
+  int  6
+  int  2
+  call_Integer:sub
+  call_native:toString
+  call_String:sout
+  int 0
+  rtrn
+runs:
+- out: 4
+  exit: 0
