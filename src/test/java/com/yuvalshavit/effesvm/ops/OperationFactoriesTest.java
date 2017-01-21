@@ -11,6 +11,7 @@ import java.util.function.Function;
 import org.testng.annotations.Test;
 
 import com.yuvalshavit.effesvm.runtime.EffesModule;
+import com.yuvalshavit.effesvm.runtime.EffesNativeObject;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.OpContext;
 import com.yuvalshavit.effesvm.runtime.ProgramCounter;
@@ -55,12 +56,12 @@ public class OperationFactoriesTest {
   public static class Basic {
     @OperationFactory("zero-args")
     public Operation build0() {
-      return Operation.withIncementingPc(s -> s.push("zero-args result"));
+      return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString("zero-args result")));
     }
 
     @OperationFactory("two-args")
     public static Operation build2(String first, String second) {
-      return Operation.withIncementingPc(s -> s.push(String.format("two-args result: %s, %s", first, second)));
+      return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString(String.format("two-args result: %s, %s", first, second))));
     }
   }
 
@@ -101,7 +102,7 @@ public class OperationFactoriesTest {
     Operation op = builder.apply(Arrays.asList(args));
     EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
     op.apply(new OpContext(state, new EffesModule(Collections.emptyMap(), Collections.emptyMap())));
-    assertEquals(state.pop(), expected);
+    assertEquals(state.pop().toString(), expected);
   }
 
   private static OperationFactories.ReflectiveOperationBuilder getOpBuilder(Object suiteInstance, String opName) {

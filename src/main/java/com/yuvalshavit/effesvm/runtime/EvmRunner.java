@@ -39,7 +39,8 @@ public class EvmRunner {
       }
       next.accept(state.pc());
     }
-    return (Integer) state.getFinalPop();
+    EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
+    return exitCode.value;
   }
 
   public static void main(String[] args) throws IOException {

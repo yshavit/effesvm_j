@@ -13,10 +13,10 @@ public class EffesState {
   private int regFp;
   private ProgramCounter regPc;
 
-  public EffesState(ProgramCounter.State pcState, int stackSize, int nLocalVars, Object... args) {
+  public EffesState(ProgramCounter.State pcState, int stackSize, int nLocalVars, EffesRef<?>... args) {
     stack = new Object[stackSize];
     regSp = -1;
-    for (Object arg : args) {
+    for (EffesRef<?> arg : args) {
       push(arg);
     }
     regPc = new ProgramCounter(pcState);
@@ -24,45 +24,49 @@ public class EffesState {
   }
 
   @VisibleForTesting
-  EffesState(int nLocalVars, Object... args) {
+  EffesState(int nLocalVars, EffesRef<?>... args) {
     this(ProgramCounter.end(), 500, nLocalVars, args);
   }
 
-  public void push(Object o) {
+  public void push(EffesRef<?> o) {
+    pushObj(o);
+  }
+
+  private void pushObj(Object o) {
     if (regSp + 1 >= stack.length) {
       throw new EffesStackOverflowException();
     }
     stack[++regSp] = o;
   }
 
-  public Object pop() {
+  public EffesRef<?> pop() {
     // Can only pop from this frame's local stack!
     if (regSp <= regFp + (fp().nLocalVars)) {
       throw new EffesStackException("underflow");
     }
-    Object popped = stack[regSp];
+    EffesRef<?> popped = ((EffesRef<?>) stack[regSp]);
     stack[regSp--] = null;
     return popped;
   }
 
-  Object getFinalPop() {
+  EffesRef<?> getFinalPop() {
     // Special variant of pop() for when the item to be popped is the last one there. This should only be called after the very earlier frame,
     // the one that was implicitly created in the constructor, has been closed.
     if (regSp != 0) {
       throw new EffesStackException("items left on the stack");
     }
-    return stack[0];
+    return ((EffesRef<?>) stack[0]);
   }
 
   /**
    * Returns the element at <i>$sp - distanceFromSp</i> on the local stack. For instance, <code>peek(0)</code> returns the top of the local stack,
    * <code>peek(1)</code> returns the element right before it, etc.
    */
-  public Object peek(int distanceFromSp) {
+  public EffesRef<?> peek(int distanceFromSp) {
     if (distanceFromSp >= getLocalStackSize()) {
       throw new EffesStackException("out of range peek: " + distanceFromSp);
     }
-    return stack[regSp - distanceFromSp];
+    return (EffesRef<?>) stack[regSp - distanceFromSp];
   }
 
   public void pushArg(int n) {
@@ -78,11 +82,12 @@ public class EffesState {
     // Keep in mind that n is 0-indexed. So for instance, if argN = 3, then we get dist = 3 - 2 = 1,
     // and when n = 0 then we get dist = 3 - 0 = 3.
     int distanceFromFp = frameInfo.nArgs - n;
-    push(stack[regFp - distanceFromFp]);
+    pushObj(stack[regFp - distanceFromFp]);
+
   }
 
   public void pushVar(int n) {
-    push(stack[localVarIdx(n)]);
+    pushObj(stack[localVarIdx(n)]);
   }
 
   public void popToVar(int n) {
@@ -115,7 +120,7 @@ public class EffesState {
       String msg = localStackSize == 0 ? "no value on local stack to return" : "too many values on local stack";
       throw new EffesStackException(msg);
     }
-    Object closingFrameRv = pop();
+    EffesRef<?> closingFrameRv = pop();
     if (closingFrameRv == null) {
       throw new EffesStackException("$rv not set");
     }
@@ -170,7 +175,7 @@ public class EffesState {
 
   private void doOpenFrame(int nArgs, int nLocal) {
     FrameInfo newFrameInfo = new FrameInfo(nArgs, nLocal, regFp, regPc.save());
-    push(newFrameInfo);
+    pushObj(newFrameInfo);
     regFp = regSp;
     regSp += nLocal;
   }

@@ -3,17 +3,12 @@ package com.yuvalshavit.effesvm.runtime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EffesType {
-  private final String name;
+public class EffesType extends BaseEffesType {
   private final List<String> arguments;
 
   public EffesType(String name, List<String> arguments) {
-    this.name = name;
+    super(name);
     this.arguments = new ArrayList<>(arguments);
-  }
-
-  public String name() {
-    return name;
   }
 
   public int nArgs() {
@@ -30,10 +25,5 @@ public class EffesType {
 
   public String argAt(int idx) {
     return arguments.get(idx);
-  }
-
-  @Override
-  public String toString() {
-    return name;
   }
 }

@@ -7,15 +7,8 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.base.MoreObjects;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
-import com.yuvalshavit.effesvm.runtime.EffesFunction;
-import com.yuvalshavit.effesvm.runtime.EffesIo;
-import com.yuvalshavit.effesvm.runtime.EffesObject;
-import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
-import com.yuvalshavit.effesvm.runtime.EffesState;
-import com.yuvalshavit.effesvm.runtime.EffesType;
-import com.yuvalshavit.effesvm.runtime.PcMove;
+import com.yuvalshavit.effesvm.runtime.*;
 
 public class EffesOps {
 
@@ -28,7 +21,8 @@ public class EffesOps {
   @OperationFactory("int")
   public static Operation pushInt(String value) {
     int asInt = Integer.parseInt(value);
-    return Operation.withIncementingPc(s -> s.push(asInt));
+    EffesNativeObject.EffesInteger obj = EffesNativeObject.forInt(asInt);
+    return Operation.withIncementingPc(s -> s.push(obj));
   }
 
   @OperationFactory("pop")
@@ -82,9 +76,9 @@ public class EffesOps {
   @OperationFactory("type")
   public static Operation type(String typeName) {
     return Operation.withIncementingPc(s -> {
-      Object item = s.pop();
-      boolean rightType = (item instanceof EffesObject) && ((EffesObject) item).type().name().equals(typeName); // TODO will need to beef up for multi-module
-      s.push(rightType);
+      EffesRef<?> item = s.pop();
+      boolean rightType = item.type().name().equals(typeName); // TODO will need to be improved for multi-module
+      s.push(EffesNativeObject.forBoolean(rightType));
     });
   }
 
@@ -92,7 +86,7 @@ public class EffesOps {
   public static Operation objectArg(String name) {
     return Operation.withIncementingPc(s -> {
       EffesObject obj = (EffesObject) s.pop();
-      Object arg = obj.getArg(name);
+      EffesRef<?> arg = obj.getArg(name);
       s.push(arg);
     });
   }
@@ -100,26 +94,20 @@ public class EffesOps {
   @OperationFactory("call_native:toString")
   public static Operation nativeToString() {
     return Operation.withIncementingPc(s -> {
-      Object top = s.pop();
-      if (top instanceof EffesObject) {
-        throw new EffesRuntimeException("can't invoke call_native:toString on an EffesObject");
-      }
-      if (top instanceof Boolean) {
-        top = ((Boolean) top) ? "True" : "False"; // fix the capitalization
-      }
-      s.push(top.toString());
+      EffesRef<?> top = s.pop();
+      s.push(EffesNativeObject.forString(top.toString()));
     });
   }
 
   @OperationFactory("call_Integer:parse")
   public static Operation parseInt() {
     return Operation.withIncementingPc(s -> {
-      String str = (String) s.pop();
-      Object parseResult;
+      EffesNativeObject.EffesString str = (EffesNativeObject.EffesString) s.pop();
+      EffesRef<?> parseResult;
       try {
-        parseResult = Integer.parseInt(str);
+        parseResult = EffesNativeObject.forInt(Integer.parseInt(str.value));
       } catch (NumberFormatException e) {
-        parseResult = Boolean.FALSE;
+        parseResult = EffesNativeObject.EffesBoolean.FALSE;
       }
       s.push(parseResult);
     });
@@ -158,7 +146,7 @@ public class EffesOps {
       // constructor
       return c -> {
         EffesType type = c.module().getType(typeName);
-        Object[] args = new Object[type.nArgs()];
+        EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
         for (int i = args.length - 1; i >= 0; --i) {
           args[i] = c.state().pop();
         }
@@ -229,67 +217,74 @@ public class EffesOps {
     } else {
       throw new EffesLoadException("invalid argument: " + sValue);
     }
-    return Operation.withIncementingPc(s -> s.push(bValue));
+    EffesNativeObject eValue = EffesNativeObject.forBoolean(bValue);
+    return Operation.withIncementingPc(s -> s.push(eValue));
   }
 
   @OperationFactory("call_Boolean:negate")
   public static Operation negate() {
     return Operation.withIncementingPc(s -> {
-      Boolean value = (Boolean) s.pop();
-      s.push(!value);
+      EffesNativeObject.EffesBoolean popped = (EffesNativeObject.EffesBoolean) s.pop();
+      EffesNativeObject.EffesBoolean push = EffesNativeObject.forBoolean(!popped.asBoolean());
+      s.push(push);
     });
   }
 
   @OperationFactory("call_Boolean:isTrue")
   public static Operation isTrue() {
-    return Operation.withIncementingPc(s -> s.push(Boolean.TRUE.equals(s.pop())));
+    return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forBoolean(s.pop() == EffesNativeObject.EffesBoolean.TRUE)));
   }
 
   @OperationFactory("call_Boolean:isFalse")
   public static Operation isFalse() {
-    return Operation.withIncementingPc(s -> s.push(Boolean.FALSE.equals(s.pop())));
+    return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forBoolean(s.pop() == EffesNativeObject.EffesBoolean.FALSE)));
   }
 
   @OperationFactory("str")
   public static Operation strPush(String value) {
-    return Operation.withIncementingPc(s -> s.push(value));
+    EffesNativeObject eStr = EffesNativeObject.forString(value);
+    return Operation.withIncementingPc(s -> s.push(eStr));
   }
 
   @OperationFactory("call_String:len")
   public static Operation stringLen() {
     return Operation.withIncementingPc(s -> {
-      String str = (String) s.pop();
+      String str = popString(s);
       int len = str.codePointCount(0, str.length());
-      s.push(len);
+      s.push(EffesNativeObject.forInt(len));
     });
   }
 
   @OperationFactory("call_String:regex")
   public static Operation stringRegex() {
     return Operation.withIncementingPc(s -> {
-      String patternStr = (String) s.pop();
-      String lookFor = (String) s.pop();
+      String patternStr = popString(s);
+      String lookFor = popString(s);
       Matcher matcher = Pattern.compile(patternStr).matcher(lookFor);
       boolean found = matcher.find();
-      s.push(found);
+      s.push(EffesNativeObject.forBoolean(found));
     });
   }
 
   @OperationFactory("call_String:sout")
   public Operation sout() {
-    return Operation.withIncementingPc(s -> io.out((String) s.pop()));
+    return Operation.withIncementingPc(s -> io.out(popString(s)));
   }
 
   @OperationFactory("call_String:sin")
   public Operation sin() {
-    return Operation.withIncementingPc(s -> s.push(MoreObjects.firstNonNull(io.readLine(), false)));
+    return Operation.withIncementingPc(s -> {
+      String raw = io.readLine();
+      EffesRef<?> eRef = (raw == null) ? EffesNativeObject.EffesBoolean.FALSE : EffesNativeObject.forString(raw);
+      s.push(eRef);
+    });
   }
 
   private static Operation buildGoif(String loc, Predicate<Boolean> condition) {
     int idx = nonNegative(loc);
     PcMove to = PcMove.absolute(idx);
     return c -> {
-      Boolean top = (Boolean) c.state().pop();
+      boolean top = ((EffesNativeObject.EffesBoolean) c.state().pop()).asBoolean();
       return condition.test(top) ? to : PcMove.next();
     };
   }
@@ -302,18 +297,28 @@ public class EffesOps {
 
   private static Operation intArith(IntBinaryOperator op) {
     return Operation.withIncementingPc(s -> {
-      int rhs = (Integer) s.pop();
-      int lhs = (Integer) s.pop();
-      s.push(op.applyAsInt(lhs, rhs));
+      int rhs = popInt(s);
+      int lhs = popInt(s);
+      s.push(EffesNativeObject.forInt(op.applyAsInt(lhs, rhs)));
     });
   }
 
   private static Operation intCmp(IntCmp intCmp) {
     return Operation.withIncementingPc(s -> {
-      int rhs = (Integer) s.pop();
-      int lhs = (Integer) s.pop();
-      s.push(intCmp.cmp(lhs, rhs));
+      int rhs = popInt(s);
+      int lhs = popInt(s);
+      s.push(EffesNativeObject.forBoolean(intCmp.cmp(lhs, rhs)));
     });
+  }
+
+  private static Integer popInt(EffesState s) {
+    EffesNativeObject.EffesInteger popped = (EffesNativeObject.EffesInteger) s.pop();
+    return popped.value;
+  }
+
+  private static String popString(EffesState s) {
+    EffesNativeObject.EffesString effesStr = (EffesNativeObject.EffesString) s.pop();
+    return effesStr.value;
   }
 
   private interface IntCmp {
