@@ -104,6 +104,9 @@ public class EffesOps {
       if (top instanceof EffesObject) {
         throw new EffesRuntimeException("can't invoke call_native:toString on an EffesObject");
       }
+      if (top instanceof Boolean) {
+        top = ((Boolean) top) ? "True" : "False"; // fix the capitalization
+      }
       s.push(top.toString());
     });
   }

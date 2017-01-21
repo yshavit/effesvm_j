@@ -1,0 +1,27 @@
+efct: |
+  TYPE 0 Hello
+  TYPE 0 Goodbye
+  FUNC : main 0 0 0
+  call Hello Hello
+  call : isHello
+  pop
+  call Goodbye Goodbye
+  call : isHello
+  pop
+  int  0
+  rtrn
+
+  FUNC : isHello 0 0 1
+  parg 0
+  type Hello
+  call_native:toString
+  call_String:sout
+  str  "\n"
+  call_String:sout
+  bool True
+  rtrn
+runs:
+- exit: 0
+  out: |
+    True
+    False
