@@ -1,6 +1,5 @@
 package com.yuvalshavit.effesvm.test;
 
-import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
 import static org.testng.Assert.assertEquals;
 
 import java.io.IOException;
@@ -12,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
@@ -52,12 +52,10 @@ public class EndToEndTest {
 
   @Test(dataProvider = "tests")
   public void run(Run run) {
-    String[] efctLines = run.efct.split("\\n");
-    Iterator<String> efct =
-      consumeAndReturn(new ArrayList<String>(efctLines.length + 1), list -> {
-        list.add(Parser.EFCT_0_HEADER);
-        Collections.addAll(list, efctLines);
-      }).iterator();
+    Iterator<String> efct = Stream.concat(
+      Stream.of(Parser.EFCT_0_HEADER),
+      Stream.of(run.efct.split("\\n")))
+      .iterator();
 
     InMemoryIo io = new InMemoryIo(run.in);
     int exitCode = EvmRunner.run(efct, io);
