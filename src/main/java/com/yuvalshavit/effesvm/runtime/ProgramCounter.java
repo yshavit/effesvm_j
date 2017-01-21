@@ -1,10 +1,9 @@
 package com.yuvalshavit.effesvm.runtime;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class ProgramCounter {
@@ -24,12 +23,14 @@ public class ProgramCounter {
   }
 
   public void setOpIdx(int op) {
-    Preconditions.checkElementIndex(op, state.function.nOps());
+    if (op < 0 || op >= state.function.nOps()) {
+      throw new IllegalArgumentException("out of range: " + op);
+    }
     state.pc = op;
   }
 
   public void set(EffesFunction function, int op) {
-    checkNotNull(function, "function");
+    requireNonNull(function, "function");
     state.function = function;
     setOpIdx(op);
   }

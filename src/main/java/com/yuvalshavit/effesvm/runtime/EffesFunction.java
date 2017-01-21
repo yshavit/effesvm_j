@@ -1,6 +1,6 @@
 package com.yuvalshavit.effesvm.runtime;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
@@ -64,8 +64,8 @@ public class EffesFunction {
     private final String functionName;
 
     public Id(String typeName, String functionName) {
-      this.typeName = checkNotNull(typeName, "typeName");
-      this.functionName = checkNotNull(functionName, "functionName");
+      this.typeName = requireNonNull(typeName, "typeName");
+      this.functionName = requireNonNull(functionName, "functionName");
     }
 
     public Id(String functionName) {

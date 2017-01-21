@@ -1,5 +1,7 @@
 package com.yuvalshavit.effesvm.ops;
 
+import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
+
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
@@ -7,9 +9,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.function.Function;
 
-import com.google.common.base.Joiner;
 import com.yuvalshavit.effesvm.runtime.OpContext;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
@@ -88,7 +90,11 @@ public class OperationFactories {
       } catch (Exception e) {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
-      String desc = String.format("%s %s (%s::%s)", opName, Joiner.on(' ').join(strings), method.getDeclaringClass().getName(), method.getName());
+      String desc = String.format("%s %s (%s::%s)",
+        opName,
+        consumeAndReturn(new StringJoiner(" "), j -> strings.forEach(j::add)),
+        method.getDeclaringClass().getName(),
+        method.getName());
       return new Op(op, desc);
     }
 

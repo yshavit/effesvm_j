@@ -1,7 +1,5 @@
 package com.yuvalshavit.effesvm.ops;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
@@ -303,7 +301,9 @@ public class EffesOps {
 
   private static int nonNegative(String n) {
     int idx = Integer.parseInt(n);
-    checkArgument(idx >= 0, "negative arg: " + n);
+    if (idx < 0) {
+      throw new IllegalArgumentException("negative arg: " + n);
+    }
     return idx;
   }
 

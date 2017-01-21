@@ -1,21 +1,14 @@
 package com.yuvalshavit.effesvm.load;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesType;
+import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;
 
 public class Parser {
@@ -33,7 +26,7 @@ public class Parser {
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
     }
-    Iterator<Line> tokenizedLines = Iterators.transform(lines, Line::new);
+    Iterator<Line> tokenizedLines = LambdaHelpers.map(lines, Line::new);
 
     Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
     Map<String,EffesType> types = new HashMap<>();
@@ -68,9 +61,9 @@ public class Parser {
   }
 
   private EffesFunction parseFunction(Iterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
-    Preconditions.checkArgument(nGenerics == 0, "nGenerics");
-    Preconditions.checkArgument(nLocal >= 0, "nLocal: " + nLocal);
-    Preconditions.checkArgument(nArgs >= 0, "nArgs: " + nArgs);
+    if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
+      throw new IllegalArgumentException("invalid FUNC declaration");
+    }
 
     List<Operation> ops = new ArrayList<>();
     while (lines.hasNext()) {

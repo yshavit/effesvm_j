@@ -1,11 +1,11 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
+import java.util.StringJoiner;
 
 public class EffesState {
   private final Object[] stack;
@@ -23,7 +23,6 @@ public class EffesState {
     doOpenFrame(args.length, nLocalVars);
   }
 
-  @VisibleForTesting
   EffesState(int nLocalVars, EffesRef<?>... args) {
     this(ProgramCounter.end(), 500, nLocalVars, args);
   }
@@ -164,7 +163,7 @@ public class EffesState {
 
   @SuppressWarnings("unused") // useful in a debugger
   String toStringFull() {
-    return Joiner.on("\n").join(toStringList());
+    return consumeAndReturn(new StringJoiner("\n"), j -> toStringList().forEach(j::add)).toString();
   }
 
   public int getLocalStackSize() {
