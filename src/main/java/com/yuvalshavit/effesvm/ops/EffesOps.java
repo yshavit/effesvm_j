@@ -4,8 +4,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.runtime.*;
@@ -240,6 +238,32 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forBoolean(s.pop() == EffesNativeObject.EffesBoolean.FALSE)));
   }
 
+  @OperationFactory("call_Match:igroup")
+  public static Operation matchIndexedGroup() {
+    return Operation.withIncementingPc(s -> {
+      int idx = popInt(s);
+      EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
+      s.push(match.group(idx));
+    });
+  }
+
+  @OperationFactory("call_Match:ngroup")
+  public static Operation matchNamedGroup() {
+    return Operation.withIncementingPc(s -> {
+      String name = popString(s);
+      EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
+      s.push(match.group(name));
+    });
+  }
+
+  @OperationFactory("call_Match:groupCount")
+  public static Operation matchGroupCount() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
+      s.push(match.groupCount());
+    });
+  }
+
   @OperationFactory("str")
   public static Operation strPush(String value) {
     EffesNativeObject eStr = EffesNativeObject.forString(value);
@@ -260,9 +284,7 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> {
       String patternStr = popString(s);
       String lookFor = popString(s);
-      Matcher matcher = Pattern.compile(patternStr).matcher(lookFor);
-      boolean found = matcher.find();
-      s.push(EffesNativeObject.forBoolean(found));
+      s.push(EffesNativeObject.tryMatch(lookFor, patternStr));
     });
   }
 
@@ -311,7 +333,7 @@ public class EffesOps {
     });
   }
 
-  private static Integer popInt(EffesState s) {
+  private static int popInt(EffesState s) {
     EffesNativeObject.EffesInteger popped = (EffesNativeObject.EffesInteger) s.pop();
     return popped.value;
   }

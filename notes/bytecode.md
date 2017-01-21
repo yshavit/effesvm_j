@@ -279,6 +279,21 @@ _&lt;op&gt;_ is one of: add, sub, div, mult
 
 Adds, subtracts, divides or multiplies two Integers. Pops two elements from the stack, which must both be of Integer type. Pushes a Integer, which is the result of the operator.
 
+Match operations
+----------------------------------------------------------------------------------------
+
+### call_Match:igroup @match @captureIdx -> string
+
+Pops a Matcher from the top of the stack. Pushes its Nth group to the stack, or False if the group didn't match.
+
+### call_Match:ngroup @match @captureName -> string
+
+Pops a Matcher from the top of the stack. Pushes the captured group _name_ to the stack, or False if the group didn't match.
+
+### call_Match:groupCount @match -> int
+
+Pops a Matcher from the top of the stack. Pushes the number of captured groups it has, including named captured groups.
+
 String operations
 ----------------------------------------------------------------------------------------
 
@@ -292,7 +307,7 @@ Pops an element from the stack, which must be a String. Pushes an Integer repres
 
 ### call_String:regex @lookIn @pattern -> didMatch
 
-Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or True if it does.
+Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or a Match object if it does.
 
 ### call_String:sin -> string
 

@@ -19,7 +19,7 @@ efct: |
   pvar 1
   pvar 0
   call_String:regex
-  call_Boolean:negate
+  type False
   goif 8                 # back to reading next stdin
   pvar 1
   call_String:sout

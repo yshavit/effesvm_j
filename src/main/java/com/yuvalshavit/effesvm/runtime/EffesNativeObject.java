@@ -1,6 +1,12 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.NativeType> {
 
@@ -43,6 +49,24 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
   public static EffesString forString(String value) {
     return new EffesString(value);
+  }
+
+  /**
+   * Tries to find a regex match, and returns either an {@link EffesMatch} if the pattern was found, or {@link EffesBoolean#FALSE} if it was not.
+   * The pattern is searched using {@link Matcher#find()}, <em>not</em> {@link Matcher#matches()}.
+   * @param lookIn the string to look at for the pattern
+   * @param pattern the regex pattern
+   * @return an EffesMatch, or False
+   */
+  public static EffesNativeObject tryMatch(String lookIn, String pattern) {
+    Pattern patternObj = Pattern.compile(pattern);
+    Matcher matcher = patternObj.matcher(lookIn);
+    if (matcher.find()) {
+      return new EffesMatch(matcher);
+    } else {
+      return EffesBoolean.FALSE;
+    }
+
   }
 
   public static class EffesBoolean extends EffesNativeObject {
@@ -106,11 +130,62 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
+  public static class EffesMatch extends EffesNativeObject {
+    private final Matcher matcher;
+
+    private EffesMatch(Matcher matcher) {
+      super(NativeType.MATCH);
+      this.matcher = matcher;
+    }
+
+    public EffesNativeObject group(int idx) {
+      return stringOrFalse(matcher.group(idx));
+    }
+
+    public EffesNativeObject group(String name) {
+      String result;
+      try {
+        result = matcher.group(name);
+      } catch (IllegalArgumentException e) {
+        result = null; // no group with such a name
+      }
+      return stringOrFalse(result);
+    }
+
+    public EffesInteger groupCount() {
+      return EffesNativeObject.forInt(matcher.groupCount());
+    }
+
+    private EffesNativeObject stringOrFalse(String value) {
+      return value == null ? EffesBoolean.FALSE : EffesNativeObject.forString(value);
+    }
+
+    @Override
+    public String toString() {
+      StringJoiner joiner = new StringJoiner(", ", "Match{pattern=" + matcher.pattern().pattern() + ", groups=[", "]");
+      IntStream.range(1, matcher.groupCount() + 1)
+        .mapToObj(matcher::group)
+        .forEachOrdered(joiner::add);
+      return joiner.toString();
+    }
+
+    @Override
+    protected Object equalityState() {
+      List<String> state = new ArrayList<>(matcher.groupCount() + 2);
+      state.add(matcher.pattern().pattern());
+      for (int i = 0; i <= matcher.groupCount(); ++i) {
+        state.add(matcher.group(0));
+      }
+      return state;
+    }
+  }
+
   static class NativeType extends BaseEffesType {
     public static final NativeType TRUE = new NativeType("True");
     public static final NativeType FALSE = new NativeType("False");
     public static final NativeType INTEGER = new NativeType("Integer");
     public static final NativeType STRING = new NativeType("String");
+    public static final NativeType MATCH = new NativeType("Match");
 
     private NativeType(String name) {
       super(name);
