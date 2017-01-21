@@ -2,9 +2,9 @@ package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Objects;
 
-public abstract class EffesNativeObject extends EffesRef<EffesNativeType> {
+public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.NativeType> {
 
-  private EffesNativeObject(EffesNativeType type) {
+  private EffesNativeObject(NativeType type) {
     super(type);
   }
 
@@ -46,15 +46,15 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeType> {
   }
 
   public static class EffesBoolean extends EffesNativeObject {
-    public static final EffesBoolean TRUE = new EffesBoolean(EffesNativeType.TRUE);
-    public static final EffesBoolean FALSE = new EffesBoolean(EffesNativeType.FALSE);
+    public static final EffesBoolean TRUE = new EffesBoolean(NativeType.TRUE);
+    public static final EffesBoolean FALSE = new EffesBoolean(NativeType.FALSE);
 
-    private EffesBoolean(EffesNativeType type) {
+    private EffesBoolean(NativeType type) {
       super(type);
     }
 
     public boolean asBoolean() {
-      return type() == EffesNativeType.TRUE;
+      return type() == NativeType.TRUE;
     }
 
     @Override
@@ -72,7 +72,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeType> {
     public final String value;
 
     private EffesString(String value) {
-      super(EffesNativeType.STRING);
+      super(NativeType.STRING);
       this.value = value;
     }
 
@@ -91,7 +91,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeType> {
     public final int value;
 
     private EffesInteger(int value) {
-      super(EffesNativeType.INTEGER);
+      super(NativeType.INTEGER);
       this.value = value;
     }
 
@@ -103,6 +103,17 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeType> {
     @Override
     protected Object equalityState() {
       return value;
+    }
+  }
+
+  static class NativeType extends BaseEffesType {
+    public static final NativeType TRUE = new NativeType("True");
+    public static final NativeType FALSE = new NativeType("False");
+    public static final NativeType INTEGER = new NativeType("Integer");
+    public static final NativeType STRING = new NativeType("String");
+
+    private NativeType(String name) {
+      super(name);
     }
   }
 }
