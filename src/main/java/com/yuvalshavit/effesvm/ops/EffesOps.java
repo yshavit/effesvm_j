@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.ops;
 
+import java.util.function.BinaryOperator;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
@@ -257,10 +258,25 @@ public class EffesOps {
   @OperationFactory("call_Boolean:negate")
   public static Operation negate() {
     return Operation.withIncementingPc(s -> {
-      EffesNativeObject.EffesBoolean popped = (EffesNativeObject.EffesBoolean) s.pop();
-      EffesNativeObject.EffesBoolean push = EffesNativeObject.forBoolean(!popped.asBoolean());
+      boolean value = popBoolean(s);
+      EffesNativeObject.EffesBoolean push = EffesNativeObject.forBoolean(!value);
       s.push(push);
     });
+  }
+
+  @OperationFactory("call_Boolean:and")
+  public static Operation and() {
+    return booleanOp(Boolean::logicalAnd);
+  }
+
+  @OperationFactory("call_Boolean:or")
+  public static Operation or() {
+    return booleanOp(Boolean::logicalOr);
+  }
+
+  @OperationFactory("call_Boolean:xor")
+  public static Operation xor() {
+    return booleanOp(Boolean::logicalXor);
   }
 
   @OperationFactory("call_Match:igroup")
@@ -336,6 +352,15 @@ public class EffesOps {
     };
   }
 
+  private static Operation booleanOp(BinaryOperator<Boolean> op) {
+    return Operation.withIncementingPc(s -> {
+      boolean a = popBoolean(s);
+      boolean b = popBoolean(s);
+      boolean result = op.apply(a, b);
+      s.push(EffesNativeObject.forBoolean(result));
+    });
+  }
+
   private static int nonNegative(String n) {
     int idx = Integer.parseInt(n);
     if (idx < 0) {
@@ -358,6 +383,11 @@ public class EffesOps {
       int lhs = popInt(s);
       s.push(EffesNativeObject.forBoolean(intCmp.cmp(lhs, rhs)));
     });
+  }
+
+  private static boolean popBoolean(EffesState s) {
+    EffesNativeObject.EffesBoolean popped = (EffesNativeObject.EffesBoolean) s.pop();
+    return popped.asBoolean();
   }
 
   private static int popInt(EffesState s) {

@@ -265,6 +265,10 @@ Pushes a True or False to the stack. `str` must be one of `True` or `False` (cas
 
 Pops an element from the stack, which must be True or False, and pushes its negation (False or True, respectively).
 
+### call_Boolean:and / or / xor
+
+Pops two Booleans from the stack, and pushes the result of the logical boolean operation.
+
 Integer operations
 ----------------------------------------------------------------------------------------
 
