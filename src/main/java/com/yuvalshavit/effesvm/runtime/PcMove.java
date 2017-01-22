@@ -22,6 +22,9 @@ public class PcMove implements Consumer<ProgramCounter> {
   }
 
   public static PcMove firstCallIn(EffesFunction<Operation> function) {
+    if (function == null) {
+      throw new IllegalArgumentException();
+    }
     return new PcMove(pc -> pc.set(function, 0), "start of " + function);
   }
 
