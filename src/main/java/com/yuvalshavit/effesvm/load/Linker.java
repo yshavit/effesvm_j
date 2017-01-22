@@ -27,7 +27,7 @@ public class Linker {
     for (LinkPair linkPair : linkingFunctions.values()) {
       linkedFunctions.put(linkPair.function.id(), linkPair.function);
     }
-    StaticContext staticContext = new StaticContext() {
+    LinkContext linkContext = new LinkContext() {
       Map<EffesFunction.Id,PcMove> moves = new HashMap<>();
 
       @Override
@@ -49,7 +49,7 @@ public class Linker {
       EffesFunction<UnlinkedOperation> unlinkedFunction = unlinked.getFunction(linkPair.function.id());
       for (int i = 0; i < unlinkedFunction.nOps(); ++i) {
         UnlinkedOperation unlinkedOp = unlinkedFunction.opAt(i);
-        Operation linkedOp = unlinkedOp.apply(staticContext);
+        Operation linkedOp = unlinkedOp.apply(linkContext);
         linkPair.ops.add(linkedOp);
       }
     }

@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 
-import com.yuvalshavit.effesvm.load.StaticContext;
+import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
@@ -126,7 +126,7 @@ public class OperationFactories {
     }
 
     @Override
-    public Operation apply(StaticContext cxt) {
+    public Operation apply(LinkContext cxt) {
       Operation op = delegate.apply(cxt);
       return new Op(op, description);
     }
