@@ -1,6 +1,7 @@
 package com.yuvalshavit.effesvm.ops;
 
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
@@ -81,11 +82,12 @@ public class EffesOps {
 
   @OperationFactory("type")
   public static Operation type(String typeName) {
-    return Operation.withIncementingPc(s -> {
-      EffesRef<?> item = s.pop();
-      boolean rightType = item.type().name().equals(typeName); // TODO will need to be improved for multi-module
-      s.push(EffesNativeObject.forBoolean(rightType));
-    });
+    return typeBuilder(typeName, EffesState::pop);
+  }
+
+  @OperationFactory("typp")
+  public static Operation typp(String typeName) {
+    return typeBuilder(typeName, s -> s.peek(0));
   }
 
   @OperationFactory("oarg")
@@ -398,6 +400,14 @@ public class EffesOps {
   private static String popString(EffesState s) {
     EffesNativeObject.EffesString effesStr = (EffesNativeObject.EffesString) s.pop();
     return effesStr.value;
+  }
+
+  private static Operation typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem) {
+    return Operation.withIncementingPc(s -> {
+      EffesRef<?> item = topItem.apply(s);
+      boolean rightType = item.type().name().equals(typeName); // TODO will need to be improved for multi-module
+      s.push(EffesNativeObject.forBoolean(rightType));
+    });
   }
 
   private interface IntCmp {

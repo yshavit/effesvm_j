@@ -111,7 +111,7 @@ ops
 
 Each op is on a line of its own. The first letters of the line define which op it is, and any arguments are separated by spaces. Multiple or trailing spaces are not allowed.
 
-Many of the operands describe popping elements from the stack. Unless noted otherwise, this results in an error if the local stack is empty.
+Many of the operands describe popping elements from the stack. Unless noted otherwise, this results in an error if the local stack is empty. Operands can also peek at the stack. This is functionally equivalent to a pop immediately followed by a push.
 
 Note that opcodes are only allowed immediately preceding function declarations, and all non-comment lines following those declarations until an empty line are opcodes. This means that even if an opcode shared a name with some other declaration marker (for instance, if we had an opcode `mthd`), there would be no ambiguity, as the file's context makes it clear whether a line is an opcode. That said, by convention opcodes are all lowercase, and other markers are all uppercase, so there shouldn't be any ambiguity.
 
@@ -207,7 +207,11 @@ Functions, field access and object manipulation
 
 ### type typedesc @item -> isOfRightType
 
-Pops the topmost item. Pushes a True to the stack iff the item was an EffesRef whose type matched the typedesc, which is something like `List`, `Cat|Dog`, etc. Pushes a False to the stack in all other cases.
+Pops the topemost item. Pushes a True to the stack if its type matches the typedesc, which is something like `Cat`. Pushes a False otherwise.
+
+### typp
+
+Works like `type`, except that it only peeks for the top item (instead of popping it).
 
 ### call classname functionname [@arg0 ... arg@1] -> result
 

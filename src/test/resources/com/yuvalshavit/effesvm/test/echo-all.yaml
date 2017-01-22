@@ -1,16 +1,14 @@
 efct: |
-  FUNC : main 0 1 0  # local args is the line we read from stdin
+  FUNC : main 0 0 0
   call_String:sin
-  svar 0
-  pvar 0
-  type False
-  goif 10  # goif stdin == False
-  pvar 0
+  typp False
+  goif 7   # goif stdin == False
   call_String:sout
   str  \n
   call_String:sout
   goto 0
-  int 0    # jump point for goif stdin == False
+  pop      # jump point for goif stdin == False. pop the False that got left over
+  int 0
   rtrn
 runs:
 - description: one line
