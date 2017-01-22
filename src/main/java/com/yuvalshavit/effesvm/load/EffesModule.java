@@ -1,5 +1,7 @@
 package com.yuvalshavit.effesvm.load;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
@@ -8,11 +10,11 @@ import java.util.stream.Collectors;
 import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 
-public class EffesModule {
-  private final Map<EffesFunction.Id,EffesFunction> functionsById;
+public class EffesModule<T> {
+  private final Map<EffesFunction.Id,EffesFunction<T>> functionsById;
   private final Map<String,EffesType> types;
 
-  public EffesModule(Map<String,EffesType> types, Map<EffesFunction.Id,EffesFunction> functionsById) {
+  public EffesModule(Map<String,EffesType> types, Map<EffesFunction.Id,EffesFunction<T>> functionsById) {
     this.types = types;
     this.functionsById = functionsById;
 
@@ -27,8 +29,8 @@ public class EffesModule {
     }
   }
 
-  public EffesFunction getFunction(EffesFunction.Id id) {
-    EffesFunction res = functionsById.get(id);
+  public EffesFunction<T> getFunction(EffesFunction.Id id) {
+    EffesFunction<T> res = functionsById.get(id);
     if (res == null) {
       throw new NoSuchElementException(id.toString());
     }
@@ -43,4 +45,11 @@ public class EffesModule {
     return type;
   }
 
+  Map<String,EffesType> types() {
+    return Collections.unmodifiableMap(types);
+  }
+
+  Collection<EffesFunction<T>> functions() {
+    return Collections.unmodifiableCollection(functionsById.values());
+  }
 }

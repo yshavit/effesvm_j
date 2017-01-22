@@ -30,7 +30,7 @@ public class ProgramCounter {
     state.pc = op;
   }
 
-  public void set(EffesFunction function, int op) {
+  public void set(EffesFunction<Operation> function, int op) {
     requireNonNull(function, "function");
     state.function = function;
     setOpIdx(op);
@@ -53,7 +53,7 @@ public class ProgramCounter {
     return state.toString();
   }
 
-  public static State firstLineOfFunction(EffesFunction function) {
+  public static State firstLineOfFunction(EffesFunction<Operation> function) {
     return new State(function, 0);
   }
 
@@ -62,10 +62,10 @@ public class ProgramCounter {
   }
 
   public static class State {
-    private EffesFunction function;
+    private EffesFunction<Operation> function;
     private int pc;
 
-    private State(EffesFunction function, int pc) {
+    private State(EffesFunction<Operation> function, int pc) {
       this.function = function;
       this.pc = pc;
     }

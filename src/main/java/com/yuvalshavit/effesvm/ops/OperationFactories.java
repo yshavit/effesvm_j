@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 
-import com.yuvalshavit.effesvm.runtime.OpContext;
+import com.yuvalshavit.effesvm.load.StaticContext;
+import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public class OperationFactories {
@@ -29,7 +30,8 @@ public class OperationFactories {
     for (Method method : enclosingClass_.getMethods()) {
       OperationFactory factoryAnnotation = method.getAnnotation(OperationFactory.class);
       if (factoryAnnotation != null) {
-        if (!Operation.class.isAssignableFrom(method.getReturnType())) {
+        Class<?> retType = method.getReturnType();
+        if (!(Operation.class.isAssignableFrom(retType) || UnlinkedOperation.class.isAssignableFrom(retType))) {
           throw notAValidFactoryMethod(enclosingClass_, method);
         }
         Class<?>[] parameterTypes = method.getParameterTypes();
@@ -53,7 +55,7 @@ public class OperationFactories {
       enclosingClass.getName(), method.getName()));
   }
 
-  public static class ReflectiveOperationBuilder implements Function<List<String>,Operation> {
+  public static class ReflectiveOperationBuilder implements Function<List<String>,UnlinkedOperation> {
     private final String opName;
     private final Object suiteInstance;
     private final Method method;
@@ -66,12 +68,12 @@ public class OperationFactories {
       nStringArgs = method.getParameterCount();
     }
 
-    public Operation build(String... strings) {
+    public UnlinkedOperation build(String... strings) {
       return apply(Arrays.asList(strings));
     }
 
     @Override
-    public Operation apply(List<String> strings) {
+    public UnlinkedOperation apply(List<String> strings) {
       int nIncomingStrings = strings.size();
       if (nIncomingStrings < nStringArgs) {
         throw new IllegalArgumentException(String.format("%s requires at least %d string%s", opName, nStringArgs, nStringArgs == 1 ? "" : "s"));
@@ -84,9 +86,9 @@ public class OperationFactories {
       for (int i = 0; i < nStringArgs; ++i) {
         reflectionArgs[i] = stringsIter.next();
       }
-      Operation op;
+      Object opRaw;
       try {
-        op = (Operation) method.invoke(suiteInstance, reflectionArgs);
+        opRaw = method.invoke(suiteInstance, reflectionArgs);
       } catch (Exception e) {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
@@ -95,12 +97,43 @@ public class OperationFactories {
         consumeAndReturn(new StringJoiner(" "), j -> strings.forEach(j::add)),
         method.getDeclaringClass().getName(),
         method.getName());
-      return new Op(op, desc);
+      UnlinkedOperation result;
+      if (opRaw instanceof Operation) {
+        Op opWithDesc = new Op(((Operation) opRaw), desc);
+        result = ctx -> opWithDesc;
+      } else if (opRaw instanceof UnlinkedOperation) {
+        result = new UnlinkedOp((UnlinkedOperation) opRaw, desc);
+      }
+      else {
+        throw new RuntimeException("unexpected result: " + opRaw);
+      }
+      return result;
     }
 
     @Override
     public String toString() {
       return String.format("%s from %s::%s", opName, method.getDeclaringClass().getName(), method.getName());
+    }
+  }
+
+  private static class UnlinkedOp implements UnlinkedOperation {
+    private final UnlinkedOperation delegate;
+    private final String description;
+
+    public UnlinkedOp(UnlinkedOperation delegate, String description) {
+      this.delegate = delegate;
+      this.description = description;
+    }
+
+    @Override
+    public Operation apply(StaticContext cxt) {
+      Operation op = delegate.apply(cxt);
+      return new Op(op, description);
+    }
+
+    @Override
+    public String toString() {
+      return description;
     }
   }
 
@@ -114,8 +147,8 @@ public class OperationFactories {
     }
 
     @Override
-    public PcMove apply(OpContext context) {
-      return delegate.apply(context);
+    public PcMove apply(EffesState state) {
+      return delegate.apply(state);
     }
 
     @Override

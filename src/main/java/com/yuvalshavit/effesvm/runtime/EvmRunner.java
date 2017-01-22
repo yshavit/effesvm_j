@@ -9,9 +9,11 @@ import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.load.Linker;
 import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
+import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
 
 public class EvmRunner {
@@ -20,22 +22,21 @@ public class EvmRunner {
 
   private EvmRunner() {}
 
-  public static int run(EffesModule module, int stackSize) {
-    EffesFunction mainFunction = module.getFunction(new EffesFunction.Id("main"));
+  public static int run(EffesModule<Operation> module, int stackSize) {
+    EffesFunction<Operation> mainFunction = module.getFunction(new EffesFunction.Id("main"));
     if (mainFunction.nArgs() != 0) {
       throw new IllegalArgumentException("::main must take 0 arguments");
     }
 
     EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
     // if main() took any args, here is where we'd push them
-    OpContext opContext = new OpContext(state, module);
 
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     while (!state.pc().isAt(ProgramCounter.end())) {
       Operation op = state.pc().getOp();
       PcMove next;
       try {
-        next = op.apply(opContext);
+        next = op.apply(state);
       } catch (Exception e) {
         throw new EffesRuntimeException("with pc " + state.pc(), e);
       }
@@ -65,10 +66,11 @@ public class EvmRunner {
   public static int run(Iterator<String> efctLines, EffesIo io, Integer stackSize) {
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Parser parser = new Parser(ops);
-    EffesModule module = parser.parse(SequencedIterator.wrap(efctLines));
+    EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(SequencedIterator.wrap(efctLines));
+    EffesModule<Operation> linkedModule = Linker.link(unlinkedModule);
     if (stackSize == null) {
       stackSize = STACK_SIZE;
     }
-    return run(module, stackSize);
+    return run(linkedModule, stackSize);
   }
 }

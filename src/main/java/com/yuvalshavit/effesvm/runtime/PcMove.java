@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime;
 import java.util.function.Consumer;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.ops.Operation;
 
 public class PcMove implements Consumer<ProgramCounter> {
   private final Consumer<ProgramCounter> delegate;
@@ -20,7 +21,7 @@ public class PcMove implements Consumer<ProgramCounter> {
     return new PcMove(pcObj -> pcObj.setOpIdx(pc), "to " + pc);
   }
 
-  public static PcMove firstCallIn(EffesFunction function) {
+  public static PcMove firstCallIn(EffesFunction<Operation> function) {
     return new PcMove(pc -> pc.set(function, 0), "start of " + function);
   }
 

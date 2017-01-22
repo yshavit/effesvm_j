@@ -5,15 +5,12 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.function.Function;
 
 import org.testng.annotations.Test;
 
-import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesNativeObject;
 import com.yuvalshavit.effesvm.runtime.EffesState;
-import com.yuvalshavit.effesvm.runtime.OpContext;
 import com.yuvalshavit.effesvm.runtime.ProgramCounter;
 
 public class OperationFactoriesTest {
@@ -99,9 +96,10 @@ public class OperationFactoriesTest {
   public static class Sub extends Super {}
 
   private static void checkOp(String expected, OperationFactories.ReflectiveOperationBuilder builder, String... args) {
-    Operation op = builder.apply(Arrays.asList(args));
+    UnlinkedOperation unlinked = builder.apply(Arrays.asList(args));
+    Operation op = unlinked.apply(null);
     EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
-    op.apply(new OpContext(state, new EffesModule(Collections.emptyMap(), Collections.emptyMap())));
+    op.apply(state);
     assertEquals(state.pop().toString(), expected);
   }
 

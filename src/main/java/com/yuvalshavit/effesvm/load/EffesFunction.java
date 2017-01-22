@@ -2,22 +2,19 @@ package com.yuvalshavit.effesvm.load;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.Objects;
 
-import com.yuvalshavit.effesvm.ops.Operation;
-import com.yuvalshavit.effesvm.runtime.PcMove;
-
-public class EffesFunction {
+public class EffesFunction<T> {
   
   public static String MODULE_CLASSNAME = ":";
   
   private final Id id;
   private final int nArgs;
   private final int nVars;
-  private final Operation[] ops;
-  private PcMove jumpToMe;
+  private final List<T> ops;
 
-  public EffesFunction(Id id, int nVars, int nArgs, Operation[] ops) {
+  public EffesFunction(Id id, int nVars, int nArgs, List<T> ops) {
     this.id = id;
     this.nArgs = nArgs;
     this.nVars = nVars;
@@ -33,26 +30,15 @@ public class EffesFunction {
   }
 
   public int nOps() {
-    return ops.length;
+    return ops.size();
   }
 
-  public Operation opAt(int idx) {
-    return ops[idx];
+  public T opAt(int idx) {
+    return ops.get(idx);
   }
 
   public Id id() {
     return id;
-  }
-
-  public PcMove getJumpToMe() {
-    PcMove res = this.jumpToMe;
-    if (jumpToMe == null) {
-      // TODO this is a data race, but benign since PcMove happens to use all final fields. But yuck, not great architecture here.
-      // Need to rethink dependencies a bit!
-      res = PcMove.firstCallIn(this);
-      jumpToMe = res;
-    }
-    return res;
   }
 
   @Override

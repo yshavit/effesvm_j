@@ -1,10 +1,15 @@
 package com.yuvalshavit.effesvm.load;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
-import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
+import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;
@@ -17,9 +22,9 @@ public class Parser {
     this.opsFactories = opsFactories;
   }
 
-  public EffesModule parse(SequencedIterator<String> lines) {
+  public EffesModule<UnlinkedOperation> parse(SequencedIterator<String> lines) {
     if (!lines.hasNext()) {
-      return new EffesModule(Collections.emptyMap(), Collections.emptyMap());
+      return new EffesModule<>(Collections.emptyMap(), Collections.emptyMap());
     }
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
@@ -27,7 +32,7 @@ public class Parser {
 
     SequencedIterator<Line> tokenizedLines = lines.mapView(Line::new);
 
-    Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
+    Map<EffesFunction.Id,EffesFunction<UnlinkedOperation>> functions = new HashMap<>();
     Map<String,EffesType> types = new HashMap<>();
     while (tokenizedLines.hasNext()) {
       Line line = tokenizedLines.next();
@@ -40,7 +45,7 @@ public class Parser {
           case "FUNC":
             String className = line.get(1, "classname");
             String functionName = line.get(2, "functionname");
-            EffesFunction parsedFunction = parseFunction(
+            EffesFunction<UnlinkedOperation> parsedFunction = parseFunction(
               tokenizedLines,
               className,
               functionName,
@@ -65,15 +70,22 @@ public class Parser {
         throw new EffesLoadException(message, e);
       }
     }
-    return new EffesModule(types, Collections.unmodifiableMap(functions));
+    return new EffesModule<>(types, Collections.unmodifiableMap(functions));
   }
 
-  private EffesFunction parseFunction(SequencedIterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
+  private EffesFunction<UnlinkedOperation> parseFunction(
+    SequencedIterator<Line> lines,
+    String className,
+    String functionName,
+    int nGenerics,
+    int nLocal,
+    int nArgs)
+  {
     if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
       throw new IllegalArgumentException("invalid FUNC declaration");
     }
 
-    List<Operation> ops = new ArrayList<>();
+    List<UnlinkedOperation> ops = new ArrayList<>();
     while (lines.hasNext()) {
       Line line = lines.next();
       if (line.isEmpty()) {
@@ -87,10 +99,10 @@ public class Parser {
       if (opBuilder == null) {
         throw new EffesLoadException("no such op: " + opcode);
       }
-      Operation op = opBuilder.build(line.tailTokens(1));
+      UnlinkedOperation op = opBuilder.build(line.tailTokens(1));
       ops.add(op);
     }
-    return new EffesFunction(new EffesFunction.Id(className, functionName), nLocal, nArgs, ops.toArray(new Operation[0]));
+    return new EffesFunction<>(new EffesFunction.Id(className, functionName), nLocal, nArgs, ops);
   }
 
   private EffesType parseType(Line line) {

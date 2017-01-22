@@ -9,6 +9,7 @@ import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
+import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 
 public class EffesOps {
 
@@ -76,8 +77,8 @@ public class EffesOps {
 
   @OperationFactory("rtrn")
   public static Operation rtrn() {
-    return c -> {
-      c.state().closeFrame();
+    return s -> {
+      s.closeFrame();
       return PcMove.stay();
     };
   }
@@ -177,44 +178,49 @@ public class EffesOps {
   }
 
   @OperationFactory("call")
-  public static Operation call(String className, String functionName) {
+  public static UnlinkedOperation call(String className, String functionName) {
     EffesFunction.Id id = new EffesFunction.Id(className, functionName);
     if (id.typeName().equals(id.functionName())) {
       String typeName = id.typeName();
       // constructor
-      return c -> {
-        EffesType type = c.module().getType(typeName);
-        EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
-        for (int i = args.length - 1; i >= 0; --i) {
-          args[i] = c.state().pop();
-        }
-        EffesObject obj = new EffesObject(type, args);
-        c.state().push(obj);
-        return PcMove.next();
+      return linkCtxt -> {
+        EffesType type = linkCtxt.type(typeName);
+        return runCtx -> {
+          EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
+          for (int i = args.length - 1; i >= 0; --i) {
+            args[i] = runCtx.pop();
+          }
+          EffesObject obj = new EffesObject(type, args);
+          runCtx.push(obj);
+          return PcMove.next();
+        };
       };
     } else {
       // non-constructor function
-      boolean isInstanceMethod = !EffesFunction.MODULE_CLASSNAME.equals(id.typeName());
-      return c -> {
-        EffesFunction f = c.module().getFunction(id);
-        if (f == null) {
-          throw new EffesLoadException("link error: no function " + id);
-        }
-        int nArgs = f.nArgs(); // does not count the "this" reference
-        if (isInstanceMethod) {
-          Object instance = c.state().peek(nArgs);
-          if (!(instance instanceof EffesObject)) {
-            throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
+      return linkCtx -> {
+        boolean isInstanceMethod = !EffesFunction.MODULE_CLASSNAME.equals(id.typeName());
+        EffesFunction<?> f = linkCtx.getFunctionInfo(id);
+        PcMove pcMove = linkCtx.firstOpOf(id);
+        return c -> {
+          if (f == null) {
+            throw new EffesLoadException("link error: no function " + id);
           }
-          EffesType instanceType = ((EffesObject) instance).type();
-          if (!id.typeName().equals(instanceType.name())) { // TODO multi-module will need to tweak this a bit
-            throw new EffesRuntimeException(String.format("instance function %s invoked on wrong EffesObject instance: %s", id, instance));
+          int nArgs = f.nArgs(); // does not count the "this" reference
+          if (isInstanceMethod) {
+            Object instance = c.peek(nArgs);
+            if (!(instance instanceof EffesObject)) {
+              throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
+            }
+            EffesType instanceType = ((EffesObject) instance).type();
+            if (!id.typeName().equals(instanceType.name())) { // TODO multi-module will need to tweak this a bit
+              throw new EffesRuntimeException(String.format("instance function %s invoked on wrong EffesObject instance: %s", id, instance));
+            }
+            ++nArgs; // to include the "this" reference
           }
-          ++nArgs; // to include the "this" reference
-        }
-        PcMove.next().accept(c.state().pc()); // set up the return jump point
-        c.state().openFrame(nArgs, f.nVars());
-        return f.getJumpToMe();
+          PcMove.next().accept(c.pc()); // set up the return jump point
+          c.openFrame(nArgs, f.nVars());
+          return pcMove;
+        };
       };
     }
   }
@@ -353,8 +359,8 @@ public class EffesOps {
   private static Operation buildGoif(String loc, Predicate<Boolean> condition) {
     int idx = nonNegative(loc);
     PcMove to = PcMove.absolute(idx);
-    return c -> {
-      boolean top = ((EffesNativeObject.EffesBoolean) c.state().pop()).asBoolean();
+    return s -> {
+      boolean top = ((EffesNativeObject.EffesBoolean) s.pop()).asBoolean();
       return condition.test(top) ? to : PcMove.next();
     };
   }
