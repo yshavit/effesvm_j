@@ -5,12 +5,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
-import java.util.Objects;
-import java.util.OptionalInt;
 import java.util.function.Function;
 
+import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.Parser;
-import com.yuvalshavit.effesvm.ops.EffesOps;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.util.SequencedIterator;

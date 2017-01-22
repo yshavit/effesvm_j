@@ -2,6 +2,8 @@ package com.yuvalshavit.effesvm.runtime;
 
 import java.util.function.Consumer;
 
+import com.yuvalshavit.effesvm.load.EffesFunction;
+
 public class PcMove implements Consumer<ProgramCounter> {
   private final Consumer<ProgramCounter> delegate;
   private final String description;

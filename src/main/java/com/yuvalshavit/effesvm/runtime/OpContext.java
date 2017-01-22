@@ -1,5 +1,7 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import com.yuvalshavit.effesvm.load.EffesModule;
+
 public class OpContext {
   private final EffesState state;
   private final EffesModule module; // TODO multi-module effes will have to change this

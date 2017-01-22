@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import org.testng.annotations.Test;
 
-import com.yuvalshavit.effesvm.runtime.EffesModule;
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesNativeObject;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.OpContext;

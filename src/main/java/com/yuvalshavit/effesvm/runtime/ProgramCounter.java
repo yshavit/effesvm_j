@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class ProgramCounter {

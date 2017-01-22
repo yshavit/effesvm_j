@@ -1,12 +1,14 @@
-package com.yuvalshavit.effesvm.ops;
+package com.yuvalshavit.effesvm.runtime;
 
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
+import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
-import com.yuvalshavit.effesvm.runtime.*;
+import com.yuvalshavit.effesvm.ops.Operation;
+import com.yuvalshavit.effesvm.ops.OperationFactory;
 
 public class EffesOps {
 

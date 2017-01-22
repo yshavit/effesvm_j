@@ -5,8 +5,6 @@ import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
-import com.yuvalshavit.effesvm.runtime.EffesFunction;
-import com.yuvalshavit.effesvm.runtime.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;

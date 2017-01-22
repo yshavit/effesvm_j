@@ -1,9 +1,12 @@
-package com.yuvalshavit.effesvm.runtime;
+package com.yuvalshavit.effesvm.load;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
+import com.yuvalshavit.effesvm.runtime.EffesType;
 
 public class EffesModule {
   private final Map<EffesFunction.Id,EffesFunction> functionsById;
