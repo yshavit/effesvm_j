@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.Stream;
 
 public class EffesState {
   private final Object[] stack;
@@ -33,7 +34,8 @@ public class EffesState {
 
   private void pushObj(Object o) {
     if (regSp + 1 >= stack.length) {
-      throw new EffesStackOverflowException();
+      long nFrames = Stream.of(stack).filter(e -> e instanceof FrameInfo).count();
+      throw new EffesStackOverflowException(String.format("stackSize=%d, nFrames=%d", stack.length, nFrames));
     }
     stack[++regSp] = o;
   }
@@ -218,6 +220,10 @@ public class EffesState {
   public static class EffesStackOverflowException extends EffesRuntimeException {
     // This is the only exception that can be generated as a result of correct bytecode (if the compiled program itself
     // was in error), so it gets its own exception class.
+
+    public EffesStackOverflowException(String message) {
+      super(message);
+    }
   }
 
   public static class EffesStackException extends EffesRuntimeException {

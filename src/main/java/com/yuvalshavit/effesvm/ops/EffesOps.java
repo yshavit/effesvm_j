@@ -192,13 +192,14 @@ public class EffesOps {
       };
     } else {
       // non-constructor function
+      boolean isInstanceMethod = !EffesFunction.MODULE_CLASSNAME.equals(id.typeName());
       return c -> {
         EffesFunction f = c.module().getFunction(id);
         if (f == null) {
           throw new EffesLoadException("link error: no function " + id);
         }
         int nArgs = f.nArgs(); // does not count the "this" reference
-        if (!EffesFunction.MODULE_CLASSNAME.equals(id.typeName())) {
+        if (isInstanceMethod) {
           Object instance = c.state().peek(nArgs);
           if (!(instance instanceof EffesObject)) {
             throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
@@ -215,6 +216,8 @@ public class EffesOps {
       };
     }
   }
+
+
 
   @OperationFactory("call_Integer:add")
   public static Operation iAdd() {

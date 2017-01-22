@@ -58,7 +58,7 @@ public class EndToEndTest {
       .iterator();
 
     InMemoryIo io = new InMemoryIo(run.in);
-    int exitCode = EvmRunner.run(efct, io);
+    int exitCode = EvmRunner.run(efct, io, run.stackSize);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
     assertEquals(io.err.toString().trim(), run.err.trim(), "stderr");
@@ -76,6 +76,7 @@ public class EndToEndTest {
     public String out = "";
     public String err = "";
     public int exit = -1;
+    public Integer stackSize = null;
 
     @Override
     public String toString() {

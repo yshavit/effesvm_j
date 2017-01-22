@@ -5,6 +5,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.OptionalInt;
 import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.load.Parser;
@@ -58,9 +60,16 @@ public class EvmRunner {
   }
 
   public static int run(Iterator<String> efctLines, EffesIo io) {
+    return run(efctLines, io, null);
+  }
+
+  public static int run(Iterator<String> efctLines, EffesIo io, Integer stackSize) {
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Parser parser = new Parser(ops);
     EffesModule module = parser.parse(SequencedIterator.wrap(efctLines));
-    return run(module, STACK_SIZE);
+    if (stackSize == null) {
+      stackSize = STACK_SIZE;
+    }
+    return run(module, stackSize);
   }
 }
