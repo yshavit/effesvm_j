@@ -15,8 +15,8 @@ public class EffesObject extends EffesRef<EffesType> {
     }
   }
 
-  public EffesRef<?> getArg(String name) {
-    return args[type().argIndex(name)];
+  public EffesRef<?> getArgAt(int idx) {
+    return args[idx];
   }
 
   @Override

@@ -13,10 +13,10 @@ efct: |
 
   FUNC House describe 0 0 0
   parg 0 # this
-  oarg nDoors
+  oarg House nDoors
   debug-print
   parg 0
-  oarg nWindows
+  oarg House nWindows
   debug-print
   call_Integer:add
   rtrn

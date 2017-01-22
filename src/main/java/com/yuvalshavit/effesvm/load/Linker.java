@@ -77,7 +77,11 @@ public class Linker {
 
     @Override
     public EffesType type(String typeName) {
-      return types.get(typeName);
+      EffesType res = types.get(typeName);
+      if (res == null) {
+        throw new NoSuchElementException("no type " + typeName);
+      }
+      return res;
     }
 
     @Override

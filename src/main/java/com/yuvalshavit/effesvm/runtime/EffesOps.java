@@ -98,12 +98,19 @@ public class EffesOps {
   }
 
   @OperationFactory("oarg")
-  public static Operation objectArg(String name) {
-    return Operation.withIncementingPc(s -> {
-      EffesObject obj = (EffesObject) s.pop();
-      EffesRef<?> arg = obj.getArg(name);
-      s.push(arg);
-    });
+  public static UnlinkedOperation objectArg(String typeName, String fieldName) {
+    return linkContext -> {
+      EffesType type = linkContext.type(typeName);
+      int fieldIndex = type.argIndex(fieldName);
+      return Operation.withIncementingPc(s -> {
+        EffesObject obj = (EffesObject) s.pop();
+        if (!obj.type().equals(type)) {
+          throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", typeName, fieldName, obj.type()));
+        }
+        EffesRef<?> arg = obj.getArgAt(fieldIndex);
+        s.push(arg);
+      });
+    };
   }
 
   @OperationFactory("call_Array:store")

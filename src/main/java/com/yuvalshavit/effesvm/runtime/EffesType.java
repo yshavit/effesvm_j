@@ -2,6 +2,7 @@ package com.yuvalshavit.effesvm.runtime;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class EffesType extends BaseEffesType {
   private final List<String> arguments;
@@ -18,7 +19,7 @@ public class EffesType extends BaseEffesType {
   public int argIndex(String argument) {
     int idx = arguments.indexOf(argument);
     if (idx < 0) {
-      throw new EffesRuntimeException("no such argument: " + argument);
+      throw new NoSuchElementException("no such argument: " + argument);
     }
     return idx;
   }

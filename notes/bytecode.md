@@ -231,9 +231,9 @@ Examples:
 - `call : myModuleFunction` calls a function
 - `call LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
-### oarg name @effesItem -> effesItemField
+### oarg typename fieldname @effesItem -> effesItemField
 
-Pops the topmost item, which must be an EffesRef. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef, or if it is one whose type does not have the requied name.
+Pops the topmost item, which must be an EffesRef of type _typename_. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
 
 ### call_native:toString @obj -> string
 
