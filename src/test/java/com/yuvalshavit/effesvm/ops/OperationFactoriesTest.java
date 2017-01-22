@@ -55,6 +55,11 @@ public class OperationFactoriesTest {
       public PcMove firstOpOf(EffesFunction.Id id) {
         throw new UnsupportedOperationException();
       }
+
+      @Override
+      public EffesFunction<?> getCurrentLinkingFunctionInfo() {
+        throw new UnsupportedOperationException();
+      }
     };
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
     checkOp("the-link-type", builder, linkContext);

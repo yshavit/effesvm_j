@@ -6,7 +6,9 @@ import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesLinkException;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
+import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
@@ -59,19 +61,21 @@ public class EffesOps {
   }
 
   @OperationFactory("goto")
-  public static Operation gotoAbs(String n) {
+  public static UnlinkedOperation gotoAbs(String n) {
     int idx = nonNegative(n);
-    PcMove to = PcMove.absolute(idx);
-    return s -> to;
+    return linkCtx -> {
+      PcMove pcMove = pcMoveTo(linkCtx, idx);
+      return s -> pcMove;
+    };
   }
 
   @OperationFactory("goif")
-  public static Operation gotoIf(String n) {
+  public static UnlinkedOperation gotoIf(String n) {
     return buildGoif(n, Boolean::booleanValue);
   }
 
   @OperationFactory("gofi")
-  public static Operation gotoIfNot(String n) {
+  public static UnlinkedOperation gotoIfNot(String n) {
     return buildGoif(n, b -> !b);
   }
 
@@ -225,8 +229,6 @@ public class EffesOps {
     }
   }
 
-
-
   @OperationFactory("call_Integer:add")
   public static Operation iAdd() {
     return intArith((l, r) -> (l + r));
@@ -356,13 +358,23 @@ public class EffesOps {
     });
   }
 
-  private static Operation buildGoif(String loc, Predicate<Boolean> condition) {
+  private static UnlinkedOperation buildGoif(String loc, Predicate<Boolean> condition) {
     int idx = nonNegative(loc);
-    PcMove to = PcMove.absolute(idx);
-    return s -> {
-      boolean top = ((EffesNativeObject.EffesBoolean) s.pop()).asBoolean();
-      return condition.test(top) ? to : PcMove.next();
+    return linkCtx -> {
+      PcMove to = pcMoveTo(linkCtx, idx);
+      return s -> {
+        boolean top = ((EffesNativeObject.EffesBoolean) s.pop()).asBoolean();
+        return condition.test(top) ? to : PcMove.next();
+      };
     };
+  }
+
+  private static PcMove pcMoveTo(LinkContext linkCtx, int idx) {
+    int nOps = linkCtx.getCurrentLinkingFunctionInfo().nOps();
+    if (idx >= nOps) {
+      throw new EffesLinkException("jump op index is out of range: " + idx);
+    }
+    return PcMove.absolute(idx);
   }
 
   private static Operation booleanOp(BinaryOperator<Boolean> op) {

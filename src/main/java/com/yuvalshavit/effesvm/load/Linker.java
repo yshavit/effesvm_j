@@ -27,29 +27,23 @@ public class Linker {
     for (LinkPair linkPair : linkingFunctions.values()) {
       linkedFunctions.put(linkPair.function.id(), linkPair.function);
     }
-    LinkContext linkContext = new LinkContext() {
-      Map<EffesFunction.Id,PcMove> moves = new HashMap<>();
-
-      @Override
-      public EffesType type(String typeName) {
-        return types.get(typeName);
-      }
-
-      @Override
-      public EffesFunction<?> getFunctionInfo(EffesFunction.Id function) {
-        return unlinked.getFunction(function);
-      }
-
-      @Override
-      public PcMove firstOpOf(EffesFunction.Id id) {
-        return moves.computeIfAbsent(id, i -> PcMove.firstCallIn(linkedFunctions.get(i)));
-      }
-    };
+    LinkContextImpl linkContext = new LinkContextImpl(types, unlinked, linkedFunctions);
     for (LinkPair linkPair : linkingFunctions.values()) {
       EffesFunction<UnlinkedOperation> unlinkedFunction = unlinked.getFunction(linkPair.function.id());
+      linkContext.currentLinkingFunctionInfo = unlinkedFunction;
       for (int i = 0; i < unlinkedFunction.nOps(); ++i) {
         UnlinkedOperation unlinkedOp = unlinkedFunction.opAt(i);
-        Operation linkedOp = unlinkedOp.apply(linkContext);
+        Operation linkedOp;
+        try {
+          linkedOp = unlinkedOp.apply(linkContext);
+        } catch (Exception e) {
+          String originalMessage = e.getMessage();
+          String annotation = "at op " + i;
+          String message = originalMessage == null
+            ? annotation
+            : (originalMessage + " " + annotation);
+          throw new EffesLinkException(message, e);
+        }
         linkPair.ops.add(linkedOp);
       }
     }
@@ -63,6 +57,41 @@ public class Linker {
     public LinkPair(EffesFunction<Operation> function, List<Operation> ops) {
       this.function = function;
       this.ops = ops;
+    }
+  }
+
+  private static class LinkContextImpl implements LinkContext {
+    private final Map<String,EffesType> types;
+    private final EffesModule<UnlinkedOperation> unlinked;
+    private final Map<EffesFunction.Id,EffesFunction<Operation>> linkedFunctions;
+    private final Map<EffesFunction.Id,PcMove> moves;
+    EffesFunction<?> currentLinkingFunctionInfo;
+
+    public LinkContextImpl(Map<String,EffesType> types, EffesModule<UnlinkedOperation> unlinked, Map<EffesFunction.Id,EffesFunction<Operation>> linked) {
+      this.types = types;
+      this.unlinked = unlinked;
+      this.linkedFunctions = linked;
+      moves = new HashMap<>();
+    }
+
+    @Override
+    public EffesType type(String typeName) {
+      return types.get(typeName);
+    }
+
+    @Override
+    public EffesFunction<?> getFunctionInfo(EffesFunction.Id function) {
+      return unlinked.getFunction(function);
+    }
+
+    @Override
+    public PcMove firstOpOf(EffesFunction.Id id) {
+      return moves.computeIfAbsent(id, i -> PcMove.firstCallIn(linkedFunctions.get(i)));
+    }
+
+    @Override
+    public EffesFunction<?> getCurrentLinkingFunctionInfo() {
+      return currentLinkingFunctionInfo;
     }
   }
 }

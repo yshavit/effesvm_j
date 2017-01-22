@@ -7,4 +7,5 @@ public interface LinkContext {
   EffesType type(String typeName);
   EffesFunction<?> getFunctionInfo(EffesFunction.Id function);
   PcMove firstOpOf(EffesFunction.Id id);
+  EffesFunction<?> getCurrentLinkingFunctionInfo();
 }
