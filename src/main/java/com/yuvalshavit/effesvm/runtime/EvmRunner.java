@@ -11,6 +11,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.EffesOps;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
+import com.yuvalshavit.effesvm.util.SequencedIterator;
 
 public class EvmRunner {
 
@@ -59,7 +60,7 @@ public class EvmRunner {
   public static int run(Iterator<String> efctLines, EffesIo io) {
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Parser parser = new Parser(ops);
-    EffesModule module = parser.parse(efctLines);
+    EffesModule module = parser.parse(SequencedIterator.wrap(efctLines));
     return run(module, STACK_SIZE);
   }
 }

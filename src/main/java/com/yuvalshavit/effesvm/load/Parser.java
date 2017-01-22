@@ -8,7 +8,7 @@ import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.runtime.EffesFunction;
 import com.yuvalshavit.effesvm.runtime.EffesModule;
 import com.yuvalshavit.effesvm.runtime.EffesType;
-import com.yuvalshavit.effesvm.util.LambdaHelpers;
+import com.yuvalshavit.effesvm.util.SequencedIterator;
 import com.yuvalshavit.effesvm.util.SimpleTokenizer;
 
 public class Parser {
@@ -19,14 +19,15 @@ public class Parser {
     this.opsFactories = opsFactories;
   }
 
-  public EffesModule parse(Iterator<String> lines) {
+  public EffesModule parse(SequencedIterator<String> lines) {
     if (!lines.hasNext()) {
       return new EffesModule(Collections.emptyMap(), Collections.emptyMap());
     }
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
     }
-    Iterator<Line> tokenizedLines = LambdaHelpers.map(lines, Line::new);
+
+    SequencedIterator<Line> tokenizedLines = lines.mapView(Line::new);
 
     Map<EffesFunction.Id,EffesFunction> functions = new HashMap<>();
     Map<String,EffesType> types = new HashMap<>();
@@ -35,32 +36,41 @@ public class Parser {
       if (line.isEmptyOrComment()) {
         continue;
       }
-      String declarationType = line.get(0, "declaration type");
-      switch (declarationType) {
-        case "FUNC":
-          String className = line.get(1, "classname");
-          String functionName = line.get(2, "functionname");
-          EffesFunction parsedFunction = parseFunction(
-            tokenizedLines,
-            className,
-            functionName,
-            line.get(3, "nGenerics", Integer::parseInt),
-            line.get(4, "nLocal", Integer::parseInt),
-            line.get(5, "nArgs", Integer::parseInt));
-          functions.put(parsedFunction.id(), parsedFunction);
-          break;
-        case "TYPE":
-          EffesType type = parseType(line);
-          types.put(type.name(), type);
-          break;
-        default:
-          throw new IllegalArgumentException("unrecognized declaration type: " + declarationType);
+      try {
+        String declarationType = line.get(0, "declaration type");
+        switch (declarationType) {
+          case "FUNC":
+            String className = line.get(1, "classname");
+            String functionName = line.get(2, "functionname");
+            EffesFunction parsedFunction = parseFunction(
+              tokenizedLines,
+              className,
+              functionName,
+              line.get(3, "nGenerics", Integer::parseInt),
+              line.get(4, "nLocal", Integer::parseInt),
+              line.get(5, "nArgs", Integer::parseInt));
+            functions.put(parsedFunction.id(), parsedFunction);
+            break;
+          case "TYPE":
+            EffesType type = parseType(line);
+            types.put(type.name(), type);
+            break;
+          default:
+            throw new IllegalArgumentException("unrecognized declaration type: " + declarationType);
+        }
+      } catch (Exception e) {
+        String originalMessage = e.getMessage();
+        String annotation = "at line " + tokenizedLines.count();
+        String message = originalMessage == null
+          ? annotation
+          : (originalMessage + " " + annotation);
+        throw new EffesLoadException(message, e);
       }
     }
     return new EffesModule(types, Collections.unmodifiableMap(functions));
   }
 
-  private EffesFunction parseFunction(Iterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
+  private EffesFunction parseFunction(SequencedIterator<Line> lines, String className, String functionName, int nGenerics, int nLocal, int nArgs) {
     if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
       throw new IllegalArgumentException("invalid FUNC declaration");
     }
