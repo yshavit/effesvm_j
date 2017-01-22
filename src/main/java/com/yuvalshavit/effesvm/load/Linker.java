@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
@@ -81,7 +82,11 @@ public class Linker {
 
     @Override
     public EffesFunction<?> getFunctionInfo(EffesFunction.Id function) {
-      return unlinked.getFunction(function);
+      EffesFunction<UnlinkedOperation> res = unlinked.getFunction(function);
+      if (res == null) {
+        throw new NoSuchElementException("no function " + function);
+      }
+      return res;
     }
 
     @Override
