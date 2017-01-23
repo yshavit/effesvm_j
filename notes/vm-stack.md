@@ -1,24 +1,27 @@
 Basic structure, types and considerations
 ========================================================================================
 
-The stack frame is maintained on a LIFO `List<Object>` stack within the JVM.
+The stack frame is maintained on a LIFO `Object[]` stack within the JVM.
 
 Optimization is not a main concern, for several reasons:
 
-- First and foremost, the very nature of creating a VM within a VM is inefficient, and the only reason to do it is simplicity. When optimization becomes a serious concern, the first task will be to compile Effes classes into Java bytecode directly rather than to Effes bytecode; this should yield immense gains on its own.
+- First and foremost, the very nature of creating a VM within a VM is inefficient, and the only reason to do it is simplicity of the `.efct` file format. When optimization becomes a serious concern, the first task will be to compile Effes classes into Java bytecode directly rather than to Effes bytecode; this should yield immense gains on its own.
 - The JVM's GC precludes us from popping whole frames at once just by changing an _$sp_ register, as a real stack would do. If we did that, the leftover values would keep strong references to their respective objects, which would be a memory leak. Since we have to null those values one at a time anyway, various optimizations are instantly lost to us.
 - Since we need to work with object references (for Effes objects), we can't easily work directly with primitives: we have to use boxed types. We could get around that problem (e.g. with multiple stacks per Java type, or by using `java.sun.Unsafe`), but as mentioned above, the biggest win would just be to compile to `.class` files.
 
 The Effes stack's elements are references to the following classes:
 
 - FrameInfo
-- EffesObj
-- other Java classes used to represent Effes native types (ints, etc)
+- EffesRef&lt;?&gt;, which can be:
+  - EffesObjects, representing user-defined types; or
+  - EffesNativeObject, representing built-in types
 
 An EffesObj contains:
 
 - an EffesType reference
 - 0 or more constructor arguments, which can be accessed via the _pvar_ opcode (described in the [bytecode spec](bytecode.md))
+
+Note that "native," in EffesNativeObject and all other contexts, means "native to the EVM." It does _not_ refer to Java's `native` keyword or functionality.
 
 The FrameInfo object is described below.
 
@@ -30,12 +33,9 @@ Stack frames look like:
     [ ...                ] <-- $sp ╮
     [ ...                ]         ├ local stack
     [ localStack0        ] ────────╯
-    [ localVarN          ] ────────╮
-    [ ...                ]         ├ local variables
-    [ localVar0          ] ────────╯
     [ FrameInfo          ] <-- $fp
     [ argN               ] ────────╮
-    [ ...                ]         ├ method arguments
+    [ ...                ]         ├ local variables (including method arguments)
     [ arg0               ] ────────╯
     <---previous frame--->
 
@@ -50,6 +50,7 @@ These registers cannot be manipulated directly by opcodes.
 The stack frame is divided into three sections:
 
 - the method arguments and local variables, which are fixed for the existence of the frame (but may be different from frame to frame)
+- the FrameInfo object
 - the local stack, which can grow as needed (subject to overall stack size constraints, of course)
 
 The FrameInfo contains:
@@ -58,6 +59,10 @@ The FrameInfo contains:
 - the number of local variables in this frame
 - the previous frame's _$fp_
 - the invoking frame's returning _$pc_
+
+The local variables consists of both the method arguments and any other local variable slots the method has requested. These are accessed identically; the only difference is that the arguments come first in order, and are "stolen" from the previous stack frame.
+
+For instance, let's say a stack frame has three elements in its local stack: `a`, `b` and `c` (with `c` being the topmost element, the one that _$sp_ points to). The EVM invokes a method that takes two arguments and two local variables. The new frame's local variables section will consist of `b`, `c`, `d'` and `e'`, where `d'` and `e'` are empty slots. When the stack frame closes, the previous stack frame will now consist of `a`, `r` where `r` is the method's return value.
 
 Stack operations
 ========================================================================================
@@ -88,7 +93,8 @@ To invoke a method with N arguments:
 - Push the arguments, in order. The first argument pushed will be the bottom-most value in the stack
 - Invoke the `call` opcode. This will
   - look up the number of arguments and local variables for the method being called
-  - confirm that the current frame's local stack contains at least that many elements
+  - confirm that the current frame's local stack contains at least as many arguments as are required
+  - allocate space for the local variables
   - construct a new FrameInfo object with:
     - the current _$fp_
     - and the invoked method's number of method arguments and local variables
@@ -106,7 +112,7 @@ The steps to closing a frame are:
 
 - require exactly one element on the local stack; pop it, and store it as this frame's return value
 - Let _fp_ be current FramePointer info
-- pop elements from the stack while _$sp > $fp - fp.nArgs_
+- pop elements from the stack while _$sp > $fp - (fp.nArgs + fp.nVars)_
 - set _$fp = fp.previousFp_
 - set _$pc = fp.returningPc_
 - push the return value from the first step

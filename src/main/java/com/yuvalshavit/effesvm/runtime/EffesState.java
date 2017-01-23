@@ -42,7 +42,7 @@ public class EffesState {
 
   public EffesRef<?> pop() {
     // Can only pop from this frame's local stack!
-    if (regSp <= regFp + (fp().nLocalVars)) {
+    if (regSp <= regFp) {
       throw new EffesStackException("underflow");
     }
     EffesRef<?> popped = ((EffesRef<?>) stack[regSp]);
@@ -70,29 +70,17 @@ public class EffesState {
     return (EffesRef<?>) stack[regSp - distanceFromSp];
   }
 
-  public void pushArg(int n) {
-    FrameInfo frameInfo = fp();
-    if (n < 0 || n >= frameInfo.nArgs) {
-      throw new EffesStackException("arg out of range: " + n);
-    }
-    // args are like:
-    // [ FrameInfo ] <- $fp
-    // [ argN      ]
-    // [ ...       ]
-    // [ arg0      ]
-    // Keep in mind that n is 0-indexed. So for instance, if argN = 3, then we get dist = 3 - 2 = 1,
-    // and when n = 0 then we get dist = 3 - 0 = 3.
-    int distanceFromFp = frameInfo.nArgs - n;
-    pushObj(stack[regFp - distanceFromFp]);
-
-  }
-
   public void pushVar(int n) {
-    pushObj(stack[localVarIdx(n)]);
+    int varIndex = getVarAbsoluteIndex(n);
+    Object varValue = stack[varIndex];
+    if (varValue == null) {
+      throw new EffesStackException("variable " + n + " not set");
+    }
+    pushObj(varValue);
   }
 
   public void popToVar(int n) {
-    int varIdx = localVarIdx(n);
+    int varIdx = getVarAbsoluteIndex(n);
     stack[varIdx] = pop();
   }
 
@@ -103,14 +91,11 @@ public class EffesState {
     // [ ...         ] <-- $sp
     // [ localStack1 ]
     // [ localStack0 ]
-    // [ localVarN   ]
-    // [ ...         ]
-    // [ localVar0   ]
     // [ FrameInfo   ] <-- $fp
     int localStackSize = getLocalStackSize();
     if (localStackSize < nArgs) {
       throw new EffesStackException(
-        String.format("trying to open frame with nArgs=%d, local stack size=%d", nArgs, fp().nLocalVars));
+        String.format("trying to open frame with nArgs=%d, local stack size=%d", nArgs, getLocalStackSize()));
     }
     doOpenFrame(nArgs, nLocal);
   }
@@ -126,7 +111,7 @@ public class EffesState {
       throw new EffesStackException("$rv not set");
     }
     FrameInfo closingFp = fp();
-    for (int targetSp = this.regFp - closingFp.nArgs - 1; regSp > targetSp; regSp--) {
+    for (int targetSp = this.regFp - closingFp.nVars - 1; regSp > targetSp; regSp--) {
       stack[regSp] = null;
     }
     regFp = closingFp.previousFp;
@@ -169,29 +154,30 @@ public class EffesState {
   }
 
   public int getLocalStackSize() {
-    int callerFrameSize = regSp - regFp;
-    assert callerFrameSize >= 0 : callerFrameSize;
-    return callerFrameSize - fp().nLocalVars;
+    return regSp - regFp;
   }
 
   private void doOpenFrame(int nArgs, int nLocal) {
+    regSp += nLocal;
     FrameInfo newFrameInfo = new FrameInfo(nArgs, nLocal, regFp, regPc.save());
     pushObj(newFrameInfo);
     regFp = regSp;
-    regSp += nLocal;
   }
 
-  private int localVarIdx(int n) {
+  private int getVarAbsoluteIndex(int var) {
     FrameInfo frameInfo = fp();
-    if (n < 0 || n >= frameInfo.nLocalVars) {
-      throw new EffesStackException("local var out of range: " + n);
+    if (var < 0 || var >= frameInfo.nVars) {
+      throw new EffesStackException("arg out of range: " + var);
     }
-    // local vars are like:
-    // [ localVarN ]
-    // [ ...       ]
-    // [ localVar0 ]
+    // args are like:
     // [ FrameInfo ] <- $fp
-    return regFp + n + 1;
+    // [ varN      ]
+    // [ ...       ]
+    // [ var0      ]
+    // Keep in mind that n is 0-indexed. So for instance, if argN = 3, then we get dist = 3 - 2 = 1,
+    // and when n = 0 then we get dist = 3 - 0 = 3.
+    int distanceFromFp = frameInfo.nVars - var;
+    return regFp - distanceFromFp;
   }
 
   private FrameInfo fp() {
@@ -199,21 +185,19 @@ public class EffesState {
   }
 
   public static class FrameInfo {
-    private final int nArgs;
-    private final int nLocalVars;
+    private final int nVars;
     private final int previousFp;
     private final ProgramCounter.State previousPc;
 
     public FrameInfo(int nArgs, int nLocalVars, int previousFp, ProgramCounter.State previousPc) {
-      this.nArgs = nArgs;
-      this.nLocalVars = nLocalVars;
+      this.nVars = nArgs + nLocalVars;
       this.previousFp = previousFp;
       this.previousPc = previousPc;
     }
 
     @Override
     public String toString() {
-      return String.format("nArgs=%d, nLocal=%d, prevFp=%d, prevPc=%s", nArgs, nLocalVars, previousFp, previousPc);
+      return String.format("nVars=%d, prevFp=%d, prevPc=%s", nVars, previousFp, previousPc);
     }
   }
 

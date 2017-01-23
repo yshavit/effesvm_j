@@ -42,12 +42,6 @@ public class EffesOps {
     return Operation.withIncementingPc(EffesState::pop);
   }
 
-  @OperationFactory("parg")
-  public static Operation parg(String n) {
-    int idx = nonNegative(n);
-    return Operation.withIncementingPc(s -> s.pushArg(idx));
-  }
-
   @OperationFactory("pvar")
   public static Operation gvar(String n) {
     int idx = nonNegative(n);

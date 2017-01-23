@@ -82,7 +82,9 @@ For instance:
     FUNC Person FriendBuilder createFriendBuilder Friend|Family|Acquaintance
     <ops...>
 
-If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nLocal + 1` arguments. For instance, `FUNC Dog eat 0 0 2` will actually take 3 args: a `Dog` reference and the two declared arguments.
+If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC Dog eat 0 0 2` will actually take 3 args: a `Dog` reference and the two declared arguments.
+
+From the perspective of a function's body, there is virtually no difference between arguments and local variables; the first M arguments simply become the first M variables, and the other local variables' indexes are shifted by that count. For instance, if a method declares 3 arguments and 2 local variables, it will have 5 local variables at its disposal. The first three (indexes _0_, _1_ and _2_) will initially contain the arguments' values, in order; the first "local" variable will actually have index _3_. The only difference is that while the argument variables are guaranteed to be initialized, the local variables will not, and will error if pushed before having anything stored to them.
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
@@ -93,16 +95,12 @@ This will serve as the entry point for the `.efct`'s execution. Instance functio
 The execution stack
 ========================================================================================
 
-State is maintained on a LIFO stack. Every item in the stack has a type and a value. The type is one of:
+State is maintained on a LIFO stack.
 
-- EffesRef
-- Boolean
-- Integer (signed 64 integer)
-
-An EffesRef references an object that has:
+An EffesObject references an object that has:
 
 - a type
-- 0 or more constructor arguments, which can be accessed via the _pvar_ opcode (described below)
+- 0 or more constructor arguments, which can be accessed via the _oarg_ opcode (described below)
 
 Operations are always executed within the context of a function (the one exception to this is the initial invocation of a `main` function to start a program, which is handled by the EVM as a special case. But within that `main` function, operands do have the function context). This context includes the number of arguments that the function has.
 
@@ -156,7 +154,7 @@ These all follow the convention of `call_<type>:<function>`. For instance, `call
 
 This convention lets the underscore match up with the spaces following 4-char opcodes, such that things line up and generally look nice:
 
-    parg 3
+    pvar 3
     call : myfunction
     pstr "hello world"
     pstr ".*"
@@ -169,15 +167,11 @@ Stack manipulation
 
 Pops and discards the topmost element of the stack.
 
-### parg _N_ -> argValue
-
-Copies the function argument specified by N onto the stack. N is a textual representation of a non-negative integer, 0-indexed. For instance, "parg 0" pushes the first argument to the stack.
-
-Errors if the argument is out of range (that is, is ≥ the number of arguments in the current function).
-
 ### pvar _N_ -> varValue
 
 Gets local variable N, and pushes it to the stack. The variable itself is unaffected. This errors if the variable has not been set, or if N is out of range.
+
+N is a textual representation of a non-negative integer, 0-indexed. For instance, "pvar 0" pushes the first variable to the stack.
 
 ### svar _N_ @varValue
 

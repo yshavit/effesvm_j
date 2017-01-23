@@ -12,7 +12,7 @@ efct: |
   rtrn
 
   FUNC : isHello 0 0 1
-  parg 0
+  pvar 0
   type Hello
   call_native:toString
   call_String:sout

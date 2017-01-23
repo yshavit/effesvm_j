@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 House nDoors nWindows
-  FUNC : main 0 1 0
+  FUNC : main 0 0 0
   int  2
   int  12
   call House House
@@ -12,10 +12,10 @@ efct: |
   rtrn
 
   FUNC House describe 0 0 0
-  parg 0 # this
+  pvar 0 # this
   oarg House nDoors
   debug-print
-  parg 0
+  pvar 0
   oarg House nWindows
   debug-print
   call_Integer:add

@@ -16,17 +16,17 @@ efct: |
 
   FUNC : fib 0 0 1
   # arg0: n
-  parg 0
+  pvar 0
   int  1
   call_Integer:le
   gofi 6            # go to fib(n-1) + fib(n-2)
-  parg 0
+  pvar 0
   rtrn
-  parg 0            # fib(n-1) + fib(n-2)
+  pvar 0            # fib(n-1) + fib(n-2)
   int  1
   call_Integer:sub
   call : fib
-  parg 0
+  pvar 0
   int  2
   call_Integer:sub
   call : fib

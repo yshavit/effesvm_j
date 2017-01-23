@@ -2,8 +2,8 @@ efct: |
   FUNC : sum 0 0 2
   # args: two integers
   # returns their sum
-  parg 0
-  parg 1
+  pvar 0
+  pvar 1
   call_Integer:add
   rtrn
 

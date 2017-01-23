@@ -24,29 +24,28 @@ public class EffesStateTest {
   @Test
   public void copyFirstArgToStack() {
     EffesState state = new EffesState(0, forString("first"), forString("second"), forString("third"));
-    state.pushArg(0);
+    state.pushVar(0);
     assertEquals(forString("first"), state.pop());
   }
 
   @Test
   public void copyLastArgToStack() {
     EffesState state = new EffesState(0, forString("first"), forString("second"), forString("third"));
-    state.pushArg(2);
+    state.pushVar(2);
     assertEquals(forString("third"), state.pop());
   }
 
   @Test
   public void copyOutOfRangeArgToStack() {
     EffesState state = new EffesState(0, forString("first"), forString("second"), forString("third"));
-    assertExceptionThrown(() -> state.pushArg(4), EffesRuntimeException.class);
-    assertExceptionThrown(() -> state.pushArg(-1), EffesRuntimeException.class);
+    assertExceptionThrown(() -> state.pushVar(4), EffesRuntimeException.class);
+    assertExceptionThrown(() -> state.pushVar(-1), EffesRuntimeException.class);
   }
 
   @Test
   public void copyUnsetVarToStack() {
     EffesState state = new EffesState(1);
-    state.pushVar(0);
-    assertNull(state.pop());
+    assertExceptionThrown(() -> state.pushVar(0), EffesState.EffesStackException.class);
   }
 
   @Test
@@ -91,9 +90,9 @@ public class EffesStateTest {
     state.push(forString("first arg"));
     state.push(forString("second arg"));
     state.openFrame(2, 0);
-    state.pushArg(0);
+    state.pushVar(0);
     assertEquals(state.pop(), forString("first arg"));
-    state.pushArg(1);
+    state.pushVar(1);
     state.closeFrame();
     assertEquals(forString("second arg"), state.pop());
   }
