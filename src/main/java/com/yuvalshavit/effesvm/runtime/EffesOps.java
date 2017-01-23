@@ -223,7 +223,7 @@ public class EffesOps {
             ++nArgs; // to include the "this" reference
           }
           PcMove.next().accept(c.pc()); // set up the return jump point
-          c.openFrame(nArgs, f.nVars());
+          c.openFrame(nArgs, f.hasRv(), f.nVars());
           return pcMove;
         };
       };

@@ -50,8 +50,9 @@ public class Parser {
               className,
               functionName,
               line.get(3, "nArgs", Integer::parseInt),
-              line.get(4, "nGenerics", Integer::parseInt),
-              line.get(5, "nLocal", Integer::parseInt));
+              line.get(4, "nRv", Integer::parseInt),
+              line.get(5, "nGenerics", Integer::parseInt),
+              line.get(6, "nLocal", Integer::parseInt));
             functions.put(parsedFunction.id(), parsedFunction);
             break;
           case "TYPE":
@@ -78,11 +79,20 @@ public class Parser {
     String className,
     String functionName,
     int nArgs,
+    int nRv,
     int nGenerics,
     int nLocal)
   {
     if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
       throw new IllegalArgumentException("invalid FUNC declaration");
+    }
+    final boolean hasRv;
+    if (nRv == 0) {
+      hasRv = false;
+    } else if (nRv == 1) {
+      hasRv = true;
+    } else {
+      throw new IllegalArgumentException("invalid FUNC declaration (nRv = " + nRv + ")");
     }
 
     List<UnlinkedOperation> ops = new ArrayList<>();
@@ -102,7 +112,7 @@ public class Parser {
       UnlinkedOperation op = opBuilder.build(line.tailTokens(1));
       ops.add(op);
     }
-    return new EffesFunction<>(new EffesFunction.Id(className, functionName), nLocal, nArgs, ops);
+    return new EffesFunction<>(new EffesFunction.Id(className, functionName), nLocal, hasRv, nArgs, ops);
   }
 
   private EffesType parseType(Line line) {

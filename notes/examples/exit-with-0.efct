@@ -1,9 +1,9 @@
 efct 0
-FUNC : main 0 0 0
+FUNC : main 0 1 0 0
 call : put2
 debug-print
 rtrn
 
-FUNC : put2 0 0 0
+FUNC : put2 0 1 0
 int  0
 rtrn

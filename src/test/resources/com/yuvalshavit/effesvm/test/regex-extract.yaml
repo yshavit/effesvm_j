@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 0 0 2
+  FUNC : main 0 1 0 2
   # args:
   # 0: the string to look in, and then the match (if it's found)
   # 1: the pattern, and then the group idx (if there's a match) or group name

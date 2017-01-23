@@ -11,18 +11,24 @@ public class EffesFunction<T> {
   
   private final Id id;
   private final int nArgs;
+  private final boolean hasRv;
   private final int nVars;
   private final List<T> ops;
 
-  public EffesFunction(Id id, int nVars, int nArgs, List<T> ops) {
+  public EffesFunction(Id id, int nVars, boolean hasRv, int nArgs, List<T> ops) {
     this.id = id;
     this.nArgs = nArgs;
+    this.hasRv = hasRv;
     this.nVars = nVars;
     this.ops = ops;
   }
 
   public int nArgs() {
     return nArgs;
+  }
+
+  public boolean hasRv() {
+    return hasRv;
   }
 
   public int nVars() {
@@ -45,7 +51,7 @@ public class EffesFunction<T> {
   public String toString() {
     return String.valueOf(id);
   }
-  
+
   public static class Id {
     private final String typeName;
     private final String functionName;

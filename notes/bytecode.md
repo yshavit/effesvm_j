@@ -67,30 +67,25 @@ Function declarations
 
 Functions start with a declaration:
 
-    FUNC <classname> <functionname> <nArgs> 0 <nLocal>
+    FUNC <classname> <functionname> <nArgs> <hasRv> 0 <nLocal>
 
 - The classname must correspond to a type declaration contained in this `.efct` (or `:`, as noted below), and the functionname must be unique within for a given classname.
 - nArgs is the number of arguments this function takes
+- hasRv must be 0 or 1. 0 means there is no return value, and 1 means there is one
 - The `0` is a placeholder for generics.
 - nLocal is the number of local variable slots to request (see `pvar`, `svar` below)
 
 After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
 
-For instance:
-
-    # FriendBuilder : Person.createFriendBuilder(relationship: Friend | Family | Acquaintance)
-    FUNC Person FriendBuilder createFriendBuilder Friend|Family|Acquaintance
-    <ops...>
-
-If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC Dog eat 0 0 2` will actually take 3 args: a `Dog` reference and the two declared arguments.
+If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC Dog eat 2 0 0 0` will actually take 3 args: a `Dog` reference and the two declared arguments.
 
 From the perspective of a function's body, there is virtually no difference between arguments and local variables; the first M arguments simply become the first M variables, and the other local variables' indexes are shifted by that count. For instance, if a method declares 3 arguments and 2 local variables, it will have 5 local variables at its disposal. The first three (indexes _0_, _1_ and _2_) will initially contain the arguments' values, in order; the first "local" variable will actually have index _3_. The only difference is that while the argument variables are guaranteed to be initialized, the local variables will not, and will error if pushed before having anything stored to them.
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
-    FUNC : main 0 0 <nLocal>
+    FUNC : main 0 1 0 <nLocal>
 
-This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`.
+This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`. The module function `main`'s return variable should be an Integer representing the program's exit code.
 
 The execution stack
 ========================================================================================

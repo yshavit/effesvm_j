@@ -21,7 +21,7 @@ public class EffesState {
       push(arg);
     }
     regPc = new ProgramCounter(pcState);
-    doOpenFrame(args.length, nLocalVars);
+    doOpenFrame(args.length, nLocalVars, true); // first frame always has an rv; see getFinalPop()
   }
 
   EffesState(int nLocalVars, EffesRef<?>... args) {
@@ -84,7 +84,7 @@ public class EffesState {
     stack[varIdx] = pop();
   }
 
-  public void openFrame(int nArgs, int nLocal) {
+  public void openFrame(int nArgs, boolean hasRv, int nLocal) {
     // we're going to be using the topmost nArgs of the local stack as this frame's args, so we need to check
     // that there are enough.
     // The frame looks like:
@@ -97,26 +97,36 @@ public class EffesState {
       throw new EffesStackException(
         String.format("trying to open frame with nArgs=%d, local stack size=%d", nArgs, getLocalStackSize()));
     }
-    doOpenFrame(nArgs, nLocal);
+    doOpenFrame(nArgs, nLocal, hasRv);
   }
 
   public void closeFrame() {
     int localStackSize = getLocalStackSize();
-    if (localStackSize != 1) {
-      String msg = localStackSize == 0 ? "no value on local stack to return" : "too many values on local stack";
-      throw new EffesStackException(msg);
-    }
-    EffesRef<?> closingFrameRv = pop();
-    if (closingFrameRv == null) {
-      throw new EffesStackException("$rv not set");
-    }
     FrameInfo closingFp = fp();
+    EffesRef<?> closingFrameRv;
+    if (closingFp.hasRv) {
+      if (localStackSize != 1) {
+        String msg = localStackSize == 0 ? "no value on local stack to return" : "too many values on local stack";
+        throw new EffesStackException(msg);
+      }
+      closingFrameRv = pop();
+      if (closingFrameRv == null) {
+        throw new EffesStackException("$rv not set");
+      }
+    } else {
+      if (localStackSize != 0) {
+        throw new EffesStackException("too many values on local stack");
+      }
+      closingFrameRv = null;
+    }
     for (int targetSp = this.regFp - closingFp.nVars - 1; regSp > targetSp; regSp--) {
       stack[regSp] = null;
     }
     regFp = closingFp.previousFp;
     regPc.restore(closingFp.previousPc);
-    push(closingFrameRv);
+    if (closingFrameRv != null) {
+      push(closingFrameRv);
+    }
   }
 
   public ProgramCounter pc() {
@@ -157,9 +167,9 @@ public class EffesState {
     return regSp - regFp;
   }
 
-  private void doOpenFrame(int nArgs, int nLocal) {
+  private void doOpenFrame(int nArgs, int nLocal, boolean hasRv) {
     regSp += nLocal;
-    FrameInfo newFrameInfo = new FrameInfo(nArgs, nLocal, regFp, regPc.save());
+    FrameInfo newFrameInfo = new FrameInfo(nArgs, hasRv, nLocal, regFp, regPc.save());
     pushObj(newFrameInfo);
     regFp = regSp;
   }
@@ -186,18 +196,20 @@ public class EffesState {
 
   public static class FrameInfo {
     private final int nVars;
+    private final boolean hasRv;
     private final int previousFp;
     private final ProgramCounter.State previousPc;
 
-    public FrameInfo(int nArgs, int nLocalVars, int previousFp, ProgramCounter.State previousPc) {
+    public FrameInfo(int nArgs, boolean hasRv, int nLocalVars, int previousFp, ProgramCounter.State previousPc) {
       this.nVars = nArgs + nLocalVars;
+      this.hasRv = hasRv;
       this.previousFp = previousFp;
       this.previousPc = previousPc;
     }
 
     @Override
     public String toString() {
-      return String.format("nVars=%d, prevFp=%d, prevPc=%s", nVars, previousFp, previousPc);
+      return String.format("nVars=%d, rv=%s, prevFp=%d, prevPc=%s", nVars, hasRv, previousFp, previousPc);
     }
   }
 

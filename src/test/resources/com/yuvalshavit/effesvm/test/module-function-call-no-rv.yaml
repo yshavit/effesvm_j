@@ -1,18 +1,18 @@
 efct: |
-  FUNC : sum 2 0 0
+  FUNC : sum 2 0 0 0
   # args: two integers
   # returns their sum
   pvar 0
   pvar 1
   call_Integer:add
+  debug-print
+  pop
   rtrn
 
-  FUNC : main 0 0 0
+  FUNC : main 0 1 0 0
   int  5
   int  7
   call : sum
-  debug-print
-  pop
   int 0
   rtrn
 runs:

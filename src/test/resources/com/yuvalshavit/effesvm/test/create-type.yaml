@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 Dog name
-  FUNC : main 0 0 1
+  FUNC : main 0 1 0 1
   str  "Balto"
   call Dog Dog
   debug-print

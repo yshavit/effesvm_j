@@ -25,7 +25,10 @@ public class EvmRunner {
   public static int run(EffesModule<Operation> module, int stackSize) {
     EffesFunction<Operation> mainFunction = module.getFunction(new EffesFunction.Id("main"));
     if (mainFunction.nArgs() != 0) {
-      throw new IllegalArgumentException("::main must take 0 arguments");
+      throw new EffesRuntimeException("::main must take 0 arguments");
+    }
+    if (!mainFunction.hasRv()) {
+      throw new EffesRuntimeException("::main must return a value");
     }
 
     EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());

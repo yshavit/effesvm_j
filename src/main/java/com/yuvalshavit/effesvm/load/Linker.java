@@ -21,7 +21,7 @@ public class Linker {
     for (EffesFunction<UnlinkedOperation> unlinkedFunction : unlinkedFunctions) {
       List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
       EffesFunction.Id id = unlinkedFunction.id();
-      EffesFunction<Operation> function = new EffesFunction<>(id, unlinkedFunction.nVars(), unlinkedFunction.nArgs(), ops);
+      EffesFunction<Operation> function = new EffesFunction<>(id, unlinkedFunction.nVars(), unlinkedFunction.hasRv(), unlinkedFunction.nArgs(), ops);
       linkingFunctions.put(id, new LinkPair(function, ops));
     }
     Map<EffesFunction.Id,EffesFunction<Operation>> linkedFunctions = new HashMap<>(linkingFunctions.size());
@@ -39,7 +39,7 @@ public class Linker {
           linkedOp = unlinkedOp.apply(linkContext);
         } catch (Exception e) {
           String originalMessage = e.getMessage();
-          String annotation = "at op " + i;
+          String annotation = String.format("at op %d of %s", i, linkContext.currentLinkingFunctionInfo.id());
           String message = originalMessage == null
             ? annotation
             : (originalMessage + " " + annotation);

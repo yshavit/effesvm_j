@@ -75,11 +75,11 @@ public class EffesStateTest {
     // have the first frame contain 2 local vars, so we can verify that these are *not* included in the local stack count
     EffesState state = new EffesState(2);
     state.push(forString("test element"));
-    assertExceptionThrown(() -> state.openFrame(2, 0), EffesRuntimeException.class);
+    assertExceptionThrown(() -> state.openFrame(2, true, 0), EffesRuntimeException.class);
   }
 
   @Test
-  public void frameMultiTest() {
+  public void frameMultiTestWithRv() {
     // It's most convenient to just do these all at once.
     // We want to test:
     // (1) passing of vars
@@ -89,7 +89,7 @@ public class EffesStateTest {
     state.push(forString("junk variable"));
     state.push(forString("first arg"));
     state.push(forString("second arg"));
-    state.openFrame(2, 0);
+    state.openFrame(2, true, 0);
     state.pushVar(0);
     assertEquals(state.pop(), forString("first arg"));
     state.pushVar(1);
@@ -98,18 +98,40 @@ public class EffesStateTest {
   }
 
   @Test
-  public void closeFrameWithNothingOnLocalStack() {
+  public void closeFrameNoRv() {
+    // It's most convenient to just do these all at once.
+    // We want to test:
+    // (1) passing of vars
+    // (2) accessing those vars
+    // (3) returning a value
     EffesState state = new EffesState(0);
-    state.openFrame(0, 0);
+    state.push(forString("only arg"));
+    state.openFrame(0, false, 0);
+    state.closeFrame();
+    assertEquals(forString("only arg"), state.pop());
+  }
+
+  @Test
+  public void closeFrameHasRvWithNothingOnLocalStack() {
+    EffesState state = new EffesState(0);
+    state.openFrame(0, true, 0);
     assertExceptionThrown(state::closeFrame, EffesRuntimeException.class);
   }
 
   @Test
-  public void closeFrameWithTwoItemsOnLocalStack() {
+  public void closeFrameHasRvWithTwoItemsOnLocalStack() {
     EffesState state = new EffesState(0);
-    state.openFrame(0, 0);
+    state.openFrame(0, true, 0);
     state.push(forString("first"));
     state.push(forString("second"));
+    assertExceptionThrown(state::closeFrame, EffesRuntimeException.class);
+  }
+
+  @Test
+  public void closeFrameNoRvWithOneItemOnLocalStack() {
+    EffesState state = new EffesState(0);
+    state.openFrame(0, false, 0);
+    state.push(forString("only"));
     assertExceptionThrown(state::closeFrame, EffesRuntimeException.class);
   }
 
