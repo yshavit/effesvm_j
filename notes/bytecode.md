@@ -67,12 +67,12 @@ Function declarations
 
 Functions start with a declaration:
 
-    FUNC <classname> <functionname> 0 <nLocal> <nArgs>
+    FUNC <classname> <functionname> <nArgs> 0 <nLocal>
 
 - The classname must correspond to a type declaration contained in this `.efct` (or `:`, as noted below), and the functionname must be unique within for a given classname.
-- nLocal is the number of local variable slots to request (see `pvar`, `svar` below)
 - nArgs is the number of arguments this function takes
 - The `0` is a placeholder for generics.
+- nLocal is the number of local variable slots to request (see `pvar`, `svar` below)
 
 After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
 
@@ -88,7 +88,7 @@ From the perspective of a function's body, there is virtually no difference betw
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
-    FUNC : main 0 <nLocal> 0
+    FUNC : main 0 0 <nLocal>
 
 This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`.
 

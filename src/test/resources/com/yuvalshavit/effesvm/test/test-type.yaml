@@ -11,7 +11,7 @@ efct: |
   int  0
   rtrn
 
-  FUNC : isHello 0 0 1
+  FUNC : isHello 1 0 0
   pvar 0
   type Hello
   call_native:toString

@@ -1,5 +1,5 @@
 efct: |
-  FUNC : sum 0 0 2
+  FUNC : sum 2 0 0
   # args: two integers
   # returns their sum
   pvar 0

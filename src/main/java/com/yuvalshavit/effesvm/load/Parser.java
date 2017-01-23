@@ -49,9 +49,9 @@ public class Parser {
               tokenizedLines,
               className,
               functionName,
-              line.get(3, "nGenerics", Integer::parseInt),
-              line.get(4, "nLocal", Integer::parseInt),
-              line.get(5, "nArgs", Integer::parseInt));
+              line.get(3, "nArgs", Integer::parseInt),
+              line.get(4, "nGenerics", Integer::parseInt),
+              line.get(5, "nLocal", Integer::parseInt));
             functions.put(parsedFunction.id(), parsedFunction);
             break;
           case "TYPE":
@@ -77,9 +77,9 @@ public class Parser {
     SequencedIterator<Line> lines,
     String className,
     String functionName,
+    int nArgs,
     int nGenerics,
-    int nLocal,
-    int nArgs)
+    int nLocal)
   {
     if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
       throw new IllegalArgumentException("invalid FUNC declaration");

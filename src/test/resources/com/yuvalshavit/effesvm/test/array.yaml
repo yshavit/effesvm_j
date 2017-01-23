@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 Dog name
-  FUNC : main 0 2 0
+  FUNC : main 0 0 2
   # local0: the array
   # local1: idx
   int  5

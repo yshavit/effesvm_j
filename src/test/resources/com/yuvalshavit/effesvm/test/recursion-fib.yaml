@@ -14,7 +14,7 @@ efct: |
   int 0
   rtrn
 
-  FUNC : fib 0 0 1
+  FUNC : fib 1 0 0
   # arg0: n
   pvar 0
   int  1
