@@ -105,7 +105,6 @@ public class Parser {
       }
       String opcode = line.get(0, "opcode");
       OperationFactories.ReflectiveOperationBuilder opBuilder = opsFactories.apply(opcode);
-      // TODO any validation we want to do? e.g. that we never fetch out of range args or locals?
       if (opBuilder == null) {
         throw new EffesLoadException("no such op: " + opcode);
       }

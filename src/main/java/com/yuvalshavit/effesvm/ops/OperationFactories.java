@@ -47,7 +47,6 @@ public class OperationFactories {
         map.put(opName, new ReflectiveOperationBuilder(opName, suiteInstance, method));
       }
     }
-    // TODO sanity check that there are no OperationFactory annotations on non-public methods (including in super classes) or nested classes
   }
 
   private static IllegalArgumentException notAValidFactoryMethod(Class<?> enclosingClass, Method method) {

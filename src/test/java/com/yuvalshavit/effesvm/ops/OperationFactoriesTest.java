@@ -49,12 +49,12 @@ public class OperationFactoriesTest {
 
       @Override
       public EffesFunction<?> getFunctionInfo(ScopeId scope, String function) {
-        throw new UnsupportedOperationException(); // TODO
+        throw new UnsupportedOperationException();
       }
 
       @Override
       public PcMove firstOpOf(ScopeId scopeId, String function) {
-        throw new UnsupportedOperationException(); // TODO
+        throw new UnsupportedOperationException();
       }
 
       @Override

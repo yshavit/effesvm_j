@@ -83,12 +83,12 @@ public class EffesOps {
   }
 
   @OperationFactory("type")
-  public static Operation type(String typeName) {
+  public static UnlinkedOperation type(String typeName) {
     return typeBuilder(typeName, EffesState::pop);
   }
 
   @OperationFactory("typp")
-  public static Operation typp(String typeName) {
+  public static UnlinkedOperation typp(String typeName) {
     return typeBuilder(typeName, s -> s.peek(0));
   }
 
@@ -441,12 +441,21 @@ public class EffesOps {
     return effesStr.value;
   }
 
-  private static Operation typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem) {
-    return Operation.withIncementingPc(s -> {
-      EffesRef<?> item = topItem.apply(s);
-      boolean rightType = item.type().name().equals(typeName); // TODO will need to be improved for multi-module
-      s.push(EffesNativeObject.forBoolean(rightType));
-    });
+  private static UnlinkedOperation typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem) {
+    return linkCtx -> {
+      BaseEffesType checkForType;
+      if (typeName.indexOf(':') >= 0) {
+        checkForType = linkCtx.type(ScopeId.parse(typeName));
+      } else {
+        checkForType = EffesNativeObject.parseType(typeName);
+      }
+      return Operation.withIncementingPc(s -> {
+        EffesRef<?> item = topItem.apply(s);
+        BaseEffesType type = item.type();
+        boolean rightType = type.equals(checkForType);
+        s.push(EffesNativeObject.forBoolean(rightType));
+      });
+    };
   }
 
   private interface IntCmp {

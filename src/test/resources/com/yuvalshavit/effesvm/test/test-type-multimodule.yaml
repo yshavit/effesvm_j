@@ -1,0 +1,34 @@
+efct: |
+  TYPE 0 Goodbye
+  FUNC : main 0 1 0 0
+  str  "from main: "
+  call_String:sout
+  call hellos:Hello Hello
+  typp hellos:Hello
+  call_native:toString
+  call_String:sout
+  str  "\n"
+  call_String:sout
+  call hellos: isHello
+  call :Goodbye Goodbye
+  call hellos: isHello
+  int  0
+  rtrn
+
+otherModules:
+  hellos: |
+    TYPE 0 Hello
+    FUNC : isHello 1 0 0 0
+    pvar 0
+    type :Hello
+    call_native:toString
+    call_String:sout
+    str  "\n"
+    call_String:sout
+    rtrn
+runs:
+- exit: 0
+  out: |
+    from main: True
+    True
+    False
