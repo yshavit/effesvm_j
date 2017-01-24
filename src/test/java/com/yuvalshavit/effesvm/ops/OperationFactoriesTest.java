@@ -61,6 +61,11 @@ public class OperationFactoriesTest {
       public EffesFunction<?> getCurrentLinkingFunctionInfo() {
         throw new UnsupportedOperationException();
       }
+
+      @Override
+      public ScopeId.Builder scopeIdBuilder() {
+        throw new UnsupportedOperationException();
+      }
     };
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
     checkOp("the-link-type", builder, linkContext);

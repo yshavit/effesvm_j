@@ -31,13 +31,14 @@ public class Linker {
     Map<EffesModule.Id,Map<ScopeId,ScopeId>> functionScopesPerModule = new HashMap<>(unlinkedById.size());
     Map<EffesModule.Id,EffesModule<Operation>> linkedModules = new HashMap<>(unlinkedById.size());
 
+    LinkContextImpl linkContext = new LinkContextImpl(types, linkingFunctions);
     for (Map.Entry<EffesModule.Id,EffesModule<UnlinkedOperation>> unlinkedEntry : unlinkedById.entrySet()) {
       EffesModule.Id moduleId = unlinkedEntry.getKey();
       EffesModule<UnlinkedOperation> unlinkedModule = unlinkedEntry.getValue();
 
       // gather the types
       for (EffesType type : unlinkedModule.types().values()) {
-        ScopeId typeScopeId = new ScopeId(moduleId, type.name());
+        ScopeId typeScopeId = linkContext.scopeIdBuilder.withType(moduleId, type.name());
         EffesType old = types.put(typeScopeId, type.withModuleId(moduleId));
         assert old == null : old;
       }
@@ -49,8 +50,8 @@ public class Linker {
       for (EffesFunction<?> unlinkedFunction : unlinkedModule.functions()) {
         EffesFunction.Id functionId = unlinkedFunction.id();
         ScopeId functionScope = functionId.hasTypeName()
-          ? new ScopeId(moduleId, functionId.typeName())
-          : new ScopeId(moduleId);
+          ? linkContext.scopeIdBuilder.withType(moduleId, functionId.typeName())
+          : linkContext.scopeIdBuilder.withoutType(moduleId);
         functionScope = scopeIds.computeIfAbsent(functionScope, Function.identity()); // basically like String::intern
 
         List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
@@ -64,7 +65,6 @@ public class Linker {
       EffesModule<Operation> linkedModule = new EffesModule<>(unlinkedModule.types().values(), linkedFunctions);
       linkedModules.put(moduleId, linkedModule);
     }
-    LinkContextImpl linkContext = new LinkContextImpl(types, linkingFunctions);
 
     functionScopesPerModule.forEach((moduleId, scopeToSelf) ->
       scopeToSelf.keySet().forEach(scopeId -> {
@@ -109,6 +109,7 @@ public class Linker {
   }
 
   private static class LinkContextImpl implements LinkContext {
+    private final ScopeId.Builder scopeIdBuilder = new ScopeId.Builder();
     private final Map<ScopeId,EffesType> types;
     private final Map<ScopeId,Map<String,LinkPair>> functionsByScopeAndName;
     private final CachingBuilder<EffesFunction<Operation>,PcMove> moves = new CachingBuilder<>(PcMove::firstCallIn);
@@ -118,6 +119,11 @@ public class Linker {
     public LinkContextImpl(Map<ScopeId,EffesType> types, Map<ScopeId,Map<String,LinkPair>> functionsByScopeAndName) {
       this.types = types;
       this.functionsByScopeAndName = functionsByScopeAndName;
+    }
+
+    @Override
+    public ScopeId.Builder scopeIdBuilder() {
+      return scopeIdBuilder;
     }
 
     @Override
@@ -168,8 +174,10 @@ public class Linker {
     private ScopeId resolveScope(ScopeId id) {
       if (id.inCurrentModule()) {
         id = id.hasType()
-          ? new ScopeId(currentModule, id.type())
-          : new ScopeId(currentModule);
+          ? scopeIdBuilder.withType(currentModule, id.type())
+          : scopeIdBuilder.withoutType(currentModule);
+      } else {
+        id = scopeIdBuilder.intern(id);
       }
       return id;
     }

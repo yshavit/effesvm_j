@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Exchanger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -88,6 +91,14 @@ public class EvmRunner {
   }
 
   public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize) {
+    EffesModule<Operation> linkedModule = parseAndLink(inputFiles, main, io);
+    if (stackSize == null) {
+      stackSize = STACK_SIZE;
+    }
+    return run(linkedModule, stackSize);
+  }
+
+  private static EffesModule<Operation> parseAndLink(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io) {
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
     Parser parser = new Parser(ops);
@@ -97,10 +108,6 @@ public class EvmRunner {
       parsed.put(inputFileEntry.getKey(), unlinkedModule);
     }
     Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
-    EffesModule<Operation> linkedModule = linkedModules.get(main);
-    if (stackSize == null) {
-      stackSize = STACK_SIZE;
-    }
-    return run(linkedModule, stackSize);
+    return linkedModules.get(main);
   }
 }

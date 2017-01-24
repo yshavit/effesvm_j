@@ -4,18 +4,16 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import com.yuvalshavit.effesvm.util.Interner;
+
 public class ScopeId {
   private static final String NO_TYPE = "";
   private final EffesModule.Id module;
   private final String type;
 
-  public ScopeId(EffesModule.Id module, String type) {
+  private ScopeId(EffesModule.Id module, String type) {
     this.module = module;
     this.type = type;
-  }
-
-  public ScopeId(EffesModule.Id module) {
-    this(module, NO_TYPE);
   }
 
   public static ScopeId parse(String idDesc) {
@@ -91,5 +89,25 @@ public class ScopeId {
 
   public static String toString(EffesModule.Id module, String type) {
     return module.toString() + ':' + type;
+  }
+
+  public static class Builder {
+    private final Interner<ScopeId> scopes = new Interner<>();
+
+    public ScopeId withType(EffesModule.Id module, String type) {
+      return intern(new ScopeId(module, type));
+    }
+
+    public ScopeId withoutType(EffesModule.Id module) {
+      return withType(module, NO_TYPE);
+    }
+
+    public ScopeId parse(String string) {
+      return intern(ScopeId.parse(string));
+    }
+
+    public ScopeId intern(ScopeId scopeId) {
+      return scopes.intern(scopeId);
+    }
   }
 }

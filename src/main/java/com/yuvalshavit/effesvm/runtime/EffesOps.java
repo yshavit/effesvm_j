@@ -213,23 +213,17 @@ public class EffesOps {
         EffesType requiredType = isInstanceMethod ? linkCtx.type(scope) : null;
         return c -> {
           if (f == null) {
-            throw new EffesLoadException("link error: no function " + fullFunctionName(scopeSpecifier, functionName));
+            throw new EffesLoadException("link error: no such function");
           }
           int nArgs = f.nArgs(); // does not count the "this" reference
           if (isInstanceMethod) {
             Object instance = c.peek(nArgs);
             if (!(instance instanceof EffesObject)) {
-              throw new EffesRuntimeException(String.format(
-                "instance function %s invoked on non-EffesObject instance: %s",
-                fullFunctionName(scopeSpecifier, functionName),
-                instance));
+              throw new EffesRuntimeException(String.format("instance function invoked on non-EffesObject instance: %s", instance));
             }
             EffesType instanceType = ((EffesObject) instance).type();
             if (!requiredType.equals(instanceType)) {
-              throw new EffesRuntimeException(String.format(
-                "instance function %s invoked on wrong EffesObject instance: %s",
-                fullFunctionName(scopeSpecifier, functionName),
-                instance));
+              throw new EffesRuntimeException(String.format("instance function invoked on wrong EffesObject instance: %s", instance));
             }
             ++nArgs; // to include the "this" reference
           }
@@ -239,10 +233,6 @@ public class EffesOps {
         };
       };
     }
-  }
-
-  private static String fullFunctionName(String scopeSpecifier, String functionName) {
-    return scopeSpecifier + "." + functionName;
   }
 
   @OperationFactory("call_Integer:add")
@@ -445,7 +435,7 @@ public class EffesOps {
     return linkCtx -> {
       BaseEffesType checkForType;
       if (typeName.indexOf(':') >= 0) {
-        checkForType = linkCtx.type(ScopeId.parse(typeName));
+        checkForType = linkCtx.type(linkCtx.scopeIdBuilder().parse(typeName));
       } else {
         checkForType = EffesNativeObject.parseType(typeName);
       }

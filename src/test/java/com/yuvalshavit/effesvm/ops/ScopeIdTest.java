@@ -63,7 +63,7 @@ public class ScopeIdTest {
   private static void check(String toParse, List<String> module, String type) {
     ScopeId actual = ScopeId.parse(toParse);
     EffesModule.Id moduleId = EffesModule.Id.of(module.toArray(new String[0]));
-    assertEquals(actual, new ScopeId(moduleId, type));
+    assertEquals(actual, new ScopeId.Builder().withType(moduleId, type));
   }
 
 }
