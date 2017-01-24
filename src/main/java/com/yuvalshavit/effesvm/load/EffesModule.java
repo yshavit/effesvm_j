@@ -3,22 +3,22 @@ package com.yuvalshavit.effesvm.load;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 
 public class EffesModule<T> {
   private final Map<EffesFunction.Id,EffesFunction<T>> functions;
-  private final Map<String,EffesType> types;
+  private final Collection<EffesType> types;
 
   public EffesModule(Collection<EffesType> types, Collection<EffesFunction<T>> functions) {
-    this.types = types.stream().collect(LambdaHelpers.groupByUniquely(EffesType::name, "type name"));
+    Map<String,EffesType> typesByName = types.stream().collect(LambdaHelpers.groupByUniquely(EffesType::name, "type name"));
+    this.types = Collections.unmodifiableCollection(new ArrayList<>(typesByName.values()));
     this.functions = functions.stream().collect(LambdaHelpers.groupByUniquely(EffesFunction::id, "function"));
     Set<String> unknownTypes = this.functions.keySet().stream()
       .filter(EffesFunction.Id::hasTypeName)
       .map(EffesFunction.Id::typeName)
       .distinct()
-      .filter(typeName -> !this.types.containsKey(typeName))
+      .filter(typeName -> !typesByName.containsKey(typeName))
       .collect(Collectors.toSet());
     if (!unknownTypes.isEmpty()) {
       throw new IllegalArgumentException(String.format("unknown type%s: %s", unknownTypes.size() == 1 ? "" : "s", unknownTypes));
@@ -33,8 +33,8 @@ public class EffesModule<T> {
     return res;
   }
 
-  Map<String,EffesType> types() {
-    return Collections.unmodifiableMap(types);
+  Collection<EffesType> types() {
+    return types;
   }
 
   Collection<EffesFunction<T>> functions() {

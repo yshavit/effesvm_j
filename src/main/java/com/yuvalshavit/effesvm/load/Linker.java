@@ -21,7 +21,7 @@ public class Linker {
     Map<ScopeId,EffesType> types = new HashMap<>(unlinkedById.values()
       .stream()
       .map(EffesModule::types)
-      .mapToInt(Map::size)
+      .mapToInt(Collection::size)
       .sum());
     Map<ScopeId,Map<String,LinkPair>> linkingFunctions = new HashMap<>(unlinkedById.values()
       .stream()
@@ -37,7 +37,7 @@ public class Linker {
       EffesModule<UnlinkedOperation> unlinkedModule = unlinkedEntry.getValue();
 
       // gather the types
-      for (EffesType type : unlinkedModule.types().values()) {
+      for (EffesType type : unlinkedModule.types()) {
         ScopeId typeScopeId = linkContext.scopeIdBuilder.withType(moduleId, type.name());
         EffesType old = types.put(typeScopeId, type.withModuleId(moduleId));
         assert old == null : old;
@@ -62,7 +62,7 @@ public class Linker {
         LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
         assert old == null : old;
       }
-      EffesModule<Operation> linkedModule = new EffesModule<>(unlinkedModule.types().values(), linkedFunctions);
+      EffesModule<Operation> linkedModule = new EffesModule<>(unlinkedModule.types(), linkedFunctions);
       linkedModules.put(moduleId, linkedModule);
     }
 
