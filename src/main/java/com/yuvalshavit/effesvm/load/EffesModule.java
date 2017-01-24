@@ -33,14 +33,6 @@ public class EffesModule<T> {
     return res;
   }
 
-  public EffesType getType(String typeName) {
-    EffesType type = types.get(typeName);
-    if (type == null) {
-      throw new EffesRuntimeException("no such type: " + typeName);
-    }
-    return type;
-  }
-
   Map<String,EffesType> types() {
     return Collections.unmodifiableMap(types);
   }
@@ -50,14 +42,19 @@ public class EffesModule<T> {
   }
 
   public static class Id {
+    private static final Id CURRENT_MODULE = new Id(Collections.emptyList());
     private final List<String> fullId;
 
     private Id(List<String> fullId) {
       this.fullId = Collections.unmodifiableList(new ArrayList<>(fullId));
     }
 
+    public static Id of() {
+      return CURRENT_MODULE;
+    }
+
     public static Id of(String... paths) {
-      return new Id(Arrays.asList(paths)); // TODO cache, possibly via a Builder that contains the cache (so that the cache can be GC'ed after link)
+      return new Id(Arrays.asList(paths));
     }
 
     public boolean currentModulePlaceholder() {
