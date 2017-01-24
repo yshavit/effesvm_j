@@ -65,7 +65,7 @@ public class Linker {
     }
     LinkContextImpl linkContext = new LinkContextImpl(types, linkingFunctions);
 
-    functionScopesPerModule.forEach((moduleId, scopeToSelf) -> {
+    functionScopesPerModule.forEach((moduleId, scopeToSelf) ->
       scopeToSelf.keySet().forEach(scopeId -> {
         for (LinkPair linkPair : linkingFunctions.get(scopeId).values()) {
           EffesModule<UnlinkedOperation> module = unlinkedById.get(scopeId.module());
@@ -88,8 +88,7 @@ public class Linker {
             linkPair.ops.add(linkedOp);
           }
         }
-      });
-    });
+    }));
     return linkedModules;
   }
 

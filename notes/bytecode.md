@@ -67,9 +67,9 @@ Function declarations
 
 Functions start with a declaration:
 
-    FUNC <classname> <functionname> <nArgs> <hasRv> 0 <nLocal>
+    FUNC <functionscope> <functionname> <nArgs> <hasRv> 0 <nLocal>
 
-- The classname must correspond to a type declaration contained in this `.efct` (or `:`, as noted below), and the functionname must be unique within for a given classname.
+- functionscope defines a scope for this function, as described below. The functionname must be unique within for a given classname.
 - nArgs is the number of arguments this function takes
 - hasRv must be 0 or 1. 0 means there is no return value, and 1 means there is one
 - The `0` is a placeholder for generics.
@@ -77,7 +77,20 @@ Functions start with a declaration:
 
 After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
 
-If the classname is `:`, this defines a module function. Otherwise, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC Dog eat 2 0 0 0` will actually take 3 args: a `Dog` reference and the two declared arguments.
+The functionscope is of the form _module:Type_:
+
+- _module_ is a module name, or an empty string to specify "this module" (the one defined in this efct file). A module name consists of one or more module name segments, each of which consists of one or more characters other than a colon (`:`), delimited by colons.
+- _Type_ is a type name, or an empty string to specify a module-level ("static") function
+
+For instance:
+
+- `foo:` means a module-level function in _foo_
+- `foo:bar:` means a module-level function in _foo:bar_, a sub-module of _foo_
+- `foo:Buzz` means an instance-level function on the _Buzz_ type, in the _foo_ module
+` `:Buzz` means an instance-level functoin on the _Buzz_ type in the current module
+- `:` means a module-level function in the current module
+
+For instance methods, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC :Dog eat 2 0 0 0` will actually take 3 args: a `Dog` reference and the two declared arguments.
 
 From the perspective of a function's body, there is virtually no difference between arguments and local variables; the first M arguments simply become the first M variables, and the other local variables' indexes are shifted by that count. For instance, if a method declares 3 arguments and 2 local variables, it will have 5 local variables at its disposal. The first three (indexes _0_, _1_ and _2_) will initially contain the arguments' values, in order; the first "local" variable will actually have index _3_. The only difference is that while the argument variables are guaranteed to be initialized, the local variables will not, and will error if pushed before having anything stored to them.
 
@@ -202,13 +215,12 @@ Pops the topemost item. Pushes a True to the stack if its type matches the typed
 
 Works like `type`, except that it only peeks for the top item (instead of popping it).
 
-### call classname functionname [@arg0 ... arg@1] -> result
+### call functionscope functionname [@arg0 ... arg@1] -> result
 
 Calls a function.
 
-- If _classname_ is `:`, the call is for a module function
-- Otherwise, if _functionname_ is the same as _classname_`, this is a constructor call
-- Otherwise, the function is a instance method on the class.
+- If _functionscope_ is as defined above, in the _Function Declarations_ sections
+- If _functionscope_ defines a type scope, and functionname is the type name (e.g. `:Person Person`), this is a constructor call
 
 This op will pop _n_ args, where _n_ is the number of args the function requires. These are provided in reverse order: the topmost value is the first argument of the function invocation. Instance functions always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance function.
 
@@ -216,13 +228,15 @@ This op will push one value to the stack, the function's return value.
 
 Examples:
 
-- `call Pair Pair` constructs a new Pair instance
-- `call : myModuleFunction` calls a function
-- `call LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
+- `call :Pair Pair` constructs a new Pair instance
+- `call : myModuleFunction` calls a static function
+- `call :LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
 ### oarg typename fieldname @effesItem -> effesItemField
 
 Pops the topmost item, which must be an EffesRef of type _typename_. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
+
+_typename_ is a functionscope, as defined above, which must have a type name
 
 ### call_native:toString @obj -> string
 

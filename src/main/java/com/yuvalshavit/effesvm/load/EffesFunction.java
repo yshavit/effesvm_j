@@ -50,6 +50,7 @@ public class EffesFunction<T> {
     return String.valueOf(id);
   }
 
+  /** The "local id" of a function, only meaningful within a module */
   public static class Id {
     private static final String MODULE_FUNCTION = ":";
     private final String typeName;
