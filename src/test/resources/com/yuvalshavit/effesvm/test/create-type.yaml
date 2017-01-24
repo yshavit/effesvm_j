@@ -2,11 +2,11 @@ efct: |
   TYPE 0 Dog name
   FUNC : main 0 1 0 1
   str  "Balto"
-  call Dog Dog
+  call :Dog Dog
   debug-print
   pop
   int  0
   rtrn
 runs:
-- err: Dog{name=Balto}
+- err: main:Dog{name=Balto}
   exit: 0

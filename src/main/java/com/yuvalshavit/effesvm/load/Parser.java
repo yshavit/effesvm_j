@@ -24,7 +24,7 @@ public class Parser {
 
   public EffesModule<UnlinkedOperation> parse(SequencedIterator<String> lines) {
     if (!lines.hasNext()) {
-      return new EffesModule<>(Collections.emptyMap(), Collections.emptyMap());
+      return new EffesModule<>(Collections.emptyList(), Collections.emptyList());
     }
     if (!lines.next().equals(EFCT_0_HEADER)) {
       throw new IllegalArgumentException("file must start with \"" + EFCT_0_HEADER + "\"");
@@ -71,7 +71,7 @@ public class Parser {
         throw new EffesLoadException(message, e);
       }
     }
-    return new EffesModule<>(types, Collections.unmodifiableMap(functions));
+    return new EffesModule<>(types.values(), functions.values());
   }
 
   private EffesFunction<UnlinkedOperation> parseFunction(

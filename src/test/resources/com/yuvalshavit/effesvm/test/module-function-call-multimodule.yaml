@@ -1,0 +1,21 @@
+efct: |
+  FUNC : main 0 1 0 0
+  int  5
+  int  7
+  call adder: sum
+  debug-print
+  pop
+  int 0
+  rtrn
+otherModules:
+  adder: |
+    FUNC : sum 2 1 0 0
+    # args: two integers
+    # returns their sum
+    pvar 0
+    pvar 1
+    call_Integer:add
+    rtrn
+runs:
+- err: 12
+  exit: 0

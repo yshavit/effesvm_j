@@ -1,36 +1,32 @@
 package com.yuvalshavit.effesvm.load;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.runtime.EffesRuntimeException;
 import com.yuvalshavit.effesvm.runtime.EffesType;
+import com.yuvalshavit.effesvm.util.LambdaHelpers;
 
 public class EffesModule<T> {
-  private final Map<EffesFunction.Id,EffesFunction<T>> functionsById;
+  private final Map<EffesFunction.Id,EffesFunction<T>> functions;
   private final Map<String,EffesType> types;
 
-  public EffesModule(Map<String,EffesType> types, Map<EffesFunction.Id,EffesFunction<T>> functionsById) {
-    this.types = types;
-    this.functionsById = functionsById;
-
-    // TODO will have to change with multi-module
-    Set<EffesFunction.Id> functionsToUnknownTypes = functionsById.keySet().stream()
-      .filter(id -> !EffesFunction.MODULE_CLASSNAME.equals(id.typeName()))
-      .filter(id -> !types.containsKey(id.typeName()))
+  public EffesModule(Collection<EffesType> types, Collection<EffesFunction<T>> functions) {
+    this.types = types.stream().collect(LambdaHelpers.groupByUniquely(EffesType::name, "type name"));
+    this.functions = functions.stream().collect(LambdaHelpers.groupByUniquely(EffesFunction::id, "function"));
+    Set<String> unknownTypes = this.functions.keySet().stream()
+      .filter(EffesFunction.Id::hasTypeName)
+      .map(EffesFunction.Id::typeName)
+      .distinct()
+      .filter(typeName -> !this.types.containsKey(typeName))
       .collect(Collectors.toSet());
-    if (!functionsToUnknownTypes.isEmpty()) {
-      String plural = functionsToUnknownTypes.size() == 1 ? "" : "s";
-      throw new EffesLinkException(String.format("function%s defined on unknown type%s: %s", plural, plural, functionsToUnknownTypes));
+    if (!unknownTypes.isEmpty()) {
+      throw new IllegalArgumentException(String.format("unknown type%s: %s", unknownTypes.size() == 1 ? "" : "s", unknownTypes));
     }
   }
 
   public EffesFunction<T> getFunction(EffesFunction.Id id) {
-    EffesFunction<T> res = functionsById.get(id);
+    EffesFunction<T> res = functions.get(id);
     if (res == null) {
       throw new NoSuchElementException(id.toString());
     }
@@ -50,6 +46,44 @@ public class EffesModule<T> {
   }
 
   Collection<EffesFunction<T>> functions() {
-    return Collections.unmodifiableCollection(functionsById.values());
+    return Collections.unmodifiableCollection(functions.values());
+  }
+
+  public static class Id {
+    private final List<String> fullId;
+
+    private Id(List<String> fullId) {
+      this.fullId = Collections.unmodifiableList(new ArrayList<>(fullId));
+    }
+
+    public static Id of(String... paths) {
+      return new Id(Arrays.asList(paths)); // TODO cache, possibly via a Builder that contains the cache (so that the cache can be GC'ed after link)
+    }
+
+    public boolean currentModulePlaceholder() {
+      return fullId.isEmpty();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Id id = (Id) o;
+      return Objects.equals(fullId, id.fullId);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(fullId);
+    }
+
+    @Override
+    public String toString() {
+      return fullId.stream().collect(Collectors.joining(":"));
+    }
   }
 }

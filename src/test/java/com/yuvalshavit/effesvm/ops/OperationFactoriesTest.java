@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.LinkContext;
+import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.runtime.EffesNativeObject;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.EffesType;
@@ -39,21 +40,21 @@ public class OperationFactoriesTest {
   public void linking() {
     LinkContext linkContext = new LinkContext() {
       @Override
-      public EffesType type(String typeName) {
-        if ("link-type-name".equals(typeName)) {
+      public EffesType type(ScopeId id) {
+        if (id.inCurrentModule() && id.hasType() && id.type().equals("link-type-name")) {
           return new EffesType("the-link-type", Collections.emptyList());
         }
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public EffesFunction<?> getFunctionInfo(EffesFunction.Id function) {
-        throw new UnsupportedOperationException();
+      public EffesFunction<?> getFunctionInfo(ScopeId scope, String function) {
+        throw new UnsupportedOperationException(); // TODO
       }
 
       @Override
-      public PcMove firstOpOf(EffesFunction.Id id) {
-        throw new UnsupportedOperationException();
+      public PcMove firstOpOf(ScopeId scopeId, String function) {
+        throw new UnsupportedOperationException(); // TODO
       }
 
       @Override
@@ -99,7 +100,7 @@ public class OperationFactoriesTest {
     @OperationFactory("with-linking")
     public static UnlinkedOperation build3() {
       return (LinkContext linkCtx) -> {
-        EffesType type = linkCtx.type("link-type-name");
+        EffesType type = linkCtx.type(ScopeId.parse(":link-type-name"));
         EffesNativeObject.EffesString str = EffesNativeObject.forString(type.name());
         return Operation.withIncementingPc(s -> s.push(str));
       };

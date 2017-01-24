@@ -1,8 +1,12 @@
 package com.yuvalshavit.effesvm.util;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class LambdaHelpers {
   private LambdaHelpers() {}
@@ -28,5 +32,16 @@ public class LambdaHelpers {
         return f.apply(orig);
       }
     };
+  }
+
+  public static <K,T> Collector<T,?,Map<K,T>> groupByUniquely(Function<? super T, ? extends K> groupBy, String groupByDesc) {
+     return Collectors.groupingBy(groupBy, HashMap::new, Collectors.reducing(null, (a, b) -> {
+      if (a == null)
+        return b;
+      if (b == null)
+        return a;
+      throw new IllegalArgumentException("duplicate " + groupByDesc + ": " + groupBy.apply(a));
+    }));
+
   }
 }

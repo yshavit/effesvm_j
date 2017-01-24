@@ -1,13 +1,18 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.Linker;
 import com.yuvalshavit.effesvm.load.Parser;
@@ -50,27 +55,49 @@ public class EvmRunner {
   }
 
   public static void main(String[] args) throws IOException {
-    if (args.length != 1) {
-      throw new IllegalArgumentException("must take exactly one file, an efct file");
+    if (args.length == 10) {
+      throw new IllegalArgumentException("must take at least one file, an efct file");
     }
 
-    Path path = FileSystems.getDefault().getPath(args[0]);
-    Iterator<String> lines = Files.lines(path).iterator();
+    Map<EffesModule.Id,Iterable<String>> inputFiles = new HashMap<>(args.length);
+    EffesModule.Id main = null;
+    for (String arg : args) {
+      Path path = FileSystems.getDefault().getPath(arg);
+      Iterable<String> lines = () -> {
+        try {
+          return Files.lines(path).iterator();
+        } catch (IOException e) {
+          throw new EffesLoadException("while reading " + arg, e);
+        }
+      };
+      EffesModule.Id id = EffesModule.Id.of(arg.split(Pattern.quote(File.separator)));
+      if (main == null) {
+        main = id;
+      }
+      inputFiles.put(id, lines);
+    }
+
     EffesIo io = EffesIo.stdio();
 
-    int exitCode = run(lines, io);
+    int exitCode = run(inputFiles, main, io);
     System.exit(exitCode);
   }
 
-  public static int run(Iterator<String> efctLines, EffesIo io) {
-    return run(efctLines, io, null);
+  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io) {
+    return run(inputFiles, main, io, null);
   }
 
-  public static int run(Iterator<String> efctLines, EffesIo io, Integer stackSize) {
+  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize) {
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
+    Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
     Parser parser = new Parser(ops);
-    EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(SequencedIterator.wrap(efctLines));
-    EffesModule<Operation> linkedModule = Linker.link(unlinkedModule);
+    for (Map.Entry<EffesModule.Id,Iterable<String>> inputFileEntry : inputFiles.entrySet()) {
+      Iterator<String> inputFileLines = inputFileEntry.getValue().iterator();
+      EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(SequencedIterator.wrap(inputFileLines));
+      parsed.put(inputFileEntry.getKey(), unlinkedModule);
+    }
+    Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
+    EffesModule<Operation> linkedModule = linkedModules.get(main);
     if (stackSize == null) {
       stackSize = STACK_SIZE;
     }

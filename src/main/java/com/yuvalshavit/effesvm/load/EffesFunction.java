@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class EffesFunction<T> {
-  
-  public static String MODULE_CLASSNAME = ":";
-  
+
   private final Id id;
   private final int nArgs;
   private final boolean hasRv;
@@ -53,6 +51,7 @@ public class EffesFunction<T> {
   }
 
   public static class Id {
+    private static final String MODULE_FUNCTION = ":";
     private final String typeName;
     private final String functionName;
 
@@ -62,11 +61,18 @@ public class EffesFunction<T> {
     }
 
     public Id(String functionName) {
-      this(MODULE_CLASSNAME, functionName);
+      this(MODULE_FUNCTION, functionName);
     }
 
     public String typeName() {
+      if (!hasTypeName()) {
+        throw new IllegalArgumentException("function is a module function");
+      }
       return typeName;
+    }
+
+    public boolean hasTypeName() {
+      return !MODULE_FUNCTION.equals(typeName);
     }
 
     public String functionName() {

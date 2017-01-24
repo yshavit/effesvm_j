@@ -2,9 +2,9 @@ efct: |
   TYPE 0 Hello
   TYPE 0 Goodbye
   FUNC : main 0 1 0 0
-  call Hello Hello
+  call :Hello Hello
   call : isHello
-  call Goodbye Goodbye
+  call :Goodbye Goodbye
   call : isHello
   int  0
   rtrn

@@ -11,6 +11,7 @@ import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
+import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 
 public class EffesOps {
@@ -93,8 +94,12 @@ public class EffesOps {
 
   @OperationFactory("oarg")
   public static UnlinkedOperation objectArg(String typeName, String fieldName) {
+    ScopeId scope = ScopeId.parse(typeName);
+    if (!scope.hasType()) {
+      throw new IllegalArgumentException("scope specifier " + scope + " needs a type");
+    }
     return linkContext -> {
-      EffesType type = linkContext.type(typeName);
+      EffesType type = linkContext.type(scope);
       int fieldIndex = type.argIndex(fieldName);
       return Operation.withIncementingPc(s -> {
         EffesObject obj = (EffesObject) s.pop();
@@ -183,13 +188,12 @@ public class EffesOps {
   }
 
   @OperationFactory("call")
-  public static UnlinkedOperation call(String className, String functionName) {
-    EffesFunction.Id id = new EffesFunction.Id(className, functionName);
-    if (id.typeName().equals(id.functionName())) {
-      String typeName = id.typeName();
+  public static UnlinkedOperation call(String scopeSpecifier, String functionName) {
+    ScopeId scope = ScopeId.parse(scopeSpecifier);
+    if (scope.hasType() && scope.type().equals(functionName)) {
       // constructor
       return linkCtxt -> {
-        EffesType type = linkCtxt.type(typeName);
+        EffesType type = linkCtxt.type(scope);
         return runCtx -> {
           EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
           for (int i = args.length - 1; i >= 0; --i) {
@@ -203,22 +207,29 @@ public class EffesOps {
     } else {
       // non-constructor function
       return linkCtx -> {
-        boolean isInstanceMethod = !EffesFunction.MODULE_CLASSNAME.equals(id.typeName());
-        EffesFunction<?> f = linkCtx.getFunctionInfo(id);
-        PcMove pcMove = linkCtx.firstOpOf(id);
+        boolean isInstanceMethod = scope.hasType();
+        EffesFunction<?> f = linkCtx.getFunctionInfo(scope, functionName);
+        PcMove pcMove = linkCtx.firstOpOf(scope, functionName);
+        EffesType requiredType = isInstanceMethod ? linkCtx.type(scope) : null;
         return c -> {
           if (f == null) {
-            throw new EffesLoadException("link error: no function " + id);
+            throw new EffesLoadException("link error: no function " + fullFunctionName(scopeSpecifier, functionName));
           }
           int nArgs = f.nArgs(); // does not count the "this" reference
           if (isInstanceMethod) {
             Object instance = c.peek(nArgs);
             if (!(instance instanceof EffesObject)) {
-              throw new EffesRuntimeException(String.format("instance function %s invoked on non-EffesObject instance: %s", id, instance));
+              throw new EffesRuntimeException(String.format(
+                "instance function %s invoked on non-EffesObject instance: %s",
+                fullFunctionName(scopeSpecifier, functionName),
+                instance));
             }
             EffesType instanceType = ((EffesObject) instance).type();
-            if (!id.typeName().equals(instanceType.name())) { // TODO multi-module will need to tweak this a bit
-              throw new EffesRuntimeException(String.format("instance function %s invoked on wrong EffesObject instance: %s", id, instance));
+            if (!requiredType.equals(instanceType)) {
+              throw new EffesRuntimeException(String.format(
+                "instance function %s invoked on wrong EffesObject instance: %s",
+                fullFunctionName(scopeSpecifier, functionName),
+                instance));
             }
             ++nArgs; // to include the "this" reference
           }
@@ -228,6 +239,10 @@ public class EffesOps {
         };
       };
     }
+  }
+
+  private static String fullFunctionName(String scopeSpecifier, String functionName) {
+    return scopeSpecifier + "." + functionName;
   }
 
   @OperationFactory("call_Integer:add")

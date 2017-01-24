@@ -3,9 +3,9 @@ efct: |
   FUNC : main 0 1 0 0
   int  2
   int  12
-  call House House
+  call :House House
   debug-print
-  call House describe
+  call :House describe
   debug-print
   pop
   int  0
@@ -13,16 +13,16 @@ efct: |
 
   FUNC House describe 0 1 0 0
   pvar 0 # this
-  oarg House nDoors
+  oarg :House nDoors
   debug-print
   pvar 0
-  oarg House nWindows
+  oarg :House nWindows
   debug-print
   call_Integer:add
   rtrn
 runs:
 - err: |
-    House{nDoors=2, nWindows=12}
+    main:House{nDoors=2, nWindows=12}
     2
     12
     14
