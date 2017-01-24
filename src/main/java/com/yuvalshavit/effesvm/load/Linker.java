@@ -48,8 +48,9 @@ public class Linker {
       Collection<EffesFunction<Operation>> linkedFunctions = new ArrayList<>(unlinkedModule.functions().size());
       for (EffesFunction<?> unlinkedFunction : unlinkedModule.functions()) {
         EffesFunction.Id functionId = unlinkedFunction.id();
-        String type = functionId.hasTypeName() ? functionId.typeName() : ScopeId.NO_TYPE;
-        ScopeId functionScope = new ScopeId(moduleId, type);
+        ScopeId functionScope = functionId.hasTypeName()
+          ? new ScopeId(moduleId, functionId.typeName())
+          : new ScopeId(moduleId);
         functionScope = scopeIds.computeIfAbsent(functionScope, Function.identity()); // basically like String::intern
 
         List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
@@ -166,7 +167,9 @@ public class Linker {
 
     private ScopeId resolveScope(ScopeId id) {
       if (id.inCurrentModule()) {
-        id = new ScopeId(currentModule, id.hasType() ? id.type() : ScopeId.NO_TYPE);
+        id = id.hasType()
+          ? new ScopeId(currentModule, id.type())
+          : new ScopeId(currentModule);
       }
       return id;
     }

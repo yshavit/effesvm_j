@@ -5,13 +5,17 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public class ScopeId {
-  public static final String NO_TYPE = ""; // TODO it's pretty ugly to expose this to callers; need a better way (factory method or such)
+  private static final String NO_TYPE = "";
   private final EffesModule.Id module;
   private final String type;
 
   public ScopeId(EffesModule.Id module, String type) {
     this.module = module;
     this.type = type;
+  }
+
+  public ScopeId(EffesModule.Id module) {
+    this(module, NO_TYPE);
   }
 
   public static ScopeId parse(String idDesc) {
