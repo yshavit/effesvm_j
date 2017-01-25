@@ -14,10 +14,10 @@ otherModules:
     TYPE 0 House nDoors nWindows
     FUNC House describe 0 1 0 0
     pvar 0 # this
-    oarg :House nDoors             # this is how you'd typically bind it, since House is defined in this module
+    pfld :House nDoors             # this is how you'd typically bind it, since House is defined in this module
     debug-print
     pvar 0
-    oarg buildings:House nWindows  # but you can also do it like this
+    pfld buildings:House nWindows  # but you can also do it like this
     debug-print
     call_Integer:add
     rtrn

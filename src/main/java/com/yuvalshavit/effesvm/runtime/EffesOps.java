@@ -92,7 +92,7 @@ public class EffesOps {
     return typeBuilder(typeName, s -> s.peek(0));
   }
 
-  @OperationFactory("oarg")
+  @OperationFactory("pfld")
   public static UnlinkedOperation objectArg(String typeName, String fieldName) {
     ScopeId scope = ScopeId.parse(typeName);
     if (!scope.hasType()) {

@@ -108,7 +108,7 @@ State is maintained on a LIFO stack.
 An EffesObject references an object that has:
 
 - a type
-- 0 or more constructor arguments, which can be accessed via the _oarg_ opcode (described below)
+- 0 or more constructor arguments, which can be accessed via the _pfld_ and _sfld_ opcodes (described below)
 
 Operations are always executed within the context of a function (the one exception to this is the initial invocation of a `main` function to start a program, which is handled by the EVM as a special case. But within that `main` function, operands do have the function context). This context includes the number of arguments that the function has.
 
@@ -232,7 +232,7 @@ Examples:
 - `call : myModuleFunction` calls a static function
 - `call :LinkedList size` calls the `size` function on the `LinkedList` instance represented by the top of the stack.
 
-### oarg typename fieldname @effesItem -> effesItemField
+### pfld typename fieldname @effesItem -> effesItemField
 
 Pops the topmost item, which must be an EffesRef of type _typename_. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
 

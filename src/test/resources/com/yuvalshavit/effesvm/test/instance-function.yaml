@@ -13,10 +13,10 @@ efct: |
 
   FUNC House describe 0 1 0 0
   pvar 0 # this
-  oarg :House nDoors
+  pfld :House nDoors
   debug-print
   pvar 0
-  oarg :House nWindows
+  pfld :House nWindows
   debug-print
   call_Integer:add
   rtrn
