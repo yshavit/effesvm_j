@@ -238,6 +238,10 @@ Pops the topmost item, which must be an EffesRef of type _typename_. Pushes the 
 
 _typename_ is a functionscope, as defined above, which must have a type name
 
+### sfld typename fieldname @effesItem @effesItemField
+
+Pops an EffesRef of type _typename_ and a value, and sets the specified constructor argument (by name) to the value. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
+
 ### call_native:toString @obj -> string
 
 Pops the topmost item, which must be a built-in type (ie, not an EffesRef). Pushes its toString representation as a String.

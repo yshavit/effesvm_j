@@ -1,0 +1,26 @@
+efct: |
+  TYPE 0 Animal species
+  FUNC : main 0 1 0 1
+  str  "dog"             # new Animal("dog")
+  call :Animal Animal
+  debug-print
+  svar 0
+  pvar 0                 # print Animal.species
+  pfld :Animal species
+  call_String:sout
+  pvar 0                 # Animal.species = cat
+  str  "cat"
+  sfld :Animal species
+  pvar 0                 # print Animal.species
+  debug-print
+  pfld :Animal species
+  call_String:sout
+  int  0
+  rtrn
+runs:
+- out: |
+    dogcat
+  err: |
+    main:Animal{species=dog}
+    main:Animal{species=cat}
+  exit: 0

@@ -1,6 +1,7 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
@@ -93,23 +94,27 @@ public class EffesOps {
   }
 
   @OperationFactory("pfld")
-  public static UnlinkedOperation objectArg(String typeName, String fieldName) {
-    ScopeId scope = ScopeId.parse(typeName);
-    if (!scope.hasType()) {
-      throw new IllegalArgumentException("scope specifier " + scope + " needs a type");
-    }
-    return linkContext -> {
-      EffesType type = linkContext.type(scope);
-      int fieldIndex = type.argIndex(fieldName);
-      return Operation.withIncementingPc(s -> {
-        EffesObject obj = (EffesObject) s.pop();
-        if (!obj.type().equals(type)) {
-          throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", typeName, fieldName, obj.type()));
-        }
-        EffesRef<?> arg = obj.getArgAt(fieldIndex);
-        s.push(arg);
-      });
-    };
+  public static UnlinkedOperation pushField(String typeName, String fieldName) {
+    return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
+      EffesObject obj = (EffesObject) s.pop();
+      if (!obj.type().equals(type)) {
+        throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", type.argAt(fieldIndex), fieldName, obj.type()));
+      }
+      EffesRef<?> arg = obj.getArgAt(fieldIndex);
+      s.push(arg);
+    });
+  }
+
+  @OperationFactory("sfld")
+  public static UnlinkedOperation storeField(String typeName, String fieldName) {
+    return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
+      EffesRef<?> newFieldValue = s.pop();
+      EffesObject obj = (EffesObject) s.pop();
+      if (!obj.type().equals(type)) {
+        throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", type.argAt(fieldIndex), fieldName, obj.type()));
+      }
+      obj.storeArgTo(fieldIndex, newFieldValue);
+    });
   }
 
   @OperationFactory("call_Array:store")
@@ -400,6 +405,18 @@ public class EffesOps {
     return idx;
   }
 
+  private static UnlinkedOperation fieldOperation(String typeName, String fieldName, FieldOperator op) {
+    ScopeId scope = ScopeId.parse(typeName);
+    if (!scope.hasType()) {
+      throw new IllegalArgumentException("scope specifier " + scope + " needs a type");
+    }
+    return linkContext -> {
+      EffesType type = linkContext.type(scope);
+      int fieldIndex = type.argIndex(fieldName);
+      return Operation.withIncementingPc(op.fieldOperation(type, fieldIndex));
+    };
+  }
+
   private static Operation intArith(IntBinaryOperator op) {
     return Operation.withIncementingPc(s -> {
       int rhs = popInt(s);
@@ -446,6 +463,10 @@ public class EffesOps {
         s.push(EffesNativeObject.forBoolean(rightType));
       });
     };
+  }
+
+  private interface FieldOperator {
+    Consumer<EffesState> fieldOperation(EffesType type, int fieldIndex);
   }
 
   private interface IntCmp {

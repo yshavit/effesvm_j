@@ -19,6 +19,10 @@ public class EffesObject extends EffesRef<EffesType> {
     return args[idx];
   }
 
+  public void storeArgTo(int idx, EffesRef<?> value) {
+    args[idx] = value;
+  }
+
   @Override
   public String toString() {
     EffesType type = type();
