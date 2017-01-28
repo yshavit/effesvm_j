@@ -45,7 +45,7 @@ public class EffesOps {
   }
 
   @OperationFactory("pvar")
-  public static Operation gvar(String n) {
+  public static Operation pvar(String n) {
     int idx = nonNegative(n);
     return Operation.withIncementingPc(s -> s.pushVar(idx));
   }
@@ -263,7 +263,7 @@ public class EffesOps {
   @OperationFactory("debug-print")
   public Operation debugPrint() {
     return Operation.withIncementingPc(s -> io.errLine(s.getLocalStackSize() >= 0
-      ? String.valueOf(s.peek(0))
+      ? String.valueOf(s.peek(0).toString(true))
       : "<the local stack for this frame is empty>"));
   }
 

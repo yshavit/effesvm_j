@@ -8,9 +8,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.Exchanger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -73,7 +70,9 @@ public class EvmRunner {
           throw new EffesLoadException("while reading " + arg, e);
         }
       };
-      EffesModule.Id id = EffesModule.Id.of(arg.split(Pattern.quote(File.separator)));
+      String[] moduleSegments = arg.split(Pattern.quote(File.separator));
+      moduleSegments[moduleSegments.length - 1] = moduleSegments[moduleSegments.length - 1].replaceAll("\\.efct$", "");
+      EffesModule.Id id = EffesModule.Id.of(moduleSegments);
       if (main == null) {
         main = id;
       }
@@ -82,12 +81,8 @@ public class EvmRunner {
 
     EffesIo io = EffesIo.stdio();
 
-    int exitCode = run(inputFiles, main, io);
+    int exitCode = run(inputFiles, main, io, null);
     System.exit(exitCode);
-  }
-
-  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io) {
-    return run(inputFiles, main, io, null);
   }
 
   public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize) {

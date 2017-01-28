@@ -19,9 +19,6 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   }
 
   @Override
-  public abstract String toString();
-
-  @Override
   public int hashCode() {
     return equalityState().hashCode();
   }
@@ -98,7 +95,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString() {
+    public String toString(boolean ignored) {
       return String.format("Array{size=%d}", data.length);
     }
 
@@ -125,7 +122,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString() {
+    public String toString(boolean ignored) {
       return type().toString();
     }
 
@@ -144,7 +141,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString() {
+    public String toString(boolean ignored) {
       return value;
     }
 
@@ -163,7 +160,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString() {
+    public String toString(boolean ignored) {
       return Integer.toString(value);
     }
 
@@ -204,8 +201,10 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString() {
-      StringJoiner joiner = new StringJoiner(", ", "Match{pattern=" + matcher.pattern().pattern() + ", groups=[", "]");
+    public String toString(boolean useArgNames) {
+      StringJoiner joiner = useArgNames
+        ? new StringJoiner(", ", "Match{pattern=" + matcher.pattern().pattern() + ", groups=[", "]")
+        : new StringJoiner(", ", "Match(" + matcher.pattern().pattern(), ")");
       IntStream.range(1, matcher.groupCount() + 1)
         .mapToObj(matcher::group)
         .forEachOrdered(joiner::add);

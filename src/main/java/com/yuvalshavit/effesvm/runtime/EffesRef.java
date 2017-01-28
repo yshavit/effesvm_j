@@ -1,7 +1,5 @@
 package com.yuvalshavit.effesvm.runtime;
 
-import com.yuvalshavit.effesvm.runtime.BaseEffesType;
-
 public abstract class EffesRef<T extends BaseEffesType> {
   private final T type;
 
@@ -12,4 +10,12 @@ public abstract class EffesRef<T extends BaseEffesType> {
   public T type() {
     return type;
   }
+
+  public abstract String toString(boolean useArgNames);
+
+  @Override
+  public String toString() {
+    return toString(false);
+  }
+
 }

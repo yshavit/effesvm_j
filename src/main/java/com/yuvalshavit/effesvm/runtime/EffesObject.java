@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime;
 import java.util.Arrays;
 import java.util.StringJoiner;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class EffesObject extends EffesRef<EffesType> {
   private final EffesRef<?>[] args;
@@ -24,15 +25,19 @@ public class EffesObject extends EffesRef<EffesType> {
   }
 
   @Override
-  public String toString() {
+  public String toString(boolean useArgNames) {
     EffesType type = type();
     if (args.length == 0) {
       return type.toString();
-    } else {
+    } else if (useArgNames) {
       StringJoiner joiner = new StringJoiner(", ", type + "{", "}");
       IntStream.range(0, args.length)
         .mapToObj(i -> String.format("%s=%s", type.argAt(i), args[i]))
         .forEachOrdered(joiner::add);
+      return joiner.toString();
+    } else {
+      StringJoiner joiner = new StringJoiner(", ", type + "(", ")");
+      Stream.of(args).map(String::valueOf).forEachOrdered(joiner::add);
       return joiner.toString();
     }
   }
