@@ -190,7 +190,7 @@ Branching
 
 ### labl _name_
 
-Defines a label, with a name that must be unique within this function. goto, goif and gofi can jump to these named labels instead of to an absolute position.
+Defines a label, with a name that must be unique within this function. goto, goif and gofi can jump to these named labels instead of to an absolute position. There are no restrictions on labels, other than that they cannot be an integer value, as the various go* ops will treat such values as absolute jump locations instead of named labels. The unenforced convention is to use lower_snake_case, prefixed with an @ sight: `@my_jump_loc`, for instance.
 
 ### goto _N_
 
