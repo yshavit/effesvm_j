@@ -374,6 +374,20 @@ public class EffesOps {
     return new LabelUnlinkedOperation(name);
   }
 
+  @OperationFactory("sbld")
+  public Operation stringBuilder() {
+    return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStringBuilder()));
+  }
+
+  @OperationFactory("call_StringBuilder:add")
+  public Operation stringBuilderAdd() {
+    return Operation.withIncementingPc(s -> {
+      EffesRef<?> toAdd = s.pop();
+      EffesNativeObject.EffesStringBuilder sb = (EffesNativeObject.EffesStringBuilder) s.pop();
+      sb.add(toAdd);
+    });
+  }
+
   private static UnlinkedOperation buildGoif(String loc, Predicate<Boolean> condition) {
     return linkCtx -> {
       PcMove to = pcMoveTo(linkCtx, loc);

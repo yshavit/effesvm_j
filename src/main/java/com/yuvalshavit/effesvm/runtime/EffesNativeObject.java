@@ -222,6 +222,29 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
+  public static class EffesStringBuilder extends EffesNativeObject {
+    private final StringBuilder sb = new StringBuilder();
+
+    public EffesStringBuilder() {
+      super(NativeTypeEnum.STRING_BUILDER.type);
+    }
+
+    public void add(Object o) {
+      Objects.requireNonNull(o);
+      sb.append(o);
+    }
+
+    @Override
+    public String toString(boolean useArgNames) {
+      return sb.toString();
+    }
+
+    @Override
+    protected Object equalityState() {
+      return sb;
+    }
+  }
+
   static class NativeType extends BaseEffesType {
     NativeType(String name) {
       super(name);
@@ -235,6 +258,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     STRING("String"),
     MATCH("Match"),
     ARRAY("Array"),
+    STRING_BUILDER("StringBuilder"),
     ;
 
     private final NativeType type;
