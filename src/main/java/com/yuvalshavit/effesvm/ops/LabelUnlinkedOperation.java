@@ -20,7 +20,6 @@ public class LabelUnlinkedOperation implements UnlinkedOperation {
 
   @Override
   public Operation apply(LinkContext linkContext) {
-    return Operation.withIncementingPc(s -> {
-    });
+    return Operation.withIncementingPc(s -> s.seeLabel(label));
   }
 }
