@@ -13,6 +13,7 @@ public class EffesState {
   private int regSp;
   private int regFp;
   private ProgramCounter regPc;
+  private String lastSeenLabel;
 
   public EffesState(ProgramCounter.State pcState, int stackSize, int nLocalVars, EffesRef<?>... args) {
     stack = new Object[stackSize];
@@ -84,6 +85,13 @@ public class EffesState {
     stack[varIdx] = pop();
   }
 
+  public void seeLabel(String label) {
+    if (label == null) {
+      label = "<unknown>"; // not expected to happen
+    }
+    lastSeenLabel = label;
+  }
+
   public void openFrame(int nArgs, boolean hasRv, int nLocal) {
     // we're going to be using the topmost nArgs of the local stack as this frame's args, so we need to check
     // that there are enough.
@@ -124,6 +132,7 @@ public class EffesState {
     }
     regFp = closingFp.previousFp;
     regPc.restore(closingFp.previousPc);
+    lastSeenLabel = closingFp.lastSeenLabel;
     if (closingFrameRv != null) {
       push(closingFrameRv);
     }
@@ -135,7 +144,7 @@ public class EffesState {
 
   @Override
   public String toString() {
-    return String.format("$fp=%d, $sp=%d, $pc=%s", regFp, regSp, regPc);
+    return String.format("$fp=%d, $sp=%d, $pc=%s %s", regFp, regSp, regPc, describeLabel(lastSeenLabel));
   }
 
   List<String> toStringList() {
@@ -169,9 +178,10 @@ public class EffesState {
 
   private void doOpenFrame(int nArgs, int nLocal, boolean hasRv) {
     regSp += nLocal;
-    FrameInfo newFrameInfo = new FrameInfo(nArgs, hasRv, nLocal, regFp, regPc.save());
+    FrameInfo newFrameInfo = new FrameInfo(nArgs, hasRv, nLocal, regFp, regPc.save(), lastSeenLabel);
     pushObj(newFrameInfo);
     regFp = regSp;
+    lastSeenLabel = null;
   }
 
   private int getVarAbsoluteIndex(int var) {
@@ -194,22 +204,30 @@ public class EffesState {
     return (FrameInfo) stack[regFp];
   }
 
+  private static String describeLabel(String label) {
+    return (label == null)
+      ? "(no named labels seen)"
+      : ("after " + label);
+  }
+
   public static class FrameInfo {
     private final int nVars;
     private final boolean hasRv;
     private final int previousFp;
     private final ProgramCounter.State previousPc;
+    private final String lastSeenLabel;
 
-    public FrameInfo(int nArgs, boolean hasRv, int nLocalVars, int previousFp, ProgramCounter.State previousPc) {
+    public FrameInfo(int nArgs, boolean hasRv, int nLocalVars, int previousFp, ProgramCounter.State previousPc, String lastSeenLabel) {
       this.nVars = nArgs + nLocalVars;
       this.hasRv = hasRv;
       this.previousFp = previousFp;
       this.previousPc = previousPc;
+      this.lastSeenLabel = lastSeenLabel;
     }
 
     @Override
     public String toString() {
-      return String.format("nVars=%d, rv=%s, prevFp=%d, prevPc=%s", nVars, hasRv, previousFp, previousPc);
+      return String.format("nVars=%d, rv=%s, prevFp=%d, prevPc=%s %s", nVars, hasRv, previousFp, previousPc, lastSeenLabel);
     }
   }
 
