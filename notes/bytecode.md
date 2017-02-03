@@ -188,9 +188,13 @@ Pops the topmost element from the stack, and stores it in local variable N. Erro
 Branching
 ----------------------------------------------------------------------------------------
 
+### labl _name_
+
+Defines a label, with a name that must be unique within this function. goto, goif and gofi can jump to these named labels instead of to an absolute position.
+
 ### goto _N_
 
-Moves the program counter to the specified opcode. The opcode is an absolute number, 0-indexed, representing an op in the current function. For instance, `goto 0` goes to the first opcode in the function (ie, the opcode represented by the first line of the function body), `goto 3` goes to the fourth, etc.
+Moves the program counter to the specified opcode. The operand may either be a number or a named label in this function. If it is a number, it represents an absolute opcode index 0-based, representing an op in the current function. For instance, `goto 0` goes to the first opcode in the function (ie, the opcode represented by the first line of the function body), `goto 3` goes to the fourth, etc. If it is a string, it must correspond to a label defined by a labl op in this function.
 
 ### goif _N_ @condition
 
