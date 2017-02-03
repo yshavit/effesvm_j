@@ -10,6 +10,7 @@ import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLinkException;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.load.LinkContext;
+import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
 import com.yuvalshavit.effesvm.load.ScopeId;
@@ -58,9 +59,8 @@ public class EffesOps {
 
   @OperationFactory("goto")
   public static UnlinkedOperation gotoAbs(String n) {
-    int idx = nonNegative(n);
     return linkCtx -> {
-      PcMove pcMove = pcMoveTo(linkCtx, idx);
+      PcMove pcMove = pcMoveTo(linkCtx, n);
       return s -> pcMove;
     };
   }
@@ -369,10 +369,14 @@ public class EffesOps {
     });
   }
 
+  @OperationFactory("labl")
+  public UnlinkedOperation label(String name) {
+    return new LabelUnlinkedOperation(name);
+  }
+
   private static UnlinkedOperation buildGoif(String loc, Predicate<Boolean> condition) {
-    int idx = nonNegative(loc);
     return linkCtx -> {
-      PcMove to = pcMoveTo(linkCtx, idx);
+      PcMove to = pcMoveTo(linkCtx, loc);
       return s -> {
         boolean top = ((EffesNativeObject.EffesBoolean) s.pop()).asBoolean();
         return condition.test(top) ? to : PcMove.next();
@@ -380,8 +384,14 @@ public class EffesOps {
     };
   }
 
-  private static PcMove pcMoveTo(LinkContext linkCtx, int idx) {
+  private static PcMove pcMoveTo(LinkContext linkCtx, String dest) {
     int nOps = linkCtx.getCurrentLinkingFunctionInfo().nOps();
+    int idx;
+    try {
+      idx = Integer.parseInt(dest);
+    } catch (NumberFormatException e) {
+      idx = linkCtx.findLabelOpIndex(dest);
+    }
     if (idx >= nOps) {
       throw new EffesLinkException("jump op index is out of range: " + idx);
     }

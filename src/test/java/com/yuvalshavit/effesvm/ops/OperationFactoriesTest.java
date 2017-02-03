@@ -66,6 +66,11 @@ public class OperationFactoriesTest {
       public ScopeId.Builder scopeIdBuilder() {
         throw new UnsupportedOperationException();
       }
+
+      @Override
+      public int findLabelOpIndex(String label) {
+        throw new UnsupportedOperationException();
+      }
     };
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
     checkOp("the-link-type", builder, linkContext);
