@@ -137,7 +137,7 @@ public class Linker {
       if (res == null) {
         throw new NoSuchElementException(label);
       }
-      return res;
+      return res + 1; // the label itself is at res, but it's a no-op and will just increment to the next index; may as well return that index
     }
 
     @Override
