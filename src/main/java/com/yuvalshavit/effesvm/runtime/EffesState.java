@@ -210,6 +210,10 @@ public class EffesState {
       : ("after " + label);
   }
 
+  public String lastSeenLabel() {
+    return lastSeenLabel;
+  }
+
   public static class FrameInfo {
     private final int nVars;
     private final boolean hasRv;
