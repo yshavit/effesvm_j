@@ -51,6 +51,7 @@ public class EvmRunner {
         if (lastSeenLabel != null) {
           message += " after " + lastSeenLabel;
         }
+        message += ": " + op;
         throw new EffesRuntimeException(message, e);
       }
       next.accept(state.pc());
