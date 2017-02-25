@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import java.util.Objects;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -262,7 +263,7 @@ public class EffesOps {
 
   @OperationFactory("debug-print")
   public Operation debugPrint() {
-    return Operation.withIncementingPc(s -> io.errLine(s.getLocalStackSize() >= 0
+    return Operation.withIncementingPc(s -> io.errLine(s.getLocalStackSize() > 0
       ? String.valueOf(s.peek(0).toString(true))
       : "<the local stack for this frame is empty>"));
   }
@@ -366,6 +367,23 @@ public class EffesOps {
       String raw = io.readLine();
       EffesRef<?> eRef = (raw == null) ? EffesNativeObject.EffesBoolean.FALSE : EffesNativeObject.forString(raw);
       s.push(eRef);
+    });
+  }
+
+  @OperationFactory("sbld")
+  public Operation sbld() {
+    return Operation.withIncementingPc(s -> {
+      s.push(new EffesNativeObject.EffesStringBuilder());
+    });
+  }
+
+  @OperationFactory("call_StringBuilder:add")
+  public Operation stringBuilderAdd() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesString toAdd = (EffesNativeObject.EffesString) s.pop();
+      EffesNativeObject.EffesStringBuilder sb = (EffesNativeObject.EffesStringBuilder) s.pop();
+      String valueToAdd = Objects.requireNonNull(toAdd.value, "null value");
+      sb.sb.append(valueToAdd);
     });
   }
 
