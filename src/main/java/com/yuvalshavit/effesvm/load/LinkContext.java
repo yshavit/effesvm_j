@@ -9,4 +9,5 @@ public interface LinkContext {
   EffesFunction<?> getFunctionInfo(ScopeId scope, String function);
   EffesFunction<?> getCurrentLinkingFunctionInfo();
   PcMove firstOpOf(ScopeId scopeId, String function);
+  int findLabelOpIndex(String label);
 }

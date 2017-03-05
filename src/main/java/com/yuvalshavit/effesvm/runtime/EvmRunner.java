@@ -46,7 +46,13 @@ public class EvmRunner {
       try {
         next = op.apply(state);
       } catch (Exception e) {
-        throw new EffesRuntimeException("with pc " + state.pc(), e);
+        String message = "with pc " + state.pc();
+        String lastSeenLabel = state.lastSeenLabel();
+        if (lastSeenLabel != null) {
+          message += " after " + lastSeenLabel;
+        }
+        message += ": " + op;
+        throw new EffesRuntimeException(message, e);
       }
       next.accept(state.pc());
     }

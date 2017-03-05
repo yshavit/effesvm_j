@@ -1,0 +1,26 @@
+efct: |
+  FUNC : main 0 1 0 1
+  goto $forward
+  debug-print  # would be empty!
+  labl $forward
+  str  One
+  call_String:sout
+  int  0
+  svar 0
+  labl $backward
+  pvar 0
+  int  1
+  call_Integer:add
+  svar 0
+  pvar 0
+  int  1
+  call_Integer:gt
+  gofi $backward
+  pvar 0
+  call_native:toString
+  call_String:sout
+  int  0
+  rtrn
+runs:
+- out: One2
+  exit: 0

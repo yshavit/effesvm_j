@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 
+import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.runtime.EffesType;
@@ -47,7 +48,7 @@ public class Linker {
       Map<ScopeId,ScopeId> scopeIds = new HashMap<>();
       functionScopesPerModule.put(moduleId, scopeIds);
       Collection<EffesFunction<Operation>> linkedFunctions = new ArrayList<>(unlinkedModule.functions().size());
-      for (EffesFunction<?> unlinkedFunction : unlinkedModule.functions()) {
+      for (EffesFunction<UnlinkedOperation> unlinkedFunction : unlinkedModule.functions()) {
         EffesFunction.Id functionId = unlinkedFunction.id();
         ScopeId functionScope = functionId.hasTypeName()
           ? linkContext.scopeIdBuilder.withType(moduleId, functionId.typeName())
@@ -61,6 +62,13 @@ public class Linker {
         LinkPair linkPair = new LinkPair(function, ops);
         LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
         assert old == null : old;
+        for (int opIdx = 0; opIdx < unlinkedFunction.nOps(); ++opIdx) {
+          UnlinkedOperation unlinkedOperation = unlinkedFunction.opAt(opIdx);
+          if (unlinkedOperation instanceof LabelUnlinkedOperation) {
+            LabelUnlinkedOperation labelOp = (LabelUnlinkedOperation) unlinkedOperation;
+            linkContext.addLabel(unlinkedFunction, labelOp.label(), opIdx);
+          }
+        }
       }
       EffesModule<Operation> linkedModule = new EffesModule<>(unlinkedModule.types(), linkedFunctions);
       linkedModules.put(moduleId, linkedModule);
@@ -112,13 +120,24 @@ public class Linker {
     private final ScopeId.Builder scopeIdBuilder = new ScopeId.Builder();
     private final Map<ScopeId,EffesType> types;
     private final Map<ScopeId,Map<String,LinkPair>> functionsByScopeAndName;
+    private final Map<EffesFunction<UnlinkedOperation>,Map<String,Integer>> labels = new HashMap<>();
     private final CachingBuilder<EffesFunction<Operation>,PcMove> moves = new CachingBuilder<>(PcMove::firstCallIn);
     private EffesModule.Id currentModule;
-    private EffesFunction<?> currentLinkingFunctionInfo;
+    private EffesFunction<UnlinkedOperation> currentLinkingFunctionInfo;
 
     public LinkContextImpl(Map<ScopeId,EffesType> types, Map<ScopeId,Map<String,LinkPair>> functionsByScopeAndName) {
       this.types = types;
       this.functionsByScopeAndName = functionsByScopeAndName;
+    }
+
+    @Override
+    public int findLabelOpIndex(String label) {
+      Map<String,Integer> currentLabels = labels.getOrDefault(currentLinkingFunctionInfo, Collections.emptyMap());
+      Integer res = currentLabels.get(label);
+      if (res == null) {
+        throw new NoSuchElementException(label);
+      }
+      return res;
     }
 
     @Override
@@ -180,6 +199,14 @@ public class Linker {
         id = scopeIdBuilder.intern(id);
       }
       return id;
+    }
+
+    public void addLabel(EffesFunction<UnlinkedOperation> owningFunction, String label, int opIdx) {
+      Map<String,Integer> labelsForFunction = labels.computeIfAbsent(owningFunction, k -> new HashMap<>());
+      if (labelsForFunction.containsKey(label)) {
+        throw new IllegalStateException("duplicate label: " + label);
+      }
+      labelsForFunction.put(label, opIdx);
     }
   }
 }

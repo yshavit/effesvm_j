@@ -100,6 +100,8 @@ public class OperationFactories {
       if (opRaw instanceof Operation) {
         Op opWithDesc = new Op(((Operation) opRaw), desc);
         result = ctx -> opWithDesc;
+      } else if (opRaw instanceof LabelUnlinkedOperation) {
+        result = ((LabelUnlinkedOperation) opRaw);
       } else if (opRaw instanceof UnlinkedOperation) {
         result = new UnlinkedOp((UnlinkedOperation) opRaw, desc);
       }
