@@ -370,13 +370,6 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("sbld")
-  public Operation sbld() {
-    return Operation.withIncementingPc(s -> {
-      s.push(new EffesNativeObject.EffesStringBuilder());
-    });
-  }
-
   @OperationFactory("call_StringBuilder:add")
   public Operation stringBuilderAdd() {
     return Operation.withIncementingPc(s -> {
@@ -393,17 +386,8 @@ public class EffesOps {
   }
 
   @OperationFactory("sbld")
-  public Operation stringBuilder() {
+  public Operation sbld() {
     return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStringBuilder()));
-  }
-
-  @OperationFactory("call_StringBuilder:add")
-  public Operation stringBuilderAdd() {
-    return Operation.withIncementingPc(s -> {
-      EffesRef<?> toAdd = s.pop();
-      EffesNativeObject.EffesStringBuilder sb = (EffesNativeObject.EffesStringBuilder) s.pop();
-      sb.add(toAdd);
-    });
   }
 
   private static UnlinkedOperation buildGoif(String loc, Predicate<Boolean> condition) {
