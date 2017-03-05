@@ -27,39 +27,6 @@ public class EvmRunner {
 
   private EvmRunner() {}
 
-  public static int run(EffesModule<Operation> module, int stackSize) {
-    EffesFunction<Operation> mainFunction = module.getFunction(new EffesFunction.Id("main"));
-    if (mainFunction.nArgs() != 0) {
-      throw new EffesRuntimeException("::main must take 0 arguments");
-    }
-    if (!mainFunction.hasRv()) {
-      throw new EffesRuntimeException("::main must return a value");
-    }
-
-    EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
-    // if main() took any args, here is where we'd push them
-
-    state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
-    while (!state.pc().isAt(ProgramCounter.end())) {
-      Operation op = state.pc().getOp();
-      PcMove next;
-      try {
-        next = op.apply(state);
-      } catch (Exception e) {
-        String message = "with pc " + state.pc();
-        String lastSeenLabel = state.lastSeenLabel();
-        if (lastSeenLabel != null) {
-          message += " after " + lastSeenLabel;
-        }
-        message += ": " + op;
-        throw new EffesRuntimeException(message, e);
-      }
-      next.accept(state.pc());
-    }
-    EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
-    return exitCode.value;
-  }
-
   public static void main(String[] args) throws IOException {
     if (args.length == 10) {
       throw new IllegalArgumentException("must take at least one file, an efct file");
@@ -92,14 +59,7 @@ public class EvmRunner {
   }
 
   public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize) {
-    EffesModule<Operation> linkedModule = parseAndLink(inputFiles, main, io);
-    if (stackSize == null) {
-      stackSize = STACK_SIZE;
-    }
-    return run(linkedModule, stackSize);
-  }
-
-  private static EffesModule<Operation> parseAndLink(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io) {
+    // Parse and link the inputs
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
     Parser parser = new Parser(ops);
@@ -109,6 +69,43 @@ public class EvmRunner {
       parsed.put(inputFileEntry.getKey(), unlinkedModule);
     }
     Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
-    return linkedModules.get(main);
+    EffesModule<Operation> linkedModule = linkedModules.get(main);
+
+    EffesFunction<Operation> mainFunction = linkedModule.getFunction(new EffesFunction.Id("main"));
+    if (mainFunction.nArgs() != 0) {
+      throw new EffesRuntimeException("::main must take 0 arguments");
+    }
+    if (!mainFunction.hasRv()) {
+      throw new EffesRuntimeException("::main must return a value");
+    }
+
+    // Create the stack
+    if (stackSize == null) {
+      stackSize = STACK_SIZE;
+    }
+    EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
+    // if main() took any args, here is where we'd push them
+
+    // Main loop
+    state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
+    while (!state.pc().isAt(ProgramCounter.end())) {
+      Operation op = state.pc().getOp();
+      PcMove next;
+      try {
+        next = op.apply(state);
+      } catch (Exception e) {
+        String message = "with pc " + state.pc();
+        String lastSeenLabel = state.lastSeenLabel();
+        if (lastSeenLabel != null) {
+          message += " after " + lastSeenLabel;
+        }
+        message += ": " + op;
+        throw new EffesRuntimeException(message, e);
+      }
+      next.accept(state.pc());
+    }
+    EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
+    return exitCode.value;
   }
+
 }
