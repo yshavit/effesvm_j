@@ -98,17 +98,17 @@ public class OperationFactoriesTest {
 
   public static class Basic {
     @OperationFactory("zero-args")
-    public Operation build0() {
+    public Operation.Body build0() {
       return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString("zero-args result")));
     }
 
     @OperationFactory("two-args")
-    public static Operation build2(String first, String second) {
+    public static Operation.Body build2(String first, String second) {
       return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString(String.format("two-args result: %s, %s", first, second))));
     }
 
     @OperationFactory("with-linking")
-    public static UnlinkedOperation build3() {
+    public static UnlinkedOperation.Body build3() {
       return (LinkContext linkCtx) -> {
         EffesType type = linkCtx.type(ScopeId.parse(":link-type-name"));
         EffesNativeObject.EffesString str = EffesNativeObject.forString(type.name());
@@ -121,7 +121,7 @@ public class OperationFactoriesTest {
     @SuppressWarnings("unused")
     public static class Nested {
       @OperationFactory("nested")
-      public static Operation build() {
+      public static Operation.Body build() {
         throw new UnsupportedOperationException();
       }
     }
@@ -129,21 +129,21 @@ public class OperationFactoriesTest {
 
   public static class Super {
     @OperationFactory("in-super")
-    public static Operation build() {
+    public static Operation.Body build() {
       throw new UnsupportedOperationException();
     }
   }
 
   static class NotPublic {
     @OperationFactory("in-super")
-    public static Operation build() {
+    public static Operation.Body build() {
       throw new UnsupportedOperationException();
     }
   }
 
   public class NotStatic {
     @OperationFactory("in-super")
-    public Operation build() {
+    public Operation.Body build() {
       throw new UnsupportedOperationException();
     }
   }

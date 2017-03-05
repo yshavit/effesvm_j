@@ -34,6 +34,10 @@ public class LambdaHelpers {
     };
   }
 
+  public static <I,O> Iterator<O> map(Iterable<? extends I> in, Function<? super I, ? extends O> f) {
+    return map(in.iterator(), f);
+  }
+
   public static <K,T> Collector<T,?,Map<K,T>> groupByUniquely(Function<? super T, ? extends K> groupBy, String groupByDesc) {
      return Collectors.groupingBy(groupBy, HashMap::new, Collectors.reducing(null, (a, b) -> {
       if (a == null)

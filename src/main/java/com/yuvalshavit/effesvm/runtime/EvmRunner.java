@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -53,12 +54,13 @@ public class EvmRunner {
     }
 
     EffesIo io = EffesIo.stdio();
+    Consumer<EffesState> debug = getDebugServer();
 
-    int exitCode = run(inputFiles, main, io, null);
+    int exitCode = run(inputFiles, main, io, null, debug);
     System.exit(exitCode);
   }
 
-  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize) {
+  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize, Consumer<EffesState> debug) {
     // Parse and link the inputs
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
@@ -89,9 +91,11 @@ public class EvmRunner {
     // Main loop
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     while (!state.pc().isAt(ProgramCounter.end())) {
-      Operation op = state.pc().getOp();
+      Operation op = null;
       PcMove next;
       try {
+        debug.accept(state);
+        op = state.pc().getOp();
         next = op.apply(state);
       } catch (Exception e) {
         String message = "with pc " + state.pc();
@@ -99,7 +103,9 @@ public class EvmRunner {
         if (lastSeenLabel != null) {
           message += " after " + lastSeenLabel;
         }
-        message += ": " + op;
+        if (op != null) {
+          message += ": " + op;
+        }
         throw new EffesRuntimeException(message, e);
       }
       next.accept(state.pc());
@@ -108,4 +114,7 @@ public class EvmRunner {
     return exitCode.value;
   }
 
+  private static Consumer<EffesState> getDebugServer() {
+    return s -> {};
+  }
 }

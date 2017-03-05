@@ -1,22 +1,18 @@
 package com.yuvalshavit.effesvm.ops;
 
-import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
-
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
+import com.yuvalshavit.effesvm.util.LambdaHelpers;
 
 public class OperationFactories {
+  private static final List<Class<?>> allowedReturnTypes = Arrays.asList(Operation.Body.class, UnlinkedOperation.Body.class, LabelUnlinkedOperation.Body.class);
+
   private OperationFactories() {}
 
   public static Function<String,ReflectiveOperationBuilder> fromInstance(Object suiteInstance) {
@@ -31,7 +27,7 @@ public class OperationFactories {
       OperationFactory factoryAnnotation = method.getAnnotation(OperationFactory.class);
       if (factoryAnnotation != null) {
         Class<?> retType = method.getReturnType();
-        if (!(Operation.class.isAssignableFrom(retType) || UnlinkedOperation.class.isAssignableFrom(retType))) {
+        if (allowedReturnTypes.stream().noneMatch(t -> t.isAssignableFrom(retType))) {
           throw notAValidFactoryMethod(enclosingClass_, method);
         }
         Class<?>[] parameterTypes = method.getParameterTypes();
@@ -50,8 +46,11 @@ public class OperationFactories {
   }
 
   private static IllegalArgumentException notAValidFactoryMethod(Class<?> enclosingClass, Method method) {
-    return new IllegalArgumentException(String.format("%s::%s must be public, static, takes only Strings (or a Strings vararg) and return an Operation",
-      enclosingClass.getName(), method.getName()));
+    return new IllegalArgumentException(String.format(
+      "%s::%s must be public, static, takes only Strings (or a Strings vararg) and return one of %s",
+      enclosingClass.getName(),
+      method.getName(),
+      allowedReturnTypes.stream().map(Class::getName).collect(Collectors.joining(", "))));
   }
 
   public static class ReflectiveOperationBuilder implements Function<List<String>,UnlinkedOperation> {
@@ -91,19 +90,15 @@ public class OperationFactories {
       } catch (Exception e) {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
-      String desc = String.format("%s %s (%s::%s)",
-        opName,
-        consumeAndReturn(new StringJoiner(" "), j -> strings.forEach(j::add)),
-        method.getDeclaringClass().getName(),
-        method.getName());
       UnlinkedOperation result;
-      if (opRaw instanceof Operation) {
-        Op opWithDesc = new Op(((Operation) opRaw), desc);
+      if (opRaw instanceof Operation.Body) {
+        Op opWithDesc = new Op(((Operation.Body) opRaw), new OpDesc(opName, strings));
         result = ctx -> opWithDesc;
-      } else if (opRaw instanceof LabelUnlinkedOperation) {
-        result = ((LabelUnlinkedOperation) opRaw);
-      } else if (opRaw instanceof UnlinkedOperation) {
-        result = new UnlinkedOp((UnlinkedOperation) opRaw, desc);
+      } else if (opRaw instanceof LabelUnlinkedOperation.Body) {
+        String label = ((LabelUnlinkedOperation.Body) opRaw).get();
+        result = new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), new OpDesc(opName, strings)));
+      } else if (opRaw instanceof UnlinkedOperation.Body) {
+        result = new UnlinkedOp((UnlinkedOperation.Body) opRaw, new OpDesc(opName, strings));
       }
       else {
         throw new RuntimeException("unexpected result: " + opRaw);
@@ -118,43 +113,68 @@ public class OperationFactories {
   }
 
   private static class UnlinkedOp implements UnlinkedOperation {
-    private final UnlinkedOperation delegate;
-    private final String description;
+    private final OpDesc description;
+    private final UnlinkedOperation.Body body;
 
-    public UnlinkedOp(UnlinkedOperation delegate, String description) {
-      this.delegate = delegate;
+    public UnlinkedOp(UnlinkedOperation.Body body, OpDesc description) {
+      this.body = body;
       this.description = description;
     }
 
     @Override
     public Operation apply(LinkContext cxt) {
-      Operation op = delegate.apply(cxt);
+      Operation.Body op = body.apply(cxt);
       return new Op(op, description);
     }
 
     @Override
     public String toString() {
-      return description;
+      return description.toString();
     }
   }
 
   private static class Op implements Operation {
-    private final Operation delegate;
-    private final String description;
+    private final OpDesc description;
+    private final Operation.Body body;
 
-    Op(Operation delegate, String description) {
-      this.delegate = delegate;
+    Op(Operation.Body body, OpDesc description) {
+      this.body = body;
       this.description = description;
     }
 
     @Override
+    public String opcode() {
+      return description.opcode;
+    }
+
+    @Override
+    public List<String> arguments() {
+      return description.arguments;
+    }
+
+    @Override
     public PcMove apply(EffesState state) {
-      return delegate.apply(state);
+      return body.apply(state);
     }
 
     @Override
     public String toString() {
-      return description;
+      return description.toString();
+    }
+  }
+
+  private static class OpDesc {
+    final String opcode;
+    final List<String> arguments;
+
+    public OpDesc(String opcode, List<String> arguments) {
+      this.opcode = opcode;
+      this.arguments = Collections.unmodifiableList(new ArrayList<>(arguments));
+    }
+
+    @Override
+    public String toString() {
+      return LambdaHelpers.consumeAndReturn(new StringJoiner(", ", opcode + " ", ""), j -> arguments.forEach(j::add)).toString();
     }
   }
 }
