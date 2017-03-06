@@ -53,42 +53,8 @@ public class DebugServer implements Runnable {
     }
   }
 
-  private class StepperImpl implements DebugServerSuspendedMXBean {
-
-    private final BeanImpl delegate;
-
-    public StepperImpl(BeanImpl delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public void resume() {
-      delegate.resume();
-    }
-
-    @Override
-    public void step() {
-      delegate.step();
-    }
-
-    @Override
-    public List<String> getDebugState() {
-      return effesState.toStringList();
-    }
-
-    @Override
-    public List<String> getStackTrace() {
-      return effesState.getStackTrace().stream()
-        .filter(Objects::nonNull)
-        .map(state -> String.format("%s (%s)%n", state.function().id(), state.function().opAt(state.pc()).info()))
-        .collect(Collectors.toList());
-    }
-  }
-
   private class BeanImpl implements DebugServerMXBean {
     private final ObjectName mainName;
-    private final ObjectName stepperName;
-    private final StepperImpl stepper;
     private final ConcurrentHashMap<EffesModule.Id,Set<Integer>> breakpoints;
     private State state;
 
@@ -97,11 +63,9 @@ public class DebugServer implements Runnable {
       this.breakpoints = new ConcurrentHashMap<>();
       try {
         this.mainName = new ObjectName("effesvm:type=Debugger");
-        this.stepperName = new ObjectName("effesvm:type=Stepper");
       } catch (MalformedObjectNameException e) {
         throw new RuntimeException(e);
       }
-      stepper = new StepperImpl(this);
     }
 
     void awaitIfSuspended() {
@@ -129,26 +93,19 @@ public class DebugServer implements Runnable {
       }
     }
 
+    @Override
     public void resume() {
-      boolean unregister;
       synchronized (this) {
         if (state == State.NORMAL) {
-          unregister = false;
+          throw new IllegalArgumentException("invalid state: " + state);
         } else {
           state = State.NORMAL;
-          unregister = true;
         }
         notifyAll();
       }
-      if (unregister) {
-        try {
-          ManagementFactory.getPlatformMBeanServer().unregisterMBean(stepperName);
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
     }
 
+    @Override
     public void step() {
       synchronized (this) {
         if (state != State.SUSPENDED) {
@@ -167,11 +124,19 @@ public class DebugServer implements Runnable {
         }
         this.state = State.SUSPENDED;
       }
-      try {
-        ManagementFactory.getPlatformMBeanServer().registerMBean(stepper, stepperName);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+    }
+
+    @Override
+    public List<String> getDebugState() {
+      return effesState.toStringList();
+    }
+
+    @Override
+    public List<String> getStackTrace() {
+      return effesState.getStackTrace().stream()
+        .filter(Objects::nonNull)
+        .map(state -> String.format("%s (%s)%n", state.function().id(), state.function().opAt(state.pc()).info()))
+        .collect(Collectors.toList());
     }
 
     boolean atBreakpoint(Operation op) {
@@ -204,7 +169,8 @@ public class DebugServer implements Runnable {
 
     @Override
     public boolean unregisterBreakpoint(String module, int line) {
-      return breakpoints.getOrDefault(module, Collections.emptySet()).remove(line);
+      EffesModule.Id moduleId = EffesModule.Id.parse(module);
+      return breakpoints.getOrDefault(moduleId, Collections.emptySet()).remove(line);
     }
   }
 

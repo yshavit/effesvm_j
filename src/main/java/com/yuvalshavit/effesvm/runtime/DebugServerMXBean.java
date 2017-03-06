@@ -6,6 +6,11 @@ import java.util.List;
 public interface DebugServerMXBean {
   boolean isSuspended();
   void suspend();
+  void resume();
+  void step();
+
+  List<String> getStackTrace();
+  List<String> getDebugState();
 
   List<String> getBreakpoints();
   void registerBreakpoint(String module, int line);
