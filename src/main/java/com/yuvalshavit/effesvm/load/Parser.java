@@ -22,7 +22,7 @@ public class Parser {
     this.opsFactories = opsFactories;
   }
 
-  public EffesModule<UnlinkedOperation> parse(SequencedIterator<String> lines) {
+  public EffesModule<UnlinkedOperation> parse(EffesModule.Id module, SequencedIterator<String> lines) {
     if (!lines.hasNext()) {
       return new EffesModule<>(Collections.emptyList(), Collections.emptyList());
     }
@@ -46,6 +46,7 @@ public class Parser {
             String className = line.get(1, "classname");
             String functionName = line.get(2, "functionname");
             EffesFunction<UnlinkedOperation> parsedFunction = parseFunction(
+              module,
               tokenizedLines,
               className,
               functionName,
@@ -75,6 +76,7 @@ public class Parser {
   }
 
   private EffesFunction<UnlinkedOperation> parseFunction(
+    EffesModule.Id module,
     SequencedIterator<Line> lines,
     String className,
     String functionName,
@@ -108,7 +110,7 @@ public class Parser {
       if (opBuilder == null) {
         throw new EffesLoadException("no such op: " + opcode);
       }
-      UnlinkedOperation op = opBuilder.build(lines.count(), line.tailTokens(1));
+      UnlinkedOperation op = opBuilder.build(module, lines.count(), line.tailTokens(1));
       ops.add(op);
     }
     return new EffesFunction<>(new EffesFunction.Id(className, functionName), nLocal, hasRv, nArgs, ops);

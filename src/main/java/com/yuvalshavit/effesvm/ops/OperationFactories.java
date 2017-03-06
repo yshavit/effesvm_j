@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
@@ -65,11 +66,11 @@ public class OperationFactories {
       nStringArgs = method.getParameterCount();
     }
 
-    public UnlinkedOperation build(int lineNumber, String... strings) {
-      return apply(lineNumber, Arrays.asList(strings));
+    public UnlinkedOperation build(EffesModule.Id module, int lineNumber, String... strings) {
+      return apply(module, lineNumber, Arrays.asList(strings));
     }
 
-    public UnlinkedOperation apply(int lineNumber, List<String> strings) {
+    public UnlinkedOperation apply(EffesModule.Id module, int lineNumber, List<String> strings) {
       int nIncomingStrings = strings.size();
       if (nIncomingStrings < nStringArgs) {
         throw new IllegalArgumentException(String.format("%s requires at least %d string%s", opName, nStringArgs, nStringArgs == 1 ? "" : "s"));
@@ -89,7 +90,7 @@ public class OperationFactories {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
       UnlinkedOperation result;
-      OpInfo opInfo = new OpInfo(opName, strings, lineNumber);
+      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber);
       if (opRaw instanceof Operation.Body) {
         Op opWithDesc = new Op(((Operation.Body) opRaw), opInfo);
         result = ctx -> opWithDesc;

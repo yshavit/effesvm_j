@@ -67,8 +67,9 @@ public class EvmRunner {
     Parser parser = new Parser(ops);
     for (Map.Entry<EffesModule.Id,Iterable<String>> inputFileEntry : inputFiles.entrySet()) {
       Iterator<String> inputFileLines = inputFileEntry.getValue().iterator();
-      EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(SequencedIterator.wrap(inputFileLines));
-      parsed.put(inputFileEntry.getKey(), unlinkedModule);
+      EffesModule.Id moduleId = inputFileEntry.getKey();
+      EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(moduleId, SequencedIterator.wrap(inputFileLines));
+      parsed.put(moduleId, unlinkedModule);
     }
     Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
     EffesModule<Operation> linkedModule = linkedModules.get(main);
@@ -115,6 +116,14 @@ public class EvmRunner {
   }
 
   private static Consumer<EffesState> getDebugServer() {
-    return s -> {};
+    String debug = System.getProperty("debug");
+    if (debug == null) {
+      return s -> {
+      };
+    } else {
+      DebugServer debugServer = new DebugServer();
+      debugServer.start(debug.equalsIgnoreCase("suspend"));
+      return debugServer;
+    }
   }
 }

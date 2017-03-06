@@ -24,16 +24,16 @@ public class OperationFactoriesTest {
   @Test
   public void zeroArgs() {
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "zero-args");
-    assertExceptionThrown(() -> builder.build(1, "arg1"));
+    assertExceptionThrown(() -> builder.build(null, 1, "arg1"));
     checkOp("zero-args result", builder, null);
   }
 
   @Test
   public void twoArgs() {
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "two-args");
-    assertExceptionThrown(() -> builder.build(1));
+    assertExceptionThrown(() -> builder.build(null, 1));
     checkOp("two-args result: hello, world", builder, null , "hello", "world");
-    assertExceptionThrown(() -> builder.build(1, "one", "two", "three"));
+    assertExceptionThrown(() -> builder.build(null, 1, "one", "two", "three"));
   }
 
   @Test
@@ -151,7 +151,7 @@ public class OperationFactoriesTest {
   public static class Sub extends Super {}
 
   private static void checkOp(String expected, OperationFactories.ReflectiveOperationBuilder builder, LinkContext linkContext, String... args) {
-    UnlinkedOperation unlinked = builder.apply(1, Arrays.asList(args));
+    UnlinkedOperation unlinked = builder.apply(null, 1, Arrays.asList(args));
     Operation op = unlinked.apply(linkContext);
     EffesState state = new EffesState(ProgramCounter.end(), 10, 0);
     op.apply(state);
