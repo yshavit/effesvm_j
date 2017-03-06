@@ -90,7 +90,7 @@ public class OperationFactories {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
       UnlinkedOperation result;
-      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber);
+      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber + 1); // lineNumber is 0-indexed, we want 1-indexed for easier reading
       if (opRaw instanceof Operation.Body) {
         Op opWithDesc = new Op(((Operation.Body) opRaw), opInfo);
         result = ctx -> opWithDesc;

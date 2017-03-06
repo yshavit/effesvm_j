@@ -5,6 +5,9 @@ import static com.yuvalshavit.effesvm.util.ExtraAsserts.assertExceptionThrown;
 import static com.yuvalshavit.effesvm.util.LambdaHelpers.consumeAndReturn;
 import static org.testng.Assert.*;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.testng.annotations.Test;
 
 public class EffesStateTest {

@@ -40,6 +40,6 @@ public class OpInfo {
   @Override
   public String toString() {
     String lineNumAndOpcode = String.format("#%d %s ", lineNumber, opcode);
-    return LambdaHelpers.consumeAndReturn(new StringJoiner(", ", lineNumAndOpcode, ""), j -> arguments.forEach(j::add)).toString();
+    return LambdaHelpers.consumeAndReturn(new StringJoiner(" ", lineNumAndOpcode, ""), j -> arguments.forEach(j::add)).toString();
   }
 }

@@ -79,6 +79,14 @@ public class ProgramCounter {
       this.pc = from.pc;
     }
 
+    public EffesFunction<Operation> function() {
+      return function;
+    }
+
+    public int pc() {
+      return pc;
+    }
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {

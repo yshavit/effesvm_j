@@ -1,6 +1,7 @@
 package com.yuvalshavit.effesvm.load;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.runtime.EffesType;
@@ -43,6 +44,7 @@ public class EffesModule<T> {
 
   public static class Id {
     private static final Id CURRENT_MODULE = new Id(Collections.emptyList());
+    private static final String DELIMITER = ":";
     private final List<String> fullId;
 
     private Id(List<String> fullId) {
@@ -55,6 +57,10 @@ public class EffesModule<T> {
 
     public static Id of(String... paths) {
       return new Id(Arrays.asList(paths));
+    }
+
+    public static Id parse(String full) {
+      return of(full.split(Pattern.quote(DELIMITER)));
     }
 
     public boolean currentModulePlaceholder() {
@@ -80,7 +86,7 @@ public class EffesModule<T> {
 
     @Override
     public String toString() {
-      return fullId.stream().collect(Collectors.joining(":"));
+      return fullId.stream().collect(Collectors.joining(DELIMITER));
     }
   }
 }

@@ -172,6 +172,29 @@ public class EffesState {
     return consumeAndReturn(new StringJoiner("\n"), j -> toStringList().forEach(j::add)).toString();
   }
 
+  List<ProgramCounter.State> getStackTrace() {
+    int nFrames = 0;
+    for (int fpIdx = regFp; fpIdx > 0; ) {
+      FrameInfo fp = (FrameInfo) stack[fpIdx];
+      ++nFrames;
+      fpIdx = fp.previousFp;
+    }
+
+    List<ProgramCounter.State> frames = new ArrayList<>(nFrames);
+    frames.add(regPc.save());
+    for (int fpIdx = regFp; fpIdx > 0; ) {
+      FrameInfo fp = (FrameInfo) stack[fpIdx];
+      ProgramCounter.State frame = fp.previousPc;
+      if (frame != null && frame.function() != null) {
+        frames.add(frame);
+        fpIdx = fp.previousFp;
+      } else {
+        fpIdx = 0;
+      }
+    }
+    return Collections.unmodifiableList(frames);
+  }
+
   public int getLocalStackSize() {
     return regSp - regFp;
   }

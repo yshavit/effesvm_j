@@ -67,7 +67,7 @@ public class EndToEndTest {
     }
 
     InMemoryIo io = new InMemoryIo(run.in);
-    int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), io, run.stackSize, s -> {});
+    int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), io, run.stackSize, null);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
     assertEquals(io.err.toString().trim(), run.err.trim(), "stderr");

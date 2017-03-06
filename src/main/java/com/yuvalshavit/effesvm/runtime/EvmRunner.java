@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -54,13 +53,19 @@ public class EvmRunner {
     }
 
     EffesIo io = EffesIo.stdio();
-    Consumer<EffesState> debug = getDebugServer();
+    Function<EffesState,Runnable> debug = getDebugServer();
 
     int exitCode = run(inputFiles, main, io, null, debug);
     System.exit(exitCode);
   }
 
-  public static int run(Map<EffesModule.Id,Iterable<String>> inputFiles, EffesModule.Id main, EffesIo io, Integer stackSize, Consumer<EffesState> debug) {
+  public static int run(
+    Map<EffesModule.Id,Iterable<String>> inputFiles,
+    EffesModule.Id main,
+    EffesIo io,
+    Integer stackSize,
+    Function<EffesState,Runnable> debugFactory)
+  {
     // Parse and link the inputs
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
     Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
@@ -87,6 +92,7 @@ public class EvmRunner {
       stackSize = STACK_SIZE;
     }
     EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
+    Runnable debug = debugFactory == null ? () -> {} : debugFactory.apply(state);
     // if main() took any args, here is where we'd push them
 
     // Main loop
@@ -95,7 +101,7 @@ public class EvmRunner {
       Operation op = null;
       PcMove next;
       try {
-        debug.accept(state);
+        debug.run();
         op = state.pc().getOp();
         next = op.apply(state);
       } catch (Exception e) {
@@ -115,15 +121,16 @@ public class EvmRunner {
     return exitCode.value;
   }
 
-  private static Consumer<EffesState> getDebugServer() {
+  private static Function<EffesState,Runnable> getDebugServer() {
     String debug = System.getProperty("debug");
     if (debug == null) {
-      return s -> {
-      };
+      return null;
     } else {
-      DebugServer debugServer = new DebugServer();
-      debugServer.start(debug.equalsIgnoreCase("suspend"));
-      return debugServer;
+      return s -> {
+        DebugServer debugServer = new DebugServer(s);
+        debugServer.start(debug.equalsIgnoreCase("suspend"));
+        return debugServer;
+      };
     }
   }
 }

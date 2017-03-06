@@ -1,84 +1,193 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.lang.management.ManagementFactory;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
-public class DebugServer implements Consumer<EffesState> {
+import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.ops.OpInfo;
+import com.yuvalshavit.effesvm.ops.Operation;
 
+public class DebugServer implements Runnable {
+
+  private final EffesState effesState;
   private volatile BeanImpl bean;
 
+  public DebugServer(EffesState effesState) {
+    this.effesState = effesState;
+  }
+
   public void start(boolean suspend) {
-    MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
-    bean = new BeanImpl(suspend);
+    bean = new BeanImpl();
     try {
-      beanServer.registerMBean(bean, new ObjectName("effesvm:type=Debugger"));
+      ManagementFactory.getPlatformMBeanServer().registerMBean(bean, bean.mainName);
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+    if (suspend) {
+      bean.suspend();
+      System.err.println("Suspended. Awaiting release.");
     }
   }
 
   @Override
-  public void accept(EffesState effesState) {
+  public void run() {
     BeanImpl bean = this.bean; // work with local ref
     if (bean != null) {
-      try {
+      bean.awaitIfSuspended();
+      Operation op = effesState.pc().getOp();
+      if (bean.atBreakpoint(op)) {
+        bean.suspend();
         bean.awaitIfSuspended();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
       }
     }
   }
 
-  private class BeanImpl implements DebugServerMXBean {
-    private final ConcurrentHashMap<String,Set<Integer>> breakpoints;
-    private boolean isSuspended;
+  private class StepperImpl implements DebugServerSuspendedMXBean {
 
-    public BeanImpl(boolean suspend) {
-      isSuspended = suspend;
-      this.breakpoints = new ConcurrentHashMap<>();
+    private final BeanImpl delegate;
+
+    public StepperImpl(BeanImpl delegate) {
+      this.delegate = delegate;
     }
 
-    void awaitIfSuspended() throws InterruptedException {
-      synchronized (this) {
-        if (isSuspended) {
-          System.err.println("Suspended. Awaiting release.");
-          while (isSuspended) {
-            wait();
+    @Override
+    public void resume() {
+      delegate.resume();
+    }
+
+    @Override
+    public void step() {
+      delegate.step();
+    }
+
+    @Override
+    public List<String> getDebugState() {
+      return effesState.toStringList();
+    }
+
+    @Override
+    public List<String> getStackTrace() {
+      return effesState.getStackTrace().stream()
+        .filter(Objects::nonNull)
+        .map(state -> String.format("%s (%s)%n", state.function().id(), state.function().opAt(state.pc()).info()))
+        .collect(Collectors.toList());
+    }
+  }
+
+  private class BeanImpl implements DebugServerMXBean {
+    private final ObjectName mainName;
+    private final ObjectName stepperName;
+    private final StepperImpl stepper;
+    private final ConcurrentHashMap<EffesModule.Id,Set<Integer>> breakpoints;
+    private State state;
+
+    public BeanImpl() {
+      state = State.NORMAL;
+      this.breakpoints = new ConcurrentHashMap<>();
+      try {
+        this.mainName = new ObjectName("effesvm:type=Debugger");
+        this.stepperName = new ObjectName("effesvm:type=Stepper");
+      } catch (MalformedObjectNameException e) {
+        throw new RuntimeException(e);
+      }
+      stepper = new StepperImpl(this);
+    }
+
+    void awaitIfSuspended() {
+      try {
+        synchronized (this) {
+          if (state != State.NORMAL) {
+            if (state == State.STEPPING) {
+              state = State.SUSPENDED;
+            }
+            while (state == State.SUSPENDED) {
+              wait();
+            }
           }
-          System.err.println("Released");
         }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
       }
     }
 
     @Override
     public boolean isSuspended() {
       synchronized (this) {
-        return isSuspended;
+        return state != State.NORMAL;
+      }
+    }
+
+    public void resume() {
+      boolean unregister;
+      synchronized (this) {
+        if (state == State.NORMAL) {
+          unregister = false;
+        } else {
+          state = State.NORMAL;
+          unregister = true;
+        }
+        notifyAll();
+      }
+      if (unregister) {
+        try {
+          ManagementFactory.getPlatformMBeanServer().unregisterMBean(stepperName);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+
+    public void step() {
+      synchronized (this) {
+        if (state != State.SUSPENDED) {
+          throw new IllegalArgumentException("invalid state: " + state);
+        }
+        state = State.STEPPING;
+        notifyAll();
       }
     }
 
     @Override
-    public void setSuspended(boolean isSuspended) {
+    public void suspend() {
       synchronized (this) {
-        boolean previouslySuspended = this.isSuspended;
-        this.isSuspended = isSuspended;
-        if (previouslySuspended && (!isSuspended)) {
-          notifyAll();
+        if (state != State.NORMAL) {
+          throw new IllegalArgumentException("invalid state: " + state);
         }
+        this.state = State.SUSPENDED;
       }
+      try {
+        ManagementFactory.getPlatformMBeanServer().registerMBean(stepper, stepperName);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    boolean atBreakpoint(Operation op) {
+      if (state != State.NORMAL) {
+        return false;
+      }
+      OpInfo opInfo = op.info();
+      Set<Integer> breakpoints = this.breakpoints.get(opInfo.module());
+      return breakpoints != null && breakpoints.contains(opInfo.lineNumber());
     }
 
     @Override
     public List<String> getBreakpoints() {
       List<String> results = new ArrayList<>(breakpoints.size()); // size is a good guess
-      for (Map.Entry<String,Set<Integer>> moduleBreakpoints : breakpoints.entrySet()) {
-        String module = moduleBreakpoints.getKey();
+      for (Map.Entry<EffesModule.Id,Set<Integer>> moduleBreakpoints : breakpoints.entrySet()) {
+        String module = moduleBreakpoints.getKey().toString();
         TreeSet<Integer> pointsForModule = new TreeSet<>(moduleBreakpoints.getValue());
         for (Integer line : pointsForModule) {
           results.add(String.format("%s #%s", module, line));
@@ -89,17 +198,19 @@ public class DebugServer implements Consumer<EffesState> {
 
     @Override
     public void registerBreakpoint(String module, int line) {
-      breakpoints.computeIfAbsent(module, k -> ConcurrentHashMap.newKeySet()).add(line);
+      EffesModule.Id moduleId = EffesModule.Id.parse(module);
+      breakpoints.computeIfAbsent(moduleId, k -> ConcurrentHashMap.newKeySet()).add(line);
     }
 
     @Override
     public boolean unregisterBreakpoint(String module, int line) {
       return breakpoints.getOrDefault(module, Collections.emptySet()).remove(line);
     }
+  }
 
-    @Override
-    public List<String> stackTrace() {
-      return Arrays.asList("hello", "world");
-    }
+  private enum State {
+    NORMAL,
+    SUSPENDED,
+    STEPPING,
   }
 }
