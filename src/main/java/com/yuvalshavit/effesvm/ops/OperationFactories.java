@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
-import com.yuvalshavit.effesvm.util.LambdaHelpers;
 
 public class OperationFactories {
   private static final List<Class<?>> allowedReturnTypes = Arrays.asList(Operation.Body.class, UnlinkedOperation.Body.class, LabelUnlinkedOperation.Body.class);
@@ -53,7 +52,7 @@ public class OperationFactories {
       allowedReturnTypes.stream().map(Class::getName).collect(Collectors.joining(", "))));
   }
 
-  public static class ReflectiveOperationBuilder implements Function<List<String>,UnlinkedOperation> {
+  public static class ReflectiveOperationBuilder {
     private final String opName;
     private final Object suiteInstance;
     private final Method method;
@@ -66,12 +65,11 @@ public class OperationFactories {
       nStringArgs = method.getParameterCount();
     }
 
-    public UnlinkedOperation build(String... strings) {
-      return apply(Arrays.asList(strings));
+    public UnlinkedOperation build(int lineNumber, String... strings) {
+      return apply(lineNumber, Arrays.asList(strings));
     }
 
-    @Override
-    public UnlinkedOperation apply(List<String> strings) {
+    public UnlinkedOperation apply(int lineNumber, List<String> strings) {
       int nIncomingStrings = strings.size();
       if (nIncomingStrings < nStringArgs) {
         throw new IllegalArgumentException(String.format("%s requires at least %d string%s", opName, nStringArgs, nStringArgs == 1 ? "" : "s"));
@@ -91,14 +89,15 @@ public class OperationFactories {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
       UnlinkedOperation result;
+      OpInfo opInfo = new OpInfo(opName, strings, lineNumber);
       if (opRaw instanceof Operation.Body) {
-        Op opWithDesc = new Op(((Operation.Body) opRaw), new OpDesc(opName, strings));
+        Op opWithDesc = new Op(((Operation.Body) opRaw), opInfo);
         result = ctx -> opWithDesc;
       } else if (opRaw instanceof LabelUnlinkedOperation.Body) {
         String label = ((LabelUnlinkedOperation.Body) opRaw).get();
-        result = new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), new OpDesc(opName, strings)));
+        result = new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), opInfo));
       } else if (opRaw instanceof UnlinkedOperation.Body) {
-        result = new UnlinkedOp((UnlinkedOperation.Body) opRaw, new OpDesc(opName, strings));
+        result = new UnlinkedOp((UnlinkedOperation.Body) opRaw, opInfo);
       }
       else {
         throw new RuntimeException("unexpected result: " + opRaw);
@@ -113,43 +112,38 @@ public class OperationFactories {
   }
 
   private static class UnlinkedOp implements UnlinkedOperation {
-    private final OpDesc description;
+    private final OpInfo info;
     private final UnlinkedOperation.Body body;
 
-    public UnlinkedOp(UnlinkedOperation.Body body, OpDesc description) {
+    public UnlinkedOp(UnlinkedOperation.Body body, OpInfo info) {
       this.body = body;
-      this.description = description;
+      this.info = info;
     }
 
     @Override
     public Operation apply(LinkContext cxt) {
       Operation.Body op = body.apply(cxt);
-      return new Op(op, description);
+      return new Op(op, info);
     }
 
     @Override
     public String toString() {
-      return description.toString();
+      return info.toString();
     }
   }
 
   private static class Op implements Operation {
-    private final OpDesc description;
+    private final OpInfo info;
     private final Operation.Body body;
 
-    Op(Operation.Body body, OpDesc description) {
+    Op(Operation.Body body, OpInfo info) {
       this.body = body;
-      this.description = description;
+      this.info = info;
     }
 
     @Override
-    public String opcode() {
-      return description.opcode;
-    }
-
-    @Override
-    public List<String> arguments() {
-      return description.arguments;
+    public OpInfo info() {
+      return info;
     }
 
     @Override
@@ -159,22 +153,7 @@ public class OperationFactories {
 
     @Override
     public String toString() {
-      return description.toString();
-    }
-  }
-
-  private static class OpDesc {
-    final String opcode;
-    final List<String> arguments;
-
-    public OpDesc(String opcode, List<String> arguments) {
-      this.opcode = opcode;
-      this.arguments = Collections.unmodifiableList(new ArrayList<>(arguments));
-    }
-
-    @Override
-    public String toString() {
-      return LambdaHelpers.consumeAndReturn(new StringJoiner(", ", opcode + " ", ""), j -> arguments.forEach(j::add)).toString();
+      return info.toString();
     }
   }
 }

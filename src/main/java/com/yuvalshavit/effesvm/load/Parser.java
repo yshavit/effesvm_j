@@ -108,7 +108,7 @@ public class Parser {
       if (opBuilder == null) {
         throw new EffesLoadException("no such op: " + opcode);
       }
-      UnlinkedOperation op = opBuilder.build(line.tailTokens(1));
+      UnlinkedOperation op = opBuilder.build(lines.count(), line.tailTokens(1));
       ops.add(op);
     }
     return new EffesFunction<>(new EffesFunction.Id(className, functionName), nLocal, hasRv, nArgs, ops);
