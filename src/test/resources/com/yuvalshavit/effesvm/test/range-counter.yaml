@@ -1,39 +1,39 @@
 efct: |
-  FUNC : main 0 1 0 3
+  FUNC : main 1 1 0 3
   # vars:
   # 0: beginning int
   # 1: end int
   # 2: idx
   call : readInt          # read min
-  svar 0
-  pvar 0
+  svar 1
+  pvar 1
   type False
   gofi 7                  # jump to reading max
   int  1
   rtrn
   call : readInt          # read max
-  svar 1
-  pvar 1
+  svar 2
+  pvar 2
   type False
   gofi 14                 # jump to the "for" loop initializer
   int  2
   rtrn
-  pvar 0                  # for (local2 = local0 ; ...
-  svar 2
-  pvar 2                  # if local2 < local1, jump to "for" body
-  pvar 1
+  pvar 1                  # for (local2 = local0 ; ...
+  svar 3
+  pvar 3                  # if local2 < local1, jump to "for" body
+  pvar 2
   call_Integer:lt
   goif 21
   goto 31                 # otherwise, jump to exit 0 to exit "for" loop
-  pvar 2                  # print local1
+  pvar 3                  # print local1
   call_native:toString
   call_String:sout
   str  "\n"
   call_String:sout
-  pvar 2                  # ++local2
+  pvar 3                  # ++local2
   int  1
   call_Integer:add
-  svar 2
+  svar 3
   goto 16                 # top of the loop
   int  0                  # normal exit
   rtrn

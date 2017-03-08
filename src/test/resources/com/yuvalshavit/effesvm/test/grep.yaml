@@ -1,27 +1,27 @@
 efct: |
-  FUNC : main 0 1 0 2
+  FUNC : main 1 1 0 2
   # We have two local args:
   # arg0 -> the pattern to look for
   # arg1 -> each stdin line as it comes in
   call_String:sin
-  svar 0
-  pvar 0
+  svar 1
+  pvar 1
   type False
   call_Boolean:negate
   goif 8                 # goif pattern != False
   int  1
   rtrn
   call_String:sin        # jump point for if pattern != False
-  svar 1
-  pvar 1
+  svar 2
+  pvar 2
   type False
   goif 23                # goif to exit point stdin == False
+  pvar 2
   pvar 1
-  pvar 0
   call_String:regex
   type False
   goif 8                 # back to reading next stdin
-  pvar 1
+  pvar 2
   call_String:sout
   str  \n
   call_String:sout

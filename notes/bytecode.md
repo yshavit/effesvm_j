@@ -96,9 +96,9 @@ From the perspective of a function's body, there is virtually no difference betw
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
-    FUNC : main 0 1 0 <nLocal>
+    FUNC : main 1 1 0 <nLocal>
 
-This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`. The module function `main`'s return variable should be an Integer representing the program's exit code.
+This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`. The argument to the module function `main` is an Array representing the program's arguments. The return return variable is an Integer representing the program's exit code.
 
 The execution stack
 ========================================================================================

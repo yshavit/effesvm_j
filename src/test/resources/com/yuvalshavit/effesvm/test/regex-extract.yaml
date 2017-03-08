@@ -1,27 +1,27 @@
 efct: |
-  FUNC : main 0 1 0 2
+  FUNC : main 1 1 0 2
   # args:
   # 0: the string to look in, and then the match (if it's found)
   # 1: the pattern, and then the group idx (if there's a match) or group name
   call_String:sin     # try to read the haystack string
-  svar 0
-  pvar 0
+  svar 1
+  pvar 1
   type False
   gofi 7              # jump to reading the pattern string
   int  1
   rtrn
   call_String:sin     # try to read the pattern string
-  svar 1
-  pvar 1
+  svar 2
+  pvar 2
   type False
   gofi 14             # jump to trying the match
   int  2
   rtrn
-  pvar 0              # try the match
-  pvar 1
+  pvar 1              # try the match
+  pvar 2
   call_String:regex
-  svar 0
-  pvar 0
+  svar 1
+  pvar 1
   type False
   gofi 25             # jump to reporting the matches
   str  "Didn't find a match\n"
@@ -31,40 +31,40 @@ efct: |
   str  "Found a match:\n" # report the matches
   call_String:sout
   int  0              # for idx = 0 ; ...
-  svar 1
-  pvar 1              # idx <= groupCount
-  pvar 0
+  svar 2
+  pvar 2              # idx <= groupCount
+  pvar 1
   call_Match:groupCount
   call_Integer:le
   gofi 51             # jump to after the loop
-  pvar 1              # print "${idx}: ${group capture}"
+  pvar 2              # print "${idx}: ${group capture}"
   call_native:toString
   call_String:sout
   str  ": "
   call_String:sout
-  pvar 0
   pvar 1
+  pvar 2
   call_Match:igroup
   call_native:toString # in case igroup led to False
   call_String:sout
   str  "\n"
   call_String:sout
-  pvar 1              # ++idx
+  pvar 2              # ++idx
   int  1
   call_Integer:add
-  svar 1
+  svar 2
   goto 29
   call_String:sin     # read stdin for named groups to report on
-  svar 1
-  pvar 1
+  svar 2
+  pvar 2
   type False
   goif 68             # exit 0
-  pvar 1              # print "${name}: ${group capture}"
+  pvar 2              # print "${name}: ${group capture}"
   call_String:sout
   str  ": "
   call_String:sout
-  pvar 0
   pvar 1
+  pvar 2
   call_Match:ngroup
   call_native:toString # in case it's False
   call_String:sout

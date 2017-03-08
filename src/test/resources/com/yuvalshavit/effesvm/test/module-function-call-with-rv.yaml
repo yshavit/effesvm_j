@@ -7,7 +7,7 @@ efct: |
   call_Integer:add
   rtrn
 
-  FUNC : main 0 1 0 0
+  FUNC : main 1 1 0 0
   int  5
   int  7
   call : sum

@@ -24,7 +24,7 @@ public class SimpleTokenizerTest {
   @DataProvider(name = "good-tokens")
   public Object[][] goodParams() {
     return new Object[][] {
-      new Object[] { "FUNC : main 0 0 0", Arrays.asList("FUNC", ":", "main", "0", "0", "0")},
+      new Object[] { "FUNC : main 1 0 0", Arrays.asList("FUNC", ":", "main", "1", "0", "0")},
       new Object[] { "", Collections.emptyList()},
       new Object[] { "         ", Collections.emptyList()},
 

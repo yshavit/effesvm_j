@@ -1,7 +1,7 @@
 efct: |
   TYPE 0 Hello
   TYPE 0 Goodbye
-  FUNC : main 0 1 0 0
+  FUNC : main 1 1 0 0
   call :Hello Hello
   call : isHello
   call :Goodbye Goodbye

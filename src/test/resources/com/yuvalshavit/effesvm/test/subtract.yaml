@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 0 1 0 0
+  FUNC : main 1 1 0 0
   int  6
   int  2
   call_Integer:sub

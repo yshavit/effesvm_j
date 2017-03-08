@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
@@ -19,6 +20,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
+import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
 
 public class EvmRunner {
@@ -28,7 +30,7 @@ public class EvmRunner {
   private EvmRunner() {}
 
   public static void main(String[] args) throws IOException {
-    if (args.length == 10) {
+    if (args.length == 0) {
       throw new IllegalArgumentException("must take at least one file, an efct file");
     }
 
@@ -55,13 +57,14 @@ public class EvmRunner {
     EffesIo io = EffesIo.stdio();
     Function<EffesState,Runnable> debug = getDebugServer();
 
-    int exitCode = run(inputFiles, main, io, null, debug);
+    int exitCode = run(inputFiles, main, new String[0], io, null, debug);
     System.exit(exitCode);
   }
 
   public static int run(
     Map<EffesModule.Id,Iterable<String>> inputFiles,
     EffesModule.Id main,
+    String[] argv,
     EffesIo io,
     Integer stackSize,
     Function<EffesState,Runnable> debugFactory)
@@ -80,8 +83,8 @@ public class EvmRunner {
     EffesModule<Operation> linkedModule = linkedModules.get(main);
 
     EffesFunction<Operation> mainFunction = linkedModule.getFunction(new EffesFunction.Id("main"));
-    if (mainFunction.nArgs() != 0) {
-      throw new EffesRuntimeException("::main must take 0 arguments");
+    if (mainFunction.nArgs() != 1) {
+      throw new EffesRuntimeException("::main must take 1 argument");
     }
     if (!mainFunction.hasRv()) {
       throw new EffesRuntimeException("::main must return a value");
@@ -91,12 +94,16 @@ public class EvmRunner {
     if (stackSize == null) {
       stackSize = STACK_SIZE;
     }
-    EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars());
+    EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars() + 1); // +1 for argv
     Runnable debug = debugFactory == null ? () -> {} : debugFactory.apply(state);
-    // if main() took any args, here is where we'd push them
 
-    // Main loop
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
+    // put argv in
+    state.push(LambdaHelpers.consumeAndReturn(
+      new EffesNativeObject.EffesArray(argv.length),
+      effesArgv -> IntStream.range(0, argv.length).forEach(i -> effesArgv.store(i, EffesNativeObject.forString(argv[i])))));
+    state.popToVar(0);
+    // Start the main loop
     while (!state.pc().isAt(ProgramCounter.end())) {
       Operation op = null;
       PcMove next;

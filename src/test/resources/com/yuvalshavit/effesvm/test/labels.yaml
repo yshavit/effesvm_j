@@ -1,22 +1,22 @@
 efct: |
-  FUNC : main 0 1 0 1
+  FUNC : main 1 1 0 1
   goto $forward
   debug-print  # would be empty!
   labl $forward
   str  One
   call_String:sout
   int  0
-  svar 0
+  svar 1
   labl $backward
-  pvar 0
+  pvar 1
   int  1
   call_Integer:add
-  svar 0
-  pvar 0
+  svar 1
+  pvar 1
   int  1
   call_Integer:gt
   gofi $backward
-  pvar 0
+  pvar 1
   call_native:toString
   call_String:sout
   int  0

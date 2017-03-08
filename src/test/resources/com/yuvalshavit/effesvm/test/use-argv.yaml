@@ -1,0 +1,15 @@
+efct: |
+  FUNC : main 1 1 0 0
+  # arg0: argv
+  pvar 0
+  call_native:toString
+  call_String:sout
+  str  \n
+  call_String:sout
+  int  0
+  rtrn
+runs:
+- description: some args
+  args: [hello, world]
+  out: 'Array{size=2}'
+  exit: 0
