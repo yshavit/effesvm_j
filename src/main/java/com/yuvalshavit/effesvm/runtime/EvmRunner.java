@@ -1,15 +1,16 @@
 package com.yuvalshavit.effesvm.runtime;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
@@ -31,33 +32,41 @@ public class EvmRunner {
 
   public static void main(String[] args) throws IOException {
     if (args.length == 0) {
-      throw new IllegalArgumentException("must take at least one file, an efct file");
+      throw new IllegalArgumentException("must take at least one file, a module to run");
     }
 
+    String classpath = System.getenv().getOrDefault("EFFES_CLASSPATH", ".");
+    Path classpathPath = FileSystems.getDefault().getPath(classpath);
+
     Map<EffesModule.Id,Iterable<String>> inputFiles = new HashMap<>(args.length);
-    EffesModule.Id main = null;
-    for (String arg : args) {
-      Path path = FileSystems.getDefault().getPath(arg);
-      Iterable<String> lines = () -> {
-        try {
-          return Files.lines(path).iterator();
-        } catch (IOException e) {
-          throw new EffesLoadException("while reading " + arg, e);
-        }
-      };
-      String[] moduleSegments = arg.split(Pattern.quote(File.separator));
-      moduleSegments[moduleSegments.length - 1] = moduleSegments[moduleSegments.length - 1].replaceAll("\\.efct$", "");
-      EffesModule.Id id = EffesModule.Id.of(moduleSegments);
-      if (main == null) {
-        main = id;
+    try (DirectoryStream<Path> efctFile = Files.newDirectoryStream(classpathPath, "*.efct")) {
+      for (Path path : efctFile) {
+        Iterable<String> lines = () -> {
+          try {
+            return Files.lines(path).iterator();
+          } catch (IOException e) {
+            throw new EffesLoadException("while reading " + path, e);
+          }
+        };
+        Path relativePath = path.subpath(classpathPath.getNameCount(), path.getNameCount());
+        ArrayList<String> moduleSegments = LambdaHelpers.consumeAndReturn(
+          new ArrayList<>(relativePath.getNameCount()),
+          list -> relativePath.forEach(segment -> list.add(segment.toString())));
+        moduleSegments.set(moduleSegments.size() - 1, moduleSegments.get(moduleSegments.size() - 1).replaceAll("\\.efct$", ""));
+        EffesModule.Id id = EffesModule.Id.of(moduleSegments.toArray(new String[0]));
+        inputFiles.put(id, lines);
       }
-      inputFiles.put(id, lines);
     }
+    EffesModule.Id main = EffesModule.Id.parse(args[0]);
+    if (!inputFiles.containsKey(main)) {
+      throw new IllegalArgumentException(main + " not found among " + inputFiles.keySet());
+    }
+    String[] argsToEffes = Arrays.copyOfRange(args, 1, args.length);
 
     EffesIo io = EffesIo.stdio();
     Function<EffesState,Runnable> debug = getDebugServer();
 
-    int exitCode = run(inputFiles, main, new String[0], io, null, debug);
+    int exitCode = run(inputFiles, main, argsToEffes, io, null, debug);
     System.exit(exitCode);
   }
 
