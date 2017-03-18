@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 1 1 0 3
+  FUNC : main 1 1 0
   # vars:
   # 0: beginning int
   # 1: end int
@@ -38,7 +38,7 @@ efct: |
   int  0                  # normal exit
   rtrn
 
-  FUNC : readInt 0 1 0 0
+  FUNC : readInt 0 1 0
   # reads a line from stdin, parses it as an int. Returns that Integer, or False if any errors
   call_String:sin
   typp False

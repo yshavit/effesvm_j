@@ -1,5 +1,5 @@
 efct: |
-  FUNC : sum 2 1 0 0
+  FUNC : sum 2 1 0
   # args: two integers
   # returns their sum
   pvar 0
@@ -7,7 +7,7 @@ efct: |
   call_Integer:add
   rtrn
 
-  FUNC : main 1 1 0 0
+  FUNC : main 1 1 0
   int  5
   int  7
   call : sum

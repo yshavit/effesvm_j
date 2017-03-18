@@ -52,8 +52,11 @@ public class Parser {
               functionName,
               line.get(3, "nArgs", Integer::parseInt),
               line.get(4, "nRv", Integer::parseInt),
-              line.get(5, "nGenerics", Integer::parseInt),
-              line.get(6, "nLocal", Integer::parseInt));
+              line.get(5, "nGenerics", Integer::parseInt));
+            assert line.tokens != null;
+            if (line.tokens.length != 6) {
+              throw new IllegalArgumentException("too many arguments for FUNC declaration");
+            }
             functions.put(parsedFunction.id(), parsedFunction);
             break;
           case "TYPE":
@@ -82,10 +85,9 @@ public class Parser {
     String functionName,
     int nArgs,
     int nRv,
-    int nGenerics,
-    int nLocal)
+    int nGenerics)
   {
-    if (nGenerics != 0 || nLocal < 0 || nArgs < 0) {
+    if (nGenerics != 0 || nArgs < 0) {
       throw new IllegalArgumentException("invalid FUNC declaration");
     }
     final boolean hasRv;

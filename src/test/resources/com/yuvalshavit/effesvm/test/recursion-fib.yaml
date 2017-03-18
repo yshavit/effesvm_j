@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 1 1 0 0
+  FUNC : main 1 1 0
   call_String:sin
   typp False
   goif 10             # exit 0
@@ -14,7 +14,7 @@ efct: |
   int 0
   rtrn
 
-  FUNC : fib 1 1 0 0
+  FUNC : fib 1 1 0
   # arg0: n
   pvar 0
   int  1

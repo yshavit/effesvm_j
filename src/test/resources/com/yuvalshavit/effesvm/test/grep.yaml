@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 1 1 0 2
+  FUNC : main 1 1 0
   # We have two local args:
   # arg0 -> the pattern to look for
   # arg1 -> each stdin line as it comes in

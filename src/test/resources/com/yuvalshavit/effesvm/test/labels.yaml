@@ -1,5 +1,5 @@
 efct: |
-  FUNC : main 1 1 0 1
+  FUNC : main 1 1 0
   goto $forward
   debug-print  # would be empty!
   labl $forward

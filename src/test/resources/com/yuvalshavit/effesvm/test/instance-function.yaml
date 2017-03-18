@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 House nDoors nWindows
-  FUNC : main 1 1 0 0
+  FUNC : main 1 1 0
   int  2
   int  12
   call :House House
@@ -11,7 +11,7 @@ efct: |
   int  0
   rtrn
 
-  FUNC House describe 0 1 0 0
+  FUNC House describe 0 1 0
   pvar 0 # this
   pfld :House nDoors
   debug-print

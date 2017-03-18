@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 Goodbye
-  FUNC : main 1 1 0 0
+  FUNC : main 1 1 0
   str  "from main: "
   call_String:sout
   call hellos:Hello Hello
@@ -18,7 +18,7 @@ efct: |
 otherModules:
   hellos: |
     TYPE 0 Hello
-    FUNC : isHello 1 0 0 0
+    FUNC : isHello 1 0 0
     pvar 0
     type :Hello
     call_native:toString

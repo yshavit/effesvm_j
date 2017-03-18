@@ -1,6 +1,6 @@
 efct: |
   TYPE 0 Animal species
-  FUNC : main 1 1 0 1
+  FUNC : main 1 1 0
   str  "dog"             # new Animal("dog")
   call :Animal Animal
   debug-print

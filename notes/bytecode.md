@@ -67,13 +67,12 @@ Function declarations
 
 Functions start with a declaration:
 
-    FUNC <functionscope> <functionname> <nArgs> <hasRv> 0 <nLocal>
+    FUNC <functionscope> <functionname> <nArgs> <hasRv> 0
 
 - functionscope defines a scope for this function, as described below. The functionname must be unique within for a given classname.
 - nArgs is the number of arguments this function takes
 - hasRv must be 0 or 1. 0 means there is no return value, and 1 means there is one
 - The `0` is a placeholder for generics.
-- nLocal is the number of local variable slots to request (see `pvar`, `svar` below)
 
 After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
 
@@ -92,11 +91,11 @@ For instance:
 
 For instance methods, the 0th arg is implicitly the instance on which the method is invoked, and the method will actually take `nArgs + 1` arguments. For instance, `FUNC :Dog eat 2 0 0 0` will actually take 3 args: a `Dog` reference and the two declared arguments.
 
-From the perspective of a function's body, there is virtually no difference between arguments and local variables; the first M arguments simply become the first M variables, and the other local variables' indexes are shifted by that count. For instance, if a method declares 3 arguments and 2 local variables, it will have 5 local variables at its disposal. The first three (indexes _0_, _1_ and _2_) will initially contain the arguments' values, in order; the first "local" variable will actually have index _3_. The only difference is that while the argument variables are guaranteed to be initialized, the local variables will not, and will error if pushed before having anything stored to them.
+A function's body can reference local variables, either by pushing them to its local stack or by popping the local stack to a variable. A function will always have at least _nArgs_ variables, which will be initialized to the values that the caller passes to the function. variable 0 is the first arg passed in, variable 1 is the second, and so on. Variables are untyped. There is no difference from the variables used to store arguments and any other local variables, other than their initialization; non-arg local variables are uninitialized, meaning that trying to push them to the local stack will result in an error. In particular, they share the same index space. For instance, if a method declares 3 arguments and uses additional 2 local variables, it will have 5 local variables at its disposal. The first three (indexes _0_, _1_ and _2_) will initially contain the arguments' values, in order; the first "local" variable will actually have index _3_.
 
 A special case of a function declaration is for the module function `main`. The `main` function must have the following declaration:
 
-    FUNC : main 1 1 0 <nLocal>
+    FUNC : main 1 1 0
 
 This will serve as the entry point for the `.efct`'s execution. Instance functions may also be named `main`, and these have no relation to the module function `main`. The argument to the module function `main` is an Array representing the program's arguments. The return return variable is an Integer representing the program's exit code.
 

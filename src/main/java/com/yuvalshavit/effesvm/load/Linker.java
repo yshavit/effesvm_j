@@ -56,7 +56,8 @@ public class Linker {
           : linkContext.scopeIdBuilder.withoutType(moduleId);
         functionScope = scopeIds.computeIfAbsent(functionScope, Function.identity()); // basically like String::intern
 
-        int nVars = 0;
+        int nArgs = unlinkedFunction.nArgs();
+        int totalNVars = nArgs;
         for (int opIdx = 0; opIdx < unlinkedFunction.nOps(); ++opIdx) {
           UnlinkedOperation unlinkedOperation = unlinkedFunction.opAt(opIdx);
           if (unlinkedOperation instanceof LabelUnlinkedOperation) {
@@ -64,12 +65,12 @@ public class Linker {
             linkContext.addLabel(unlinkedFunction, labelOp.label(), opIdx);
           } else if (unlinkedOperation instanceof VarUnlinkedOperation) {
             int varIndex = ((VarUnlinkedOperation) unlinkedOperation).varIndex();
-            nVars = Math.max(nVars, varIndex + 1);
+            totalNVars = Math.max(totalNVars, varIndex + 1);
           }
         }
         List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
         Map<String,LinkPair> functionsByName = linkingFunctions.computeIfAbsent(functionScope, k -> new HashMap<>());
-        EffesFunction<Operation> function = new EffesFunction<>(functionId, nVars, unlinkedFunction.hasRv(), unlinkedFunction.nArgs(), ops);
+        EffesFunction<Operation> function = new EffesFunction<>(functionId, totalNVars - nArgs, unlinkedFunction.hasRv(), nArgs, ops);
         linkedFunctions.add(function);
         LinkPair linkPair = new LinkPair(function, ops);
         LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
