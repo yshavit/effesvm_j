@@ -12,6 +12,7 @@ import java.util.function.Function;
 import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
+import com.yuvalshavit.effesvm.ops.VarUnlinkedOperation;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 import com.yuvalshavit.effesvm.util.CachingBuilder;
@@ -55,20 +56,24 @@ public class Linker {
           : linkContext.scopeIdBuilder.withoutType(moduleId);
         functionScope = scopeIds.computeIfAbsent(functionScope, Function.identity()); // basically like String::intern
 
-        List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
-        Map<String,LinkPair> functionsByName = linkingFunctions.computeIfAbsent(functionScope, k -> new HashMap<>());
-        EffesFunction<Operation> function = new EffesFunction<>(functionId, unlinkedFunction.nVars(), unlinkedFunction.hasRv(), unlinkedFunction.nArgs(), ops);
-        linkedFunctions.add(function);
-        LinkPair linkPair = new LinkPair(function, ops);
-        LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
-        assert old == null : old;
+        int nVars = 0;
         for (int opIdx = 0; opIdx < unlinkedFunction.nOps(); ++opIdx) {
           UnlinkedOperation unlinkedOperation = unlinkedFunction.opAt(opIdx);
           if (unlinkedOperation instanceof LabelUnlinkedOperation) {
             LabelUnlinkedOperation labelOp = (LabelUnlinkedOperation) unlinkedOperation;
             linkContext.addLabel(unlinkedFunction, labelOp.label(), opIdx);
+          } else if (unlinkedOperation instanceof VarUnlinkedOperation) {
+            int varIndex = ((VarUnlinkedOperation) unlinkedOperation).varIndex();
+            nVars = Math.max(nVars, varIndex + 1);
           }
         }
+        List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
+        Map<String,LinkPair> functionsByName = linkingFunctions.computeIfAbsent(functionScope, k -> new HashMap<>());
+        EffesFunction<Operation> function = new EffesFunction<>(functionId, nVars, unlinkedFunction.hasRv(), unlinkedFunction.nArgs(), ops);
+        linkedFunctions.add(function);
+        LinkPair linkPair = new LinkPair(function, ops);
+        LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
+        assert old == null : old;
       }
       EffesModule<Operation> linkedModule = new EffesModule<>(unlinkedModule.types(), linkedFunctions);
       linkedModules.put(moduleId, linkedModule);

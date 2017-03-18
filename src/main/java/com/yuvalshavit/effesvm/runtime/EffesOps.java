@@ -16,6 +16,7 @@ import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
 import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
+import com.yuvalshavit.effesvm.ops.VarUnlinkedOperation;
 
 public class EffesOps {
 
@@ -47,15 +48,15 @@ public class EffesOps {
   }
 
   @OperationFactory("pvar")
-  public static Operation.Body pvar(String n) {
+  public static VarUnlinkedOperation.Body pvar(String n) {
     int idx = nonNegative(n);
-    return Operation.withIncementingPc(s -> s.pushVar(idx));
+    return VarUnlinkedOperation.pushVar(idx);
   }
 
   @OperationFactory("svar")
-  public static Operation.Body svar(String n) {
+  public static VarUnlinkedOperation.Body svar(String n) {
     int idx = nonNegative(n);
-    return Operation.withIncementingPc(s -> s.popToVar(idx));
+    return VarUnlinkedOperation.popToVar(idx);
   }
 
   @OperationFactory("goto")

@@ -11,7 +11,12 @@ import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public class OperationFactories {
-  private static final List<Class<?>> allowedReturnTypes = Arrays.asList(Operation.Body.class, UnlinkedOperation.Body.class, LabelUnlinkedOperation.Body.class);
+  private static final List<Class<?>> allowedReturnTypes = Arrays.asList(
+    Operation.Body.class,
+    UnlinkedOperation.Body.class,
+    // special types
+    LabelUnlinkedOperation.Body.class,
+    VarUnlinkedOperation.Body.class);
 
   private OperationFactories() {}
 
@@ -99,6 +104,9 @@ public class OperationFactories {
         result = new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), opInfo));
       } else if (opRaw instanceof UnlinkedOperation.Body) {
         result = new UnlinkedOp((UnlinkedOperation.Body) opRaw, opInfo);
+      } else if (opRaw instanceof VarUnlinkedOperation.Body) {
+        VarUnlinkedOperation.Body varOpBody = (VarUnlinkedOperation.Body) opRaw;
+        result = new VarUnlinkedOperation(varOpBody.varIndex(), () -> new Op(Operation.withIncementingPc(varOpBody.handler()), opInfo));
       }
       else {
         throw new RuntimeException("unexpected result: " + opRaw);
