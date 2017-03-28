@@ -31,7 +31,7 @@ efct: |
 runs:
 - description: match some
   in: |
-    hello
+    hello.*
     hello there
     this one is not matched
     hello this is

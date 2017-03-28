@@ -77,32 +77,32 @@ runs:
 - description: just numbered
   in: |
     hello world
-    o (.*)
+    .*o (.*)
   out: |
     Found a match:
-    0: o world
+    0: hello world
     1: world
   exit: 0
 - description: empty numbered group
   in: |
     hello world
-    o (goodbye)?(.*)
+    .*o (goodbye)?(.*)
   out: |
     Found a match:
-    0: o world
+    0: hello world
     1: False
     2: world
   exit: 0
 - description: named groups
   in: |
     hello world
-    o (?<head>.)(?<tail>.*)
+    .*o (?<head>.)(?<tail>.*)
     head
     or
     tail
   out: |
     Found a match:
-    0: o world
+    0: hello world
     1: w
     2: orld
     head: w

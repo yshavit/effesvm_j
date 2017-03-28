@@ -62,7 +62,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   public static EffesNativeObject tryMatch(String lookIn, String pattern) {
     Pattern patternObj = Pattern.compile(pattern);
     Matcher matcher = patternObj.matcher(lookIn);
-    if (matcher.find()) {
+    if (matcher.matches()) {
       return new EffesMatch(matcher);
     } else {
       return EffesBoolean.FALSE;
@@ -223,7 +223,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     public String toString(boolean useArgNames) {
       StringJoiner joiner = useArgNames
         ? new StringJoiner(", ", "Match{pattern=" + matcher.pattern().pattern() + ", groups=[", "]")
-        : new StringJoiner(", ", "Match(" + matcher.pattern().pattern(), ")");
+        : new StringJoiner(", ", "Match(" + matcher.pattern().pattern() + ",", ")");
       IntStream.range(1, matcher.groupCount() + 1)
         .mapToObj(matcher::group)
         .forEachOrdered(joiner::add);
