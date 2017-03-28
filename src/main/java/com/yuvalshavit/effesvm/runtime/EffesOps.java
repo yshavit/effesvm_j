@@ -1,6 +1,7 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -87,12 +88,17 @@ public class EffesOps {
 
   @OperationFactory("type")
   public static  UnlinkedOperation.Body type(String typeName) {
-    return typeBuilder(typeName, EffesState::pop);
+    return typeBuilder(typeName, EffesState::pop, (s, i) -> {});
   }
 
   @OperationFactory("typp")
   public static  UnlinkedOperation.Body typp(String typeName) {
-    return typeBuilder(typeName, s -> s.peek(0));
+    return typeBuilder(typeName, s -> s.peek(0), (s, i) -> {});
+  }
+
+  @OperationFactory("typf")
+  public static UnlinkedOperation.Body typf(String typeName) {
+    return typeBuilder(typeName, EffesState::pop, EffesState::push);
   }
 
   @OperationFactory("pfld")
@@ -475,7 +481,7 @@ public class EffesOps {
     return effesStr.value;
   }
 
-  private static  UnlinkedOperation.Body typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem) {
+  private static  UnlinkedOperation.Body typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem, BiConsumer<EffesState,EffesRef<?>> ifMatched) {
     return linkCtx -> {
       BaseEffesType checkForType;
       if (typeName.indexOf(':') >= 0) {
@@ -487,6 +493,9 @@ public class EffesOps {
         EffesRef<?> item = topItem.apply(s);
         BaseEffesType type = item.type();
         boolean rightType = type.equals(checkForType);
+        if (rightType) {
+          ifMatched.accept(s, item);
+        }
         s.push(EffesNativeObject.forBoolean(rightType));
       });
     };

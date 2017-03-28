@@ -218,6 +218,10 @@ Pops the topemost item. Pushes a True to the stack if its type matches the typed
 
 Works like `type`, except that it only peeks for the top item (instead of popping it).
 
+### typf
+
+(type+if) Works like `type`, except that the value is popped only if it does not match. In other words, if the stack started with `[item]`, then after this operation it will either be `[item, True]` or `[False]`.
+
 ### call functionscope functionname [@arg0 ... arg@1] -> result
 
 Calls a function.
