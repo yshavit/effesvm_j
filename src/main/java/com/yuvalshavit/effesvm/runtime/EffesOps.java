@@ -12,10 +12,10 @@ import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLinkException;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.load.LinkContext;
+import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactory;
-import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.VarUnlinkedOperation;
 
@@ -395,6 +395,15 @@ public class EffesOps {
   @OperationFactory("sbld")
   public Operation.Body sbld() {
     return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStringBuilder()));
+  }
+
+  @OperationFactory("fail")
+  public Operation.Body fail(String message) {
+    return s -> {
+      s.getStackTrace().forEach(System.err::println);
+      System.err.flush();
+      throw new EffesRuntimeException(message);
+    };
   }
 
   private static  UnlinkedOperation.Body buildGoif(String loc, Predicate<Boolean> condition) {

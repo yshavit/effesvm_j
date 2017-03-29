@@ -356,3 +356,7 @@ Other
 ### debug-print
 
 Writes a textual representation of the topmost element of the local stack to stderr. Does not modify the stack. Does not error if the local stack is empty; instead, will print to stderr that it is empty.
+
+### fail _message_
+
+Prints information about the VM's current state, and then exits with the given message.
