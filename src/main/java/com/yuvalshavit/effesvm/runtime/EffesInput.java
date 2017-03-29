@@ -24,6 +24,7 @@ public interface EffesInput {
         String result = reader.readLine();
         if (result == null) {
           reader.close();
+          reader = null;
         } else {
           ++linesRead;
         }
