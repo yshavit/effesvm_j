@@ -1,7 +1,9 @@
 package com.yuvalshavit.effesvm.test;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -14,8 +16,10 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.yaml.snakeyaml.Yaml;
 
+import com.google.common.base.Charsets;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.Parser;
+import com.yuvalshavit.effesvm.runtime.EffesInput;
 import com.yuvalshavit.effesvm.runtime.EffesIo;
 import com.yuvalshavit.effesvm.runtime.EvmRunner;
 
@@ -66,7 +70,7 @@ public class EndToEndTest {
       modules.put(module, efct);
     }
 
-    InMemoryIo io = new InMemoryIo(run.in);
+    InMemoryIo io = new InMemoryIo(run.in, run.files);
     int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, null);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
@@ -86,6 +90,7 @@ public class EndToEndTest {
     public String out = "";
     public String err = "";
     public int exit = -1;
+    public Map<String,String> files = Collections.emptyMap();
     public Integer stackSize = null;
     public String[] args = new String[0];
 
@@ -99,8 +104,10 @@ public class EndToEndTest {
     private final Iterator<String> in;
     private final StringBuilder out;
     private final StringBuilder err;
+    private final Map<String,String> files;
 
-    private InMemoryIo(String in) {
+    private InMemoryIo(String in, Map<String,String> files) {
+      this.files = files;
       List<String> inLines = in == null ? Collections.emptyList() : Arrays.asList(in.split("\\n"));
       this.in = inLines.iterator();
       out = new StringBuilder();
@@ -108,8 +115,8 @@ public class EndToEndTest {
     }
 
     @Override
-    public String readLine() {
-      return in.hasNext() ? in.next() : null;
+    public EffesInput in() {
+      return () -> in.hasNext() ? in.next() : null;
     }
 
     @Override
@@ -120,6 +127,13 @@ public class EndToEndTest {
     @Override
     public void err(String string) {
       err.append(string);
+    }
+
+    @Override
+    public InputStream readFile(String name) {
+      String contents = files.get(name);
+      assertNotNull(contents, name);
+      return new ByteArrayInputStream(contents.getBytes(Charsets.UTF_8));
     }
   }
 }

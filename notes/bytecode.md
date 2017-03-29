@@ -342,13 +342,34 @@ Pops an element from the stack, which must be a String. Pushes an Integer repres
 
 Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or a Match object if it does.
 
-### call_String:sin -> string
-
-Reads a single line from stdin and pushes it to the stack (without the trailing newline), or pushes False is no more lines are available.
 
 ### call_String:sout @string
 
 Pops a string from the stack and writes it to stdout. No newline is added.
+
+Stream operations
+----------------------------------------------------------------------------------------
+
+### call_Stream:stdin -> Stream
+
+Pushes a StreamIn object representing stdin.`
+
+### call_Stream:readFile @file -> Stream
+
+Opens a file for reading, and pushes its stream to the stack.
+
+### call_Stream:readLine @stream -> string
+
+Pops a StreamIn from the stack. Reads a line from it, and push either that line as a String (without the trailing newline) or False if no more lines are available.
+
+### call_Stream:stdinLine -> string
+
+Shortcut for:
+
+    call_Stream:stdin
+    call_Stream:readLine
+
+This method only exists historical/convenience purposes.
 
 Other
 ----------------------------------------------------------------------------------------

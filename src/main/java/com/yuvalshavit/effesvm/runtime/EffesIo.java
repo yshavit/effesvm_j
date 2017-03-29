@@ -1,7 +1,9 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.io.BufferedReader;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public interface EffesIo {
@@ -10,9 +12,10 @@ public interface EffesIo {
     return Stdio.instance;
   }
 
-  String readLine();
+  EffesInput in();
   void out(String string);
   void err(String string);
+  InputStream readFile(String name);
 
   default void errLine(String string) {
     err(string);
@@ -23,15 +26,13 @@ public interface EffesIo {
     private static final Stdio instance = new Stdio();
     private Stdio() {}
 
-    private static final BufferedReader stdinReader = new BufferedReader(new InputStreamReader(System.in));
+    private static final EffesInput stdinInput = new EffesInput.FromReader(
+      new BufferedReader(new InputStreamReader(System.in)),
+      "stdin");
 
     @Override
-    public String readLine() {
-      try {
-        return stdinReader.readLine();
-      } catch (IOException e) {
-        throw new EffesIoException("while reading from stdin", e);
-      }
+    public EffesInput in() {
+      return stdinInput;
     }
 
     @Override
@@ -42,6 +43,15 @@ public interface EffesIo {
     @Override
     public void err(String string) {
       System.err.print(string);
+    }
+
+    @Override
+    public InputStream readFile(String name) {
+      try {
+        return new FileInputStream(name);
+      } catch (FileNotFoundException e) {
+        throw new EffesRuntimeException("while opening " + name + " for reading", e);
+      }
     }
   }
 }

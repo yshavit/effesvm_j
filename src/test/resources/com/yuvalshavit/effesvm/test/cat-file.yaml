@@ -1,0 +1,30 @@
+efct: |
+  FUNC : main 1 1 0
+  str  my_file.txt                # [name]
+  call_Stream:readFile            # [stream]
+  svar 0                          # []
+  labl @loop_top                  # []
+  pvar 0                          # [stream]
+  call_Stream:readLine            # [line?]
+  typf String                     # [(line), nonEmpty]
+  gofi @loop_end                  # [line]
+  call_String:sout                # []
+  str  \n                         # [\n]
+  call_String:sout                # []
+  goto @loop_top                  # []
+  labl @loop_end
+  int 0
+  rtrn
+runs:
+- description: normal file
+  files:
+    my_file.txt: |
+      Hello there, human.
+      I am a file for testing.
+      It's nice to meet you.
+  out: |
+    Hello there, human.
+    I am a file for testing.
+    It's nice to meet you.
+  exit: 0
+

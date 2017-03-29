@@ -40,7 +40,7 @@ efct: |
 
   FUNC : readInt 0 1 0
   # reads a line from stdin, parses it as an int. Returns that Integer, or False if any errors
-  call_String:sin
+  call_Stream:stdinLine
   typp False
   goif 4               # jump to rtrn
   call_Integer:parse

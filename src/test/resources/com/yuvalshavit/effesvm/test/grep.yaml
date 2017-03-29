@@ -3,7 +3,7 @@ efct: |
   # We have two local args:
   # arg0 -> the pattern to look for
   # arg1 -> each stdin line as it comes in
-  call_String:sin
+  call_Stream:stdinLine
   svar 1
   pvar 1
   type False
@@ -11,7 +11,7 @@ efct: |
   goif 8                 # goif pattern != False
   int  1
   rtrn
-  call_String:sin        # jump point for if pattern != False
+  call_Stream:stdinLine  # jump point for if pattern != False
   svar 2
   pvar 2
   type False

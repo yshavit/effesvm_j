@@ -1,5 +1,8 @@
 package com.yuvalshavit.effesvm.runtime;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -368,13 +371,36 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> io.out(popString(s)));
   }
 
-  @OperationFactory("call_String:sin")
-  public Operation.Body sin() {
+  @OperationFactory("call_Stream:stdin")
+  public Operation.Body stdin() {
+    return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStreamIn(io.in())));
+  }
+
+  @OperationFactory("call_Stream:readFile")
+  public Operation.Body readFile() {
     return Operation.withIncementingPc(s -> {
-      String raw = io.readLine();
-      EffesRef<?> eRef = (raw == null) ? EffesNativeObject.EffesBoolean.FALSE : EffesNativeObject.forString(raw);
-      s.push(eRef);
+      String fileName = popString(s);
+      BufferedReader reader = new BufferedReader(new InputStreamReader(io.readFile(fileName), StandardCharsets.UTF_8));
+      EffesNativeObject.EffesStreamIn stream = new EffesNativeObject.EffesStreamIn(new EffesInput.FromReader(reader, fileName));
+      s.push(stream);
     });
+  }
+
+  @OperationFactory("call_Stream:readLine")
+  public Operation.Body readLine() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesStreamIn streamIn = (EffesNativeObject.EffesStreamIn) s.pop();
+      pushStringOrFalse(s, streamIn.readLine());
+    });
+  }
+
+  @OperationFactory("call_Stream:stdinLine")
+  public Operation.Body stdinLine() {
+    return Operation.withIncementingPc(s -> pushStringOrFalse(s, io.in().readLine()));
+  }
+
+  public void pushStringOrFalse(EffesState state, String stringOrNull) {
+    state.push((stringOrNull == null) ? EffesNativeObject.EffesBoolean.FALSE : EffesNativeObject.forString(stringOrNull));
   }
 
   @OperationFactory("call_StringBuilder:add")

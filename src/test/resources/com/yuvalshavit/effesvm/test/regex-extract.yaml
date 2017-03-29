@@ -3,14 +3,14 @@ efct: |
   # args:
   # 0: the string to look in, and then the match (if it's found)
   # 1: the pattern, and then the group idx (if there's a match) or group name
-  call_String:sin     # try to read the haystack string
+  call_Stream:stdinLine # try to read the haystack string
   svar 1
   pvar 1
   type False
-  gofi 7              # jump to reading the pattern string
+  gofi 7                # jump to reading the pattern string
   int  1
   rtrn
-  call_String:sin     # try to read the pattern string
+  call_Stream:stdinLine # try to read the pattern string
   svar 2
   pvar 2
   type False
@@ -54,7 +54,7 @@ efct: |
   call_Integer:add
   svar 2
   goto 29
-  call_String:sin     # read stdin for named groups to report on
+  call_Stream:stdinLine # read stdin for named groups to report on
   svar 2
   pvar 2
   type False

@@ -170,6 +170,30 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
+  public static class EffesStreamIn extends EffesNativeObject {
+
+    private final EffesInput source;
+
+    public EffesStreamIn(EffesInput source) {
+      super(NativeTypeEnum.STREAM_IN.type);
+      this.source = source;
+    }
+
+    public String readLine() {
+      return source.readLine();
+    }
+
+    @Override
+    public String toString(boolean useArgNames) {
+      return source.toString();
+    }
+
+    @Override
+    protected Object equalityState() {
+      return this;
+    }
+  }
+
   public static class EffesInteger extends EffesNativeObject {
     public final int value;
 
@@ -255,6 +279,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     MATCH("Match"),
     ARRAY("Array"),
     STRING_BUILDER("StringBuilder"),
+    STREAM_IN("StreamIn"),
     ;
 
     private final NativeType type;
