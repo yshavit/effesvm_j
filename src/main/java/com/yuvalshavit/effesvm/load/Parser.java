@@ -68,7 +68,7 @@ public class Parser {
         }
       } catch (Exception e) {
         String originalMessage = e.getMessage();
-        String annotation = "at line " + tokenizedLines.count();
+        String annotation = "at line " + tokenizedLines.count() + " of " + module;
         String message = originalMessage == null
           ? annotation
           : (originalMessage + " " + annotation);
