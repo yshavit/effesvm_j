@@ -63,6 +63,13 @@ public class EffesOps {
     return VarUnlinkedOperation.popToVar(idx);
   }
 
+  @OperationFactory("Svar")
+  public static VarUnlinkedOperation.Body Svar(String n) {
+    int idx = nonNegative(n);
+    return VarUnlinkedOperation.copyToVar(idx);
+  }
+
+
   @OperationFactory("goto")
   public static  UnlinkedOperation.Body gotoAbs(String n) {
     return linkCtx -> {
@@ -106,8 +113,17 @@ public class EffesOps {
 
   @OperationFactory("pfld")
   public static  UnlinkedOperation.Body pushField(String typeName, String fieldName) {
+    return pushFieldOperation(typeName, fieldName, EffesState::pop);
+  }
+
+  @OperationFactory("Pfld")
+  public static  UnlinkedOperation.Body PushField(String typeName, String fieldName) {
+    return pushFieldOperation(typeName, fieldName, s -> s.peek(0));
+  }
+
+  private static UnlinkedOperation.Body pushFieldOperation(String typeName, String fieldName, Function<EffesState,EffesRef<?>> getTop) {
     return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
-      EffesObject obj = (EffesObject) s.pop();
+      EffesObject obj = (EffesObject) getTop.apply(s);
       if (!obj.type().equals(type)) {
         throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", type.argAt(fieldIndex), fieldName, obj.type()));
       }

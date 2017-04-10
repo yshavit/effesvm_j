@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.yuvalshavit.effesvm.load.LinkContext;
+import com.yuvalshavit.effesvm.runtime.EffesRef;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class VarUnlinkedOperation implements UnlinkedOperation {
@@ -16,6 +17,15 @@ public class VarUnlinkedOperation implements UnlinkedOperation {
 
   public static VarUnlinkedOperation.Body pushVar(int idx) {
     return new VarUnlinkedOperation.Body("pushVar", idx, s -> s.pushVar(idx));
+  }
+
+  public static VarUnlinkedOperation.Body copyToVar(int idx) {
+    return new VarUnlinkedOperation.Body("copyToVar", idx, s -> {
+      // not as efficient as the opcode would imply, but that's okay
+      EffesRef<?> top = s.peek(0);
+      s.popToVar(idx);
+      s.push(top);
+    });
   }
 
   VarUnlinkedOperation(int idx, Supplier<Operation> body) {

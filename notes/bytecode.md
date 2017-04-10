@@ -184,6 +184,12 @@ N is a textual representation of a non-negative integer, 0-indexed. For instance
 
 Pops the topmost element from the stack, and stores it in local variable N. Errors if N is out of range.
 
+### Svar _N_ @varValue
+
+Peeks the topmost element from the stack, and stores it in local variable N. Errors if N is out of range.
+
+(Note: this opcode is just like svar, except that it peeks instead of popping the top value. Accordingly, its opcode is similar to svar's, differing only in capitalization.)
+
 Branching
 ----------------------------------------------------------------------------------------
 
@@ -244,6 +250,10 @@ Examples:
 Pops the topmost item, which must be an EffesRef of type _typename_. Pushes the specified constructor argument (by name) to the top of the stack. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
 
 _typename_ is a functionscope, as defined above, which must have a type name
+
+### Pfld typename fieldname @effesItem -> effesItemField
+
+Like `pfld`, but the topmost EffesRef is peeked from the stack instead of popped.
 
 ### sfld typename fieldname @effesItem @effesItemField
 
