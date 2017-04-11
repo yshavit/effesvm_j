@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime;
+package com.yuvalshavit.effesvm.runtime.debugger;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -17,6 +17,7 @@ import javax.management.ObjectName;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.ops.Operation;
+import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class DebugServer implements Runnable {
 

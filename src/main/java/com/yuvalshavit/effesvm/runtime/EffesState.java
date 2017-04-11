@@ -147,7 +147,7 @@ public class EffesState {
     return String.format("$fp=%d, $sp=%d, $pc=%s %s", regFp, regSp, regPc, describeLabel(lastSeenLabel));
   }
 
-  List<String> toStringList() {
+  public List<String> toStringList() {
     List<String> res = new ArrayList<>(regSp + 1);
     int marginSize = Integer.valueOf(regSp).toString().length();
     String marginFormat = "[%" + marginSize + "d] ";
@@ -168,11 +168,11 @@ public class EffesState {
   }
 
   @SuppressWarnings("unused") // useful in a debugger
-  String toStringFull() {
+  public String toStringFull() {
     return consumeAndReturn(new StringJoiner("\n"), j -> toStringList().forEach(j::add)).toString();
   }
 
-  List<ProgramCounter.State> getStackTrace() {
+  public List<ProgramCounter.State> getStackTrace() {
     int nFrames = 0;
     for (int fpIdx = regFp; fpIdx > 0; ) {
       FrameInfo fp = (FrameInfo) stack[fpIdx];

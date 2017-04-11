@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime;
+package com.yuvalshavit.effesvm.runtime.debugger;
 
 import java.util.List;
 
