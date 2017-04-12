@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.ops.Operation;
@@ -38,6 +39,10 @@ public class ProgramCounter {
 
   public Operation getOp() {
     return state.function.opAt(getOpIdx());
+  }
+
+  public EffesFunction<Operation> getCurrentFunction() {
+    return state.function;
   }
 
   public State save() {

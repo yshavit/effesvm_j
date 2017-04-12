@@ -21,7 +21,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
-import com.yuvalshavit.effesvm.runtime.debugger.DebugServer;
+import com.yuvalshavit.effesvm.runtime.debugger.SockDebugServer;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
 
@@ -29,7 +29,8 @@ public class EvmRunner {
 
   public static final int STACK_SIZE = 500;
 
-  private EvmRunner() {}
+  private EvmRunner() {
+  }
 
   public static void main(String[] args) throws IOException {
     if (args.length == 0) {
@@ -65,9 +66,10 @@ public class EvmRunner {
     String[] argsToEffes = Arrays.copyOfRange(args, 1, args.length);
 
     EffesIo io = EffesIo.stdio();
-    Function<EffesState,Runnable> debug = getDebugServer();
-
-    int exitCode = run(inputFiles, main, argsToEffes, io, null, debug);
+    int exitCode;
+    try (DebugServer debug = getDebugServer()) {
+      exitCode = run(inputFiles, main, argsToEffes, io, null, debug);
+    }
     System.exit(exitCode);
   }
 
@@ -77,7 +79,7 @@ public class EvmRunner {
     String[] argv,
     EffesIo io,
     Integer stackSize,
-    Function<EffesState,Runnable> debugFactory)
+    DebugServer debugServer)
   {
     // Parse and link the inputs
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
@@ -105,7 +107,6 @@ public class EvmRunner {
       stackSize = STACK_SIZE;
     }
     EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars() + 1); // +1 for argv
-    Runnable debug = debugFactory == null ? () -> {} : debugFactory.apply(state);
 
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     // put argv in
@@ -118,7 +119,7 @@ public class EvmRunner {
       Operation op = null;
       PcMove next;
       try {
-        debug.run();
+        debugServer.beforeAction(state);
         op = state.pc().getOp();
         next = op.apply(state);
       } catch (Exception e) {
@@ -138,16 +139,19 @@ public class EvmRunner {
     return exitCode.value;
   }
 
-  private static Function<EffesState,Runnable> getDebugServer() {
+  private static DebugServer getDebugServer() {
     String debug = System.getProperty("debug");
     if (debug == null) {
-      return null;
+      return DebugServer.noop;
     } else {
-      return s -> {
-        DebugServer debugServer = new DebugServer(s);
-        debugServer.start(debug.equalsIgnoreCase("suspend"));
+      SockDebugServer debugServer = new SockDebugServer("suspend".equalsIgnoreCase(debug));
+      try {
+        debugServer.start();
         return debugServer;
-      };
+      } catch (Exception e) {
+        e.printStackTrace();
+        return DebugServer.noop;
+      }
     }
   }
 }
