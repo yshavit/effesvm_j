@@ -292,24 +292,42 @@ public class DebuggerGui {
     }
 
     <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess, Consumer<Throwable> onFailure) {
-      try {
-        output.writeObject(message);
-        Object responseObj = input.readObject();
-        Response<R> responseObjCast = message.cast(responseObj);
-        responseObjCast.handle(onSuccess, onFailure);
-      } catch (EOFException | SocketException e) {
-        for (Iterator<Runnable> iterator = onClose.iterator(); iterator.hasNext(); ) {
-          Runnable runnable = iterator.next();
+      SwingWorker<Response<R>,Void> worker = new SwingWorker<Response<R>,Void>() {
+        @Override
+        protected Response<R> doInBackground() throws Exception {
           try {
-            runnable.run();
-          } catch (Exception e2) {
-            e2.printStackTrace();
+            output.writeObject(message);
+            Object responseObj = input.readObject();
+            return message.cast(responseObj);
+          } catch (EOFException | SocketException e) {
+            for (Iterator<Runnable> iterator = onClose.iterator(); iterator.hasNext(); ) {
+              Runnable runnable = iterator.next();
+              try {
+                runnable.run();
+              } catch (Exception e2) {
+                e2.printStackTrace();
+              }
+              iterator.remove();
+            }
+            return null;
+          } catch (Exception e) {
+            return Response.forError(e);
           }
-          iterator.remove();
         }
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+
+        @Override
+        protected void done() {
+          Response<R> response;
+          try {
+            response = get();
+          } catch (Exception e) {
+            onFailure.accept(e);
+            return;
+          }
+          response.handle(onSuccess, onFailure);
+        }
+      };
+      worker.execute();
     }
 
     <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {

@@ -14,11 +14,11 @@ public class Response<R extends Serializable> implements Serializable {
     this.error = error;
   }
 
-  public static Response<?> forError(Throwable error) {
+  public static <R extends Serializable> Response<R> forError(Throwable error) {
     return new Response<>(null, error);
   }
 
-  public static Response<?> forResponse(Serializable response) {
+  public static <R extends Serializable> Response<R> forResponse(R response) {
     return new Response<>(response, null);
   }
 
