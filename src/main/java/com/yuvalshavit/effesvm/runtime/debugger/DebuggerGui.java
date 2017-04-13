@@ -6,19 +6,24 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
 import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +31,13 @@ import java.util.regex.Pattern;
 import javax.swing.*;
 
 public class DebuggerGui {
+
+  private static final ThreadFactory daemonThreads = (r) -> {
+    Thread t = new Thread(r);
+    t.setDaemon(true);
+    return t;
+  };
+
   public static void createConnectDialogue() {
     JFrame connectionWindow = new JFrame("EffesVM Debugger");
     connectionWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -53,8 +65,7 @@ public class DebuggerGui {
       return;
     }
     try {
-      Socket socket = new Socket(InetAddress.getLocalHost(), portInt);
-      DebugConnection debugConnection = new DebugConnection(portInt, socket.getInputStream(), socket.getOutputStream());
+      DebugConnection debugConnection = new DebugConnection(portInt);
       debugConnection.communicate(new MsgHello(), r -> {
         connectionWindow.dispose();
         createDebugWindow(debugConnection);
@@ -109,6 +120,19 @@ public class DebuggerGui {
     public void create() {
       JFrame frame = new JFrame("Debugger connected to " + connection.port);
       frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+      frame.addWindowListener(new WindowAdapter() {
+        @Override
+        public void windowClosed(WindowEvent event) {
+          if (opFrame != null) {
+            opFrame.dispose();
+          }
+          try {
+            connection.close();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      });
 
       mainPanel = new JPanel();
       mainPanel.setLayout(new BorderLayout());
@@ -200,12 +224,11 @@ public class DebuggerGui {
       opFrame.pack();
       opFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-      // TODO: This causes problems with other messages getting interleaved. Need to single-thread the communication, or something.
-//      ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-//      scheduler.scheduleWithFixedDelay(() -> connection.communicate(new MsgHello(), ok -> {}), 1500, 500, TimeUnit.MILLISECONDS);
+      ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(daemonThreads);
+      scheduler.scheduleWithFixedDelay(() -> connection.communicate(new MsgHello(), ok -> {}), 1500, 500, TimeUnit.MILLISECONDS);
       connection.addCloseHandler(() -> {
         onConnectionClosed(topPanel);
-//        scheduler.shutdownNow();
+        scheduler.shutdownNow();
       });
       connection.communicate(new MsgIsSuspended(), isSuspended -> {
         if (!stateLabel.getText().equals(connectionClosedMessage)) {
@@ -279,12 +302,16 @@ public class DebuggerGui {
     final ObjectInputStream input;
     final ObjectOutputStream output;
     final BlockingDeque<Runnable> onClose;
+    private final ExecutorService communicationExecutor;
+    private final Socket socket;
 
-    public DebugConnection(int port, InputStream input, OutputStream output) throws IOException {
+    public DebugConnection(int port) throws IOException {
       this.port = port;
-      this.output = new ObjectOutputStream(output);
-      this.input = new ObjectInputStream(input);
-      onClose = new LinkedBlockingDeque<>();
+      this.socket = new Socket(InetAddress.getLocalHost(), port);
+      this.output = new ObjectOutputStream(socket.getOutputStream());
+      this.input = new ObjectInputStream(socket.getInputStream());
+      this.onClose = new LinkedBlockingDeque<>();
+      communicationExecutor = Executors.newSingleThreadExecutor(daemonThreads);
     }
 
     void addCloseHandler(Runnable onClose) {
@@ -292,46 +319,41 @@ public class DebuggerGui {
     }
 
     <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess, Consumer<Throwable> onFailure) {
-      SwingWorker<Response<R>,Void> worker = new SwingWorker<Response<R>,Void>() {
-        @Override
-        protected Response<R> doInBackground() throws Exception {
+      communicationExecutor.submit(() -> {
+        try {
+          output.writeObject(message);
+          Object responseObj = input.readObject();
+          Response<R> response = message.cast(responseObj);
+          SwingUtilities.invokeLater(() -> response.handle(onSuccess, onFailure));
+        } catch (EOFException | SocketException e) {
           try {
-            output.writeObject(message);
-            Object responseObj = input.readObject();
-            return message.cast(responseObj);
-          } catch (EOFException | SocketException e) {
-            for (Iterator<Runnable> iterator = onClose.iterator(); iterator.hasNext(); ) {
-              Runnable runnable = iterator.next();
-              try {
-                runnable.run();
-              } catch (Exception e2) {
-                e2.printStackTrace();
-              }
-              iterator.remove();
-            }
-            return null;
-          } catch (Exception e) {
-            return Response.forError(e);
+            close();
+          } catch (IOException e1) {
+            e1.printStackTrace();
           }
+        } catch (Exception e) {
+          Response<R> response = Response.forError(e);
+          SwingUtilities.invokeLater(() -> response.handle(onSuccess, onFailure));
         }
-
-        @Override
-        protected void done() {
-          Response<R> response;
-          try {
-            response = get();
-          } catch (Exception e) {
-            onFailure.accept(e);
-            return;
-          }
-          response.handle(onSuccess, onFailure);
-        }
-      };
-      worker.execute();
+      });
     }
 
     <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
       communicate(message, onSuccess, Throwable::printStackTrace);
+    }
+
+    public void close() throws IOException {
+      communicationExecutor.shutdownNow();
+      for (Iterator<Runnable> iterator = onClose.iterator(); iterator.hasNext(); ) {
+        Runnable runnable = iterator.next();
+        try {
+          runnable.run();
+        } catch (Exception e2) {
+          e2.printStackTrace();
+        }
+        iterator.remove();
+      }
+      socket.close();
     }
   }
 }
