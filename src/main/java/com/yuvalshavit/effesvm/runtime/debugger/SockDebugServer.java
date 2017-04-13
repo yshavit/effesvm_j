@@ -14,8 +14,10 @@ public class SockDebugServer implements DebugServer {
   private final DebuggerState state;
   private volatile Socket socket;
   private volatile boolean active;
+  private final int port;
 
-  public SockDebugServer(boolean suspend) {
+  public SockDebugServer(int port, boolean suspend) {
+    this.port = port;
     this.state = new DebuggerState();
     if (suspend) {
       state.suspend();
@@ -24,7 +26,7 @@ public class SockDebugServer implements DebugServer {
 
   public void start() throws IOException {
     active = true;
-    ServerSocket serverSocket = new ServerSocket(0);
+    ServerSocket serverSocket = new ServerSocket(port);
     Thread readerThread = new Thread(() -> {
       while (active) {
         Socket localLocket;

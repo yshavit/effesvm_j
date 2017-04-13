@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
@@ -144,7 +146,23 @@ public class EvmRunner {
     if (debug == null) {
       return DebugServer.noop;
     } else {
-      SockDebugServer debugServer = new SockDebugServer("suspend".equalsIgnoreCase(debug));
+      Matcher debugOptions = Pattern.compile("(\\d*):(suspend)?").matcher(debug);
+      if (!debugOptions.matches()) {
+        System.err.println("invalid debug options; not starting debugger");
+        return DebugServer.noop;
+      }
+      final int port;
+      if (debugOptions.group(1).isEmpty()) {
+        port = 0;
+      } else {
+        try {
+          port = Integer.parseInt(debugOptions.group(1));
+        } catch (NumberFormatException e) {
+          System.err.println("invalid debug options; not starting debugger");
+          return DebugServer.noop;
+        }
+      }
+      SockDebugServer debugServer = new SockDebugServer(port, debugOptions.group(2) != null);
       try {
         debugServer.start();
         return debugServer;
