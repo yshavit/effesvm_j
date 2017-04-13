@@ -23,6 +23,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGui;
 import com.yuvalshavit.effesvm.runtime.debugger.SockDebugServer;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
@@ -30,6 +31,7 @@ import com.yuvalshavit.effesvm.util.SequencedIterator;
 public class EvmRunner {
 
   public static final int STACK_SIZE = 500;
+  public static final String DEBUGGER_OPTION = "-d";
 
   private EvmRunner() {
   }
@@ -37,6 +39,24 @@ public class EvmRunner {
   public static void main(String[] args) throws IOException {
     if (args.length == 0) {
       throw new IllegalArgumentException("must take at least one file, a module to run");
+    }
+    if (args[0].startsWith(DEBUGGER_OPTION)) {
+      if (args.length == 1) {
+        DebuggerGui.createConnectDialogue();
+      } else if (args.length == 2) {
+        int port;
+        try {
+          port = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+          System.err.println("invalid port: " + args[1]);
+          System.exit(1);
+          throw e;
+        }
+        DebuggerGui.connectTo(port);
+      } else {
+        System.err.printf("%s [port]. No other options allowed.%n", DEBUGGER_OPTION);
+      }
+      return;
     }
 
     String classpath = System.getenv().getOrDefault("EFFES_CLASSPATH", ".");

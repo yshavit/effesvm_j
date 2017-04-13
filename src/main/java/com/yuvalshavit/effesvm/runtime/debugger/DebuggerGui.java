@@ -17,13 +17,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -75,8 +69,18 @@ public class DebuggerGui {
     }
   }
 
-  public static void main(String[] args) {
-    createConnectDialogue();
+  public static void connectTo(int port) throws IOException {
+    DebugConnection connection = new DebugConnection(port);
+    CountDownLatch windowUp = new CountDownLatch(1);
+    connection.communicate(new MsgHello(), ok -> {
+      createDebugWindow(connection);
+      windowUp.countDown();
+    });
+    try {
+      windowUp.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   private static void createDebugWindow(DebugConnection connection) {
