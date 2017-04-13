@@ -8,10 +8,12 @@ public class DebuggerState {
   private volatile RunState runState = RunState.RUNNING;
   private volatile EffesState effesState;
   private volatile int stepsCompleted;
+  private EffesState.FrameInfo stepOverToFp;
 
   public void suspend() {
     synchronized (this) {
-      runState = RunState.SUSPENDED;
+      runState = RunState.STEPPING; // so that it'll suspend next time through
+      stepOverToFp = null; // so that it won't step over
       notifyAll();
     }
   }
@@ -33,15 +35,27 @@ public class DebuggerState {
 
   public void resume() {
     synchronized (this) {
-      effesState = null;
       runState = RunState.RUNNING;
       notifyAll();
     }
   }
 
-  public void step() {
+  public void step() throws InterruptedException {
+    stepInternal(false);
+  }
+
+  public void stepOver() throws InterruptedException {
+    stepInternal(true);
+  }
+
+  private void stepInternal(boolean saveFp) throws InterruptedException {
     synchronized (this) {
-      effesState = null;
+      while (runState != RunState.SUSPENDED) {
+        wait();
+      }
+      stepOverToFp = saveFp
+        ? effesState.fp()
+        : null;
       runState = RunState.STEPPING;
       notifyAll();
     }
@@ -58,13 +72,19 @@ public class DebuggerState {
 
   void beforeAction(EffesState state) throws InterruptedException {
     synchronized (this) {
-      while (runState == RunState.SUSPENDED) {
-        effesState = state;
-        wait();
-      }
-      effesState = null;
       if (runState == RunState.STEPPING) {
-        runState = RunState.SUSPENDED;
+        if (stepOverToFp == null || stepOverToFp.equals(state.fp())) {
+          stepOverToFp = null;
+          runState = RunState.SUSPENDED;
+          notifyAll();
+        }
+      }
+      synchronized (this) {
+        while (runState == RunState.SUSPENDED) {
+          effesState = state;
+          wait();
+        }
+        effesState = null;
       }
       ++stepsCompleted;
     }

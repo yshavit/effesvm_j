@@ -223,7 +223,7 @@ public class EffesState {
     return regFp - distanceFromFp;
   }
 
-  private FrameInfo fp() {
+  public FrameInfo fp() {
     return (FrameInfo) stack[regFp];
   }
 

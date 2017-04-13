@@ -32,6 +32,7 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 
 public class DebuggerGui {
+  public static final int DEFAULT_PORT = 6667;
 
   private static final ThreadFactory daemonThreads = (r) -> {
     Thread t = new Thread(r);
@@ -41,7 +42,7 @@ public class DebuggerGui {
 
   public static void createConnectDialogue(int initialPort) {
     if (initialPort <= 0) {
-      initialPort = 6166;
+      initialPort = DEFAULT_PORT;
     }
     JFrame connectionWindow = new JFrame("EffesVM Debugger");
     connectionWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -149,7 +150,6 @@ public class DebuggerGui {
     private JPanel mainPanel;
     private JLabel stateLabel;
     private JButton resumeButton;
-    private JButton stepButton;
     private DefaultListModel<String> frameInfo;
     private DefaultListModel<String> opInfo;
     private volatile String currentFunctionId;
@@ -196,12 +196,27 @@ public class DebuggerGui {
             break;
         }
       });
-      stepButton = new JButton("Step");
+
+      JPanel stepButtons = new JPanel();
+      JButton stepButton = new JButton("Step");
       stepButton.addActionListener(l -> connection.communicate(new MsgStep(), state -> updateStackFrameInfo()));
-      mainPanel.add(stepButton, BorderLayout.NORTH);
+      stepButtons.add(stepButton);
+      JButton stepOverButton = new JButton("Step Over");
+      stepOverButton.addActionListener(l -> connection.communicate(new MsgStepOver(), ok -> {
+        stateLabel.setText(suspendedMessage);
+        setEnabledRecursively(opFrame, false);
+        setEnabledRecursively(mainPanel, false);
+        connection.communicate(new MsgAwaitSuspension(), suspended -> {
+          setEnabledRecursively(mainPanel, true);
+          updateStackFrameInfo();
+          setEnabledRecursively(opFrame, true);
+        });
+      }));
+      stepButtons.add(stepOverButton, BorderLayout.NORTH);
+      mainPanel.add(stepButtons, BorderLayout.NORTH);
 
       frameInfo = new DefaultListModel<>();
-      Pattern frameDividerPattern = Pattern.compile("\\[\\d+\\] *(\\* *)?\\[==");
+      Pattern frameDividerPattern = Pattern.compile("\\[ *\\d+\\] *(\\* *)?\\[==");
       JList<String> frameInfoList = new JList<>(frameInfo);
       frameInfoList.setCellRenderer(new DefaultListCellRenderer() {
         @Override
