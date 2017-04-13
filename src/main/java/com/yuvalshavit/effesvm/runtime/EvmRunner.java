@@ -171,7 +171,7 @@ public class EvmRunner {
     if (debug == null) {
       return DebugServer.noop;
     } else {
-      Matcher debugOptions = Pattern.compile("(\\d*):(suspend)?").matcher(debug);
+      Matcher debugOptions = Pattern.compile("(\\d+)(:suspend)?").matcher(debug);
       if (!debugOptions.matches()) {
         System.err.println("invalid debug options; not starting debugger");
         return DebugServer.noop;
