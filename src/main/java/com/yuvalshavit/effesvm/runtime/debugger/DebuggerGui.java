@@ -39,11 +39,7 @@ public class DebuggerGui {
     return t;
   };
 
-  public static void createConnectDialogue() {
-    createConnectDialogue(-1);
-  }
-
-  private static void createConnectDialogue(int initialPort) {
+  public static void createConnectDialogue(int initialPort) {
     if (initialPort <= 0) {
       initialPort = 6166;
     }

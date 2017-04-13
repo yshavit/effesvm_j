@@ -1,6 +1,7 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -42,7 +43,7 @@ public class EvmRunner {
     }
     if (args[0].startsWith(DEBUGGER_OPTION)) {
       if (args.length == 1) {
-        DebuggerGui.createConnectDialogue();
+        DebuggerGui.createConnectDialogue(-1);
       } else if (args.length == 2) {
         int port;
         try {
@@ -52,7 +53,11 @@ public class EvmRunner {
           System.exit(1);
           throw e;
         }
-        DebuggerGui.connectTo(port);
+        try {
+          DebuggerGui.connectTo(port);
+        } catch (ConnectException e) {
+          DebuggerGui.createConnectDialogue(port);
+        }
       } else {
         System.err.printf("%s [port]. No other options allowed.%n", DEBUGGER_OPTION);
       }
