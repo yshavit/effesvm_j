@@ -193,9 +193,9 @@ public class DebuggerGui {
       });
 
       JPanel stepButtons = new JPanel();
-      stepButtons.add(stepButton("Step In ⇲", new MsgStepIn()));
-      stepButtons.add(stepButton("Step Over ↷", new MsgStepOver()));
-      stepButtons.add(stepButton("Step Out ⇱", new MsgStepOut()));
+      stepButtons.add(stepButton("In ⇲", new MsgStepIn()));
+      stepButtons.add(stepButton("Over ↷", new MsgStepOver()));
+      stepButtons.add(stepButton("Out ⇱", new MsgStepOut()));
       mainPanel.add(stepButtons, BorderLayout.NORTH);
 
       frameInfo = new DefaultListModel<>();
