@@ -168,7 +168,7 @@ public class EvmRunner {
 
   private static DebugServer getDebugServer() {
     String debug = System.getProperty("debug");
-    if (debug == null) {
+    if (debug == null || debug.isEmpty()) {
       return DebugServer.noop;
     } else {
       Matcher debugOptions = Pattern.compile("(\\d+)(:suspend)?").matcher(debug);
