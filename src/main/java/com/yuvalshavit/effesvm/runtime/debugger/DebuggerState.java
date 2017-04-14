@@ -9,8 +9,8 @@ public class DebuggerState {
   private static final Predicate<EffesState> always = e -> true;
   private static final Predicate<EffesState> never = e -> false;
   private volatile int stepsCompleted;
-  private volatile boolean running;
-  private Predicate<EffesState> suspendBeforeNextAction;
+  private volatile boolean running = true;
+  private Predicate<EffesState> suspendBeforeNextAction = never;
   private EffesState effesState;
 
   public void suspend() {
