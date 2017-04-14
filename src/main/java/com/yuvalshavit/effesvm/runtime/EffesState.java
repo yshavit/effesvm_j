@@ -227,6 +227,14 @@ public class EffesState {
     return (FrameInfo) stack[regFp];
   }
 
+  public int frameDepth() {
+    int i = 0;
+    for (FrameInfo fp = fp(); fp.previousFp > 0; fp = (FrameInfo) stack[fp.previousFp]) {
+      ++i;
+    }
+    return i;
+  }
+
   private static String describeLabel(String label) {
     return (label == null)
       ? "(no named labels seen)"

@@ -1,19 +1,21 @@
 package com.yuvalshavit.effesvm.runtime.debugger;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class DebuggerState {
-  private volatile RunState runState = RunState.RUNNING;
-  private volatile EffesState effesState;
+  private static final Predicate<EffesState> always = e -> true;
+  private static final Predicate<EffesState> never = e -> false;
   private volatile int stepsCompleted;
-  private EffesState.FrameInfo stepOverToFp;
+  private volatile boolean running;
+  private Predicate<EffesState> suspendBeforeNextAction;
+  private EffesState effesState;
 
   public void suspend() {
     synchronized (this) {
-      runState = RunState.STEPPING; // so that it'll suspend next time through
-      stepOverToFp = null; // so that it won't step over
+      suspendBeforeNextAction = always; // so that it'll suspend next time through
       notifyAll();
     }
   }
@@ -26,7 +28,7 @@ public class DebuggerState {
    */
   public <R> R visitStateUnderLock(Function<? super EffesState, ? extends R> reader) throws InterruptedException {
     synchronized (this) {
-      while (runState != RunState.SUSPENDED) {
+      while (running) {
         wait();
       }
       return reader.apply(effesState);
@@ -35,28 +37,30 @@ public class DebuggerState {
 
   public void resume() {
     synchronized (this) {
-      runState = RunState.RUNNING;
+      running = true;
+      suspendBeforeNextAction = never;
       notifyAll();
     }
   }
 
   public void step() throws InterruptedException {
-    stepInternal(false);
+    stepInternal(current -> always);
   }
 
   public void stepOver() throws InterruptedException {
-    stepInternal(true);
+    stepInternal(current -> {
+      int currentDepth = current.frameDepth();
+      return state -> state.frameDepth() <= currentDepth;
+    });
   }
 
-  private void stepInternal(boolean saveFp) throws InterruptedException {
+  private void stepInternal(Function<EffesState,Predicate<EffesState>> suspendBeforeNextActionFactory) throws InterruptedException {
     synchronized (this) {
-      while (runState != RunState.SUSPENDED) {
+      while (running) {
         wait();
       }
-      stepOverToFp = saveFp
-        ? effesState.fp()
-        : null;
-      runState = RunState.STEPPING;
+      this.suspendBeforeNextAction = suspendBeforeNextActionFactory.apply(effesState);
+      running = true;
       notifyAll();
     }
   }
@@ -66,41 +70,31 @@ public class DebuggerState {
   }
 
   public boolean isSuspended() {
-    RunState localState = this.runState;
-    return localState == RunState.SUSPENDED || localState == RunState.STEPPING;
+    return ! running;
   }
 
   void beforeAction(EffesState state) throws InterruptedException {
     synchronized (this) {
-      if (runState == RunState.STEPPING) {
-        if (stepOverToFp == null || stepOverToFp.equals(state.fp())) {
-          stepOverToFp = null;
-          runState = RunState.SUSPENDED;
-          notifyAll();
-        }
+      if (suspendBeforeNextAction.test(state)) {
+        running = false;
+        notifyAll();
       }
-      synchronized (this) {
-        while (runState == RunState.SUSPENDED) {
-          effesState = state;
-          wait();
-        }
-        effesState = null;
+    }
+    synchronized (this) {
+      while (!running) {
+        effesState = state;
+        wait();
       }
+      effesState = null;
       ++stepsCompleted;
     }
   }
 
   public void awaitSuspension() throws InterruptedException {
     synchronized (this) {
-      while (runState != RunState.SUSPENDED) {
+      while (running) {
         wait();
       }
     }
-  }
-
-  private enum RunState {
-    RUNNING,
-    SUSPENDED,
-    STEPPING,
   }
 }
