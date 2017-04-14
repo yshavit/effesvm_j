@@ -38,7 +38,7 @@ public class EffesModule<T> {
     return types;
   }
 
-  Collection<EffesFunction<T>> functions() {
+  public Collection<EffesFunction<T>> functions() {
     return Collections.unmodifiableCollection(functions.values());
   }
 

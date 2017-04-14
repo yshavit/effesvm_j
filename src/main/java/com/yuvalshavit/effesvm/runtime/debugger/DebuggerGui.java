@@ -6,7 +6,9 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -151,11 +153,7 @@ public class DebuggerGui {
     private JLabel stateLabel;
     private JButton resumeButton;
     private DefaultListModel<String> frameInfo;
-    private DefaultListModel<String> opInfo;
-    private volatile String currentFunctionId;
-    private volatile int currentOpIdx = -1;
-    private JFrame opFrame;
-    private JList<String> opInfoList;
+    private OpsListWindow opsFrame;
 
     public DebugWindow(DebugConnection connection) {
       this.connection = connection;
@@ -167,14 +165,12 @@ public class DebuggerGui {
       frame.addWindowListener(new WindowAdapter() {
         @Override
         public void windowClosed(WindowEvent event) {
-          if (opFrame != null) {
-            opFrame.dispose();
-          }
           try {
             connection.close();
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
+          opsFrame.close();
           createConnectDialogue(connection.port);
         }
       });
@@ -241,37 +237,6 @@ public class DebuggerGui {
       frameInfoScrollPane.setPreferredSize(new Dimension(600, 400));
       mainPanel.add(frameInfoScrollPane, BorderLayout.CENTER);
 
-      opFrame = new JFrame("ops");
-      opInfo = new DefaultListModel<>();
-      opInfoList = new JList<>(opInfo);
-      Pattern lineNumberFinder = Pattern.compile("^#(\\d+) *");
-      opInfoList.setCellRenderer(new DefaultListCellRenderer() {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-          if (value instanceof String) {
-            String valueStr = (String) value;
-            Matcher lineNumberMatcher = lineNumberFinder.matcher(valueStr);
-            if (lineNumberMatcher.find()) {
-              StringBuilder sb = new StringBuilder(valueStr.length() + 10); // +10 is more than enough
-              sb.append(index).append('(').append(lineNumberMatcher.group(1)).append(") ");
-              sb.append(valueStr, lineNumberMatcher.end(), valueStr.length());
-              value = sb.toString();
-            }
-          }
-          Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-          if (index == currentOpIdx) {
-            fromSuper.setBackground(Color.LIGHT_GRAY);
-          }
-          return fromSuper;
-        }
-      });
-      opInfoList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-      JScrollPane opInfoScrollPane = new JScrollPane(opInfoList);
-      opInfoScrollPane.setPreferredSize(new Dimension(400, 600));
-      opFrame.getContentPane().add(opInfoScrollPane);
-      opFrame.pack();
-      opFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
       ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(daemonThreads);
       scheduler.scheduleWithFixedDelay(() -> connection.communicate(new MsgHello(), ok -> {}), 1500, 500, TimeUnit.MILLISECONDS);
       connection.addCloseHandler(() -> {
@@ -287,6 +252,10 @@ public class DebuggerGui {
           }
         }
       });
+      connection.communicate(new MsgGetModules(), resp -> {
+        Map<String,Map<String,List<String>>> functionsByModules = resp.functionsByModule();
+        opsFrame = createOpsFrame(functionsByModules);
+      });
 
       Container content = frame.getContentPane();
       content.add(topPanel, BorderLayout.NORTH);
@@ -296,17 +265,127 @@ public class DebuggerGui {
       frame.setVisible(true);
     }
 
+    private OpsListWindow createOpsFrame(Map<String,Map<String,List<String>>> functionsByModules) {
+      Map<String,List<String>> functionNamesByModule = new HashMap<>();
+      Map<Map.Entry<String,String>,List<String>> opsByFunction = new HashMap<>();
+      Map<String,String> activeFunctionPerModule = new HashMap<>();
+
+      functionsByModules.forEach((moduleId, functions) -> {
+        List<String> functionNames = new ArrayList<>(functions.size());
+        functionNamesByModule.put(moduleId, functionNames);
+        functions.forEach((functionName, ops) -> {
+          functionNames.add(functionName);
+          Map.Entry<String,String> functionId = new AbstractMap.SimpleImmutableEntry<>(moduleId, functionName);
+          opsByFunction.put(functionId, ops);
+        });
+        Collections.sort(functionNames);
+        activeFunctionPerModule.put(moduleId, functionNames.get(0));
+      });
+
+      JComboBox<String> modulesChooserBox = new JComboBox<>(functionsByModules.keySet().toArray(new String[0]));
+      DefaultComboBoxModel<String> functionChooserModel = new DefaultComboBoxModel<>();
+      JComboBox<String> functionsComboBox = new JComboBox<>(functionChooserModel);
+      DefaultListModel<String> activeOpsModel = new DefaultListModel<>();
+      JList<String> activeOpsList = new JList<>(activeOpsModel);
+
+      modulesChooserBox.addActionListener(action -> {
+        String moduleName = (String) modulesChooserBox.getSelectedItem();
+        functionChooserModel.removeAllElements();
+        String activeFunction = activeFunctionPerModule.get(moduleName); // save this before the function box's listener overwrites it
+        functionNamesByModule.getOrDefault(moduleName, Collections.emptyList()).forEach(functionChooserModel::addElement);
+        functionChooserModel.setSelectedItem(activeFunction);
+      });
+      functionsComboBox.addActionListener(action -> {
+        String moduleName = (String) modulesChooserBox.getSelectedItem();
+        String functionName = (String) functionChooserModel.getSelectedItem();
+        Map.Entry<String,String> functionId = new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName);
+        activeOpsModel.clear();
+        opsByFunction.getOrDefault(functionId, Collections.singletonList("ERROR: no function " + functionId)).forEach(activeOpsModel::addElement);
+        if (functionName != null) {
+          activeFunctionPerModule.put(moduleName, functionName);
+        }
+      });
+
+      JFrame frame = new JFrame("modules");
+      frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+      frame.setType(Window.Type.UTILITY);
+      Container rootContent = frame.getContentPane();
+      rootContent.setLayout(new BorderLayout());
+      OpsListWindow window = new OpsListWindow() {
+        @Override
+        void activate(String moduleName, String functionName, int opIdx) {
+          this.activeModule = moduleName;
+          this.activeFunction = functionName;
+          this.activeOpIdx = opIdx;
+          activeFunctionPerModule.put(moduleName, functionName);
+          modulesChooserBox.setSelectedItem(moduleName); // will also update the function, and page in the ops
+          activeOpsList.setSelectedIndex(opIdx);
+        }
+
+        @Override
+        void close() {
+          frame.dispose();
+        }
+      };
+
+      JPanel selectorGroup = new JPanel();
+      selectorGroup.add(modulesChooserBox);
+      selectorGroup.add(functionsComboBox);
+      rootContent.add(selectorGroup, BorderLayout.NORTH);
+
+      JScrollPane opsScrollPane = new JScrollPane(activeOpsList);
+      opsScrollPane.setPreferredSize(new Dimension(600, 700));
+      activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+      rootContent.add(opsScrollPane, BorderLayout.CENTER);
+      Pattern lineNumberFinder = Pattern.compile("^#(\\d+) *");
+      activeOpsList.setCellRenderer(new DefaultListCellRenderer() {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+          if (value instanceof String) {
+            String valueStr = (String) value;
+            Matcher lineNumberMatcher = lineNumberFinder.matcher(valueStr);
+            if (lineNumberMatcher.find()) {
+              StringBuilder sb = new StringBuilder(valueStr.length() + 10); // +10 is more than enough
+              sb.append(index).append('(').append(lineNumberMatcher.group(1)).append(") ");
+              sb.append(valueStr, lineNumberMatcher.end(), valueStr.length());
+              value = sb.toString();
+            }
+          }
+          Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
+          String moduleName = (String) modulesChooserBox.getSelectedItem();
+          String functionName = (String) functionChooserModel.getSelectedItem();
+          // The following object has to match the one set in the lambda
+          if (Objects.equals(moduleName, window.activeModule) && Objects.equals(functionName, window.activeFunction) && window.activeOpIdx == index) {
+            fromSuper.setBackground(Color.LIGHT_GRAY);
+          }
+          return fromSuper;
+        }
+      });
+
+      frame.pack();
+      frame.setVisible(true);
+      return window;
+    }
+
+    private abstract class OpsListWindow {
+      String activeModule;
+      String activeFunction;
+      int activeOpIdx;
+
+      abstract void activate(String moduleId, String functionName, int opIdx);
+      abstract void close();
+    }
+
     private JButton stepButton(String label, Msg.NoResponse message) {
       JButton stepOverButton = new JButton(label);
       stepOverButton.addActionListener(l -> {
         connection.communicate(message, ok -> {
           stateLabel.setText(suspendedMessage);
-          setEnabledRecursively(opFrame, false);
           setEnabledRecursively(mainPanel, false);
           connection.communicate(new MsgAwaitSuspension(), suspended -> {
             setEnabledRecursively(mainPanel, true);
             updateStackFrameInfo();
-            setEnabledRecursively(opFrame, true);
           });
         });
       });
@@ -325,7 +404,6 @@ public class DebuggerGui {
         stateLabel.setText(suspendButtonText);
         setEnabledRecursively(mainPanel, true);
       });
-      opFrame.dispose();
     }
 
     private void onResume() {
@@ -341,23 +419,14 @@ public class DebuggerGui {
     }
 
     private void updateStackFrameInfo() {
-      connection.communicate(new MsgGetFrame(currentFunctionId), frames -> {
+      connection.communicate(new MsgGetFrame(), frames -> {
         frameInfo.clear();
         String howMany = (frames.getStepsCompleted() == 1)
           ? "1 step completed"
           : (frames.getStepsCompleted() + " steps completed");
         frameInfo.addElement(howMany);
         frames.describeElements().forEach(frameInfo::addElement);
-        currentFunctionId = frames.getCurrentFunctionId();
-        currentOpIdx = frames.getOpIndex();
-        opInfoList.setSelectedIndex(currentOpIdx);
-        if (frames.getFunctionOps() != null) {
-          opFrame.setTitle(frames.getCurrentFunctionId());
-          opInfo.clear();
-          frames.getFunctionOps().forEach(opInfo::addElement);
-          opFrame.setVisible(true);
-        }
-        opFrame.repaint();
+        opsFrame.activate(frames.getCurrentModuleId(), frames.getCurrentFunctionName(), frames.getOpIndex());
       });
     }
   }

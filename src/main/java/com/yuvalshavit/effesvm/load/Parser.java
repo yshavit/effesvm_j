@@ -115,7 +115,7 @@ public class Parser {
       UnlinkedOperation op = opBuilder.build(module, lines.count(), line.tailTokens(1));
       ops.add(op);
     }
-    return new EffesFunction<>(new EffesFunction.Id(className, functionName), -1, hasRv, nArgs, ops);
+    return new EffesFunction<>(module, new EffesFunction.Id(className, functionName), -1, hasRv, nArgs, ops);
   }
 
   private EffesType parseType(Line line) {

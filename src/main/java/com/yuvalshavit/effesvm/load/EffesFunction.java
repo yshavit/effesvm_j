@@ -7,13 +7,15 @@ import java.util.Objects;
 
 public class EffesFunction<T> {
 
+  private final EffesModule.Id moduleId;
   private final Id id;
   private final int nArgs;
   private final boolean hasRv;
   private final int nVars;
   private final List<T> ops;
 
-  public EffesFunction(Id id, int nVars, boolean hasRv, int nArgs, List<T> ops) {
+  public EffesFunction(EffesModule.Id moduleId, Id id, int nVars, boolean hasRv, int nArgs, List<T> ops) {
+    this.moduleId = moduleId;
     this.id = id;
     this.nArgs = nArgs;
     this.hasRv = hasRv;
@@ -39,6 +41,10 @@ public class EffesFunction<T> {
 
   public T opAt(int idx) {
     return ops.get(idx);
+  }
+
+  public EffesModule.Id moduleId() {
+    return moduleId;
   }
 
   public Id id() {

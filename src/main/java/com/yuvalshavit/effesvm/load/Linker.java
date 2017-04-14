@@ -70,7 +70,7 @@ public class Linker {
         }
         List<Operation> ops = new ArrayList<>(unlinkedFunction.nOps());
         Map<String,LinkPair> functionsByName = linkingFunctions.computeIfAbsent(functionScope, k -> new HashMap<>());
-        EffesFunction<Operation> function = new EffesFunction<>(functionId, totalNVars - nArgs, unlinkedFunction.hasRv(), nArgs, ops);
+        EffesFunction<Operation> function = new EffesFunction<>(moduleId, functionId, totalNVars - nArgs, unlinkedFunction.hasRv(), nArgs, ops);
         linkedFunctions.add(function);
         LinkPair linkPair = new LinkPair(function, ops);
         LinkPair old = functionsByName.put(functionId.functionName(), linkPair);
