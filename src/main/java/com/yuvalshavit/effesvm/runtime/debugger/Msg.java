@@ -2,6 +2,8 @@ package com.yuvalshavit.effesvm.runtime.debugger;
 
 import java.io.Serializable;
 
+import com.yuvalshavit.effesvm.runtime.DebugServerContext;
+
 public abstract class Msg<R extends Serializable> implements Serializable {
   private final Class<R> responseClass;
 
@@ -9,7 +11,7 @@ public abstract class Msg<R extends Serializable> implements Serializable {
     this.responseClass = responseClass;
   }
 
-  abstract R process(DebuggerState state) throws InterruptedException;
+  abstract R process(DebugServerContext context, DebuggerState state) throws InterruptedException;
 
   public Response<R> cast(Object o) {
     Response<?> wildResponse = (Response<?>) o;
@@ -24,7 +26,7 @@ public abstract class Msg<R extends Serializable> implements Serializable {
     abstract void run(DebuggerState state) throws InterruptedException;
 
     @Override
-    final Ok process(DebuggerState state) throws InterruptedException {
+    final Ok process(DebugServerContext context, DebuggerState state) throws InterruptedException {
       run(state);
       return new Ok();
     }

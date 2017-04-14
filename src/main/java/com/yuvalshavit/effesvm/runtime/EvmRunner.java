@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -93,10 +94,7 @@ public class EvmRunner {
     String[] argsToEffes = Arrays.copyOfRange(args, 1, args.length);
 
     EffesIo io = EffesIo.stdio();
-    int exitCode;
-    try (DebugServer debug = getDebugServer()) {
-      exitCode = run(inputFiles, main, argsToEffes, io, null, debug);
-    }
+    int exitCode = run(inputFiles, main, argsToEffes, io, null, EvmRunner::getDebugServer);
     System.exit(exitCode);
   }
 
@@ -106,7 +104,7 @@ public class EvmRunner {
     String[] argv,
     EffesIo io,
     Integer stackSize,
-    DebugServer debugServer)
+    Function<DebugServerContext,DebugServer> debugServerFactory) throws IOException
   {
     // Parse and link the inputs
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
@@ -119,6 +117,7 @@ public class EvmRunner {
       parsed.put(moduleId, unlinkedModule);
     }
     Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
+
     EffesModule<Operation> linkedModule = linkedModules.get(main);
 
     EffesFunction<Operation> mainFunction = linkedModule.getFunction(new EffesFunction.Id("main"));
@@ -142,31 +141,34 @@ public class EvmRunner {
       effesArgv -> IntStream.range(0, argv.length).forEach(i -> effesArgv.store(i, EffesNativeObject.forString(argv[i])))));
     state.popToVar(0);
     // Start the main loop
-    while (!state.pc().isAt(ProgramCounter.end())) {
-      Operation op = null;
-      PcMove next;
-      try {
-        debugServer.beforeAction(state);
-        op = state.pc().getOp();
-        next = op.apply(state);
-      } catch (Exception e) {
-        String message = "with pc " + state.pc();
-        String lastSeenLabel = state.lastSeenLabel();
-        if (lastSeenLabel != null) {
-          message += " after " + lastSeenLabel;
+    DebugServerContext debugServerContext = new DebugServerContext(Collections.unmodifiableMap(linkedModules));
+    try (DebugServer debugServer = debugServerFactory.apply(debugServerContext)) {
+      while (!state.pc().isAt(ProgramCounter.end())) {
+        Operation op = null;
+        PcMove next;
+        try {
+          debugServer.beforeAction(state);
+          op = state.pc().getOp();
+          next = op.apply(state);
+        } catch (Exception e) {
+          String message = "with pc " + state.pc();
+          String lastSeenLabel = state.lastSeenLabel();
+          if (lastSeenLabel != null) {
+            message += " after " + lastSeenLabel;
+          }
+          if (op != null) {
+            message += ": " + op;
+          }
+          throw new EffesRuntimeException(message, e);
         }
-        if (op != null) {
-          message += ": " + op;
-        }
-        throw new EffesRuntimeException(message, e);
+        next.accept(state.pc());
       }
-      next.accept(state.pc());
     }
     EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
     return exitCode.value;
   }
 
-  private static DebugServer getDebugServer() {
+  private static DebugServer getDebugServer(DebugServerContext context) {
     String debug = System.getProperty("debug");
     if (debug == null || debug.isEmpty()) {
       return DebugServer.noop;
@@ -187,7 +189,7 @@ public class EvmRunner {
           return DebugServer.noop;
         }
       }
-      SockDebugServer debugServer = new SockDebugServer(port, debugOptions.group(2) != null);
+      SockDebugServer debugServer = new SockDebugServer(context, port, debugOptions.group(2) != null);
       try {
         debugServer.start();
         return debugServer;

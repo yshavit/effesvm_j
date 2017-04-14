@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.ops.Operation;
+import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
@@ -18,7 +19,7 @@ public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
   }
 
   @Override
-  Response process(DebuggerState state) throws InterruptedException {
+  Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
     return state.visitStateUnderLock(s -> {
       List<String> opDesc;
       String currentFunctionId = currentFunctionId(s);

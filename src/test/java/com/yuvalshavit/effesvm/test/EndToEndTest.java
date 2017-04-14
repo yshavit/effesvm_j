@@ -60,7 +60,7 @@ public class EndToEndTest {
   }
 
   @Test(dataProvider = "tests")
-  public void run(Run run) {
+  public void run(Run run) throws IOException {
     Map<EffesModule.Id,Iterable<String>> modules = new HashMap<>(run.efctByModule.size());
     for (Map.Entry<String,String> efctByModule : run.efctByModule.entrySet()) {
       EffesModule.Id module = EffesModule.Id.of(efctByModule.getKey());
@@ -72,7 +72,7 @@ public class EndToEndTest {
     }
 
     InMemoryIo io = new InMemoryIo(run.in, run.files);
-    int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, DebugServer.noop);
+    int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, c -> DebugServer.noop);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
     assertEquals(io.err.toString().trim(), run.err.trim(), "stderr");

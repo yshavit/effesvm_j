@@ -8,15 +8,18 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import com.yuvalshavit.effesvm.runtime.DebugServer;
+import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class SockDebugServer implements DebugServer {
   private final DebuggerState state;
+  private final DebugServerContext context;
   private volatile Socket socket;
   private volatile boolean active;
   private final int port;
 
-  public SockDebugServer(int port, boolean suspend) {
+  public SockDebugServer(DebugServerContext context, int port, boolean suspend) {
+    this.context = context;
     this.port = port;
     this.state = new DebuggerState();
     if (suspend) {
@@ -47,7 +50,7 @@ public class SockDebugServer implements DebugServer {
             Msg<?> inMsg = (Msg<?>) inObj;
             Response<?> response;
             try {
-              Object responsePayload = inMsg.process(state);
+              Object responsePayload = inMsg.process(context, state);
               Serializable serializablePayload = (Serializable) responsePayload;
               response = Response.forResponse(serializablePayload);
             } catch (InterruptedException e) {
