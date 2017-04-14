@@ -54,6 +54,13 @@ public class DebuggerState {
     });
   }
 
+  public void stepOut() throws InterruptedException {
+    stepInternal(current -> {
+      int currentDepth = current.frameDepth();
+      return state -> state.frameDepth() < currentDepth;
+    });
+  }
+
   private void stepInternal(Function<EffesState,Predicate<EffesState>> suspendBeforeNextActionFactory) throws InterruptedException {
     synchronized (this) {
       while (running) {

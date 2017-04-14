@@ -198,21 +198,9 @@ public class DebuggerGui {
       });
 
       JPanel stepButtons = new JPanel();
-      JButton stepButton = new JButton("Step");
-      stepButton.addActionListener(l -> connection.communicate(new MsgStep(), state -> updateStackFrameInfo()));
-      stepButtons.add(stepButton);
-      JButton stepOverButton = new JButton("Step Over");
-      stepOverButton.addActionListener(l -> connection.communicate(new MsgStepOver(), ok -> {
-        stateLabel.setText(suspendedMessage);
-        setEnabledRecursively(opFrame, false);
-        setEnabledRecursively(mainPanel, false);
-        connection.communicate(new MsgAwaitSuspension(), suspended -> {
-          setEnabledRecursively(mainPanel, true);
-          updateStackFrameInfo();
-          setEnabledRecursively(opFrame, true);
-        });
-      }));
-      stepButtons.add(stepOverButton, BorderLayout.NORTH);
+      stepButtons.add(stepButton("Step In ⤵", new MsgStepIn()));
+      stepButtons.add(stepButton("Step Over ⇥", new MsgStepOver()));
+      stepButtons.add(stepButton("Step Out ⤴", new MsgStepOut()));
       mainPanel.add(stepButtons, BorderLayout.NORTH);
 
       frameInfo = new DefaultListModel<>();
@@ -306,6 +294,23 @@ public class DebuggerGui {
       frame.setLocationRelativeTo(null);
       frame.pack();
       frame.setVisible(true);
+    }
+
+    private JButton stepButton(String label, Msg.NoResponse message) {
+      JButton stepOverButton = new JButton(label);
+      stepOverButton.addActionListener(l -> {
+        connection.communicate(message, ok -> {
+          stateLabel.setText(suspendedMessage);
+          setEnabledRecursively(opFrame, false);
+          setEnabledRecursively(mainPanel, false);
+          connection.communicate(new MsgAwaitSuspension(), suspended -> {
+            setEnabledRecursively(mainPanel, true);
+            updateStackFrameInfo();
+            setEnabledRecursively(opFrame, true);
+          });
+        });
+      });
+      return stepOverButton;
     }
 
     private void onConnectionClosed(JPanel topPanel) {
