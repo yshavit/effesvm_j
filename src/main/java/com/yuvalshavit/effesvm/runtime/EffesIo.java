@@ -38,11 +38,13 @@ public interface EffesIo {
     @Override
     public void out(String string) {
       System.out.print(string);
+      System.out.flush();
     }
 
     @Override
     public void err(String string) {
       System.err.print(string);
+      System.err.flush();
     }
 
     @Override

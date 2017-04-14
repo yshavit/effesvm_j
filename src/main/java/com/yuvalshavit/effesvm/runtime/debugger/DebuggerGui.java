@@ -8,7 +8,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -194,9 +193,9 @@ public class DebuggerGui {
       });
 
       JPanel stepButtons = new JPanel();
-      stepButtons.add(stepButton("Step In ⤵", new MsgStepIn()));
-      stepButtons.add(stepButton("Step Over ⇥", new MsgStepOver()));
-      stepButtons.add(stepButton("Step Out ⤴", new MsgStepOut()));
+      stepButtons.add(stepButton("Step In ⇲", new MsgStepIn()));
+      stepButtons.add(stepButton("Step Over ↷", new MsgStepOver()));
+      stepButtons.add(stepButton("Step Out ⇱", new MsgStepOut()));
       mainPanel.add(stepButtons, BorderLayout.NORTH);
 
       frameInfo = new DefaultListModel<>();
@@ -246,6 +245,7 @@ public class DebuggerGui {
       connection.communicate(new MsgIsSuspended(), isSuspended -> {
         if (!stateLabel.getText().equals(connectionClosedMessage)) {
           stateLabel.setText(isSuspended ? suspendedMessage : runningMessage);
+          resumeButton.setText(isSuspended ? resumeButtonText : suspendButtonText);
           setEnabledRecursively(mainPanel, isSuspended);
           if (isSuspended) {
             updateStackFrameInfo();
@@ -402,7 +402,9 @@ public class DebuggerGui {
       stateLabel.setText("Suspending...");
       connection.communicate(new MsgSuspend(), ok -> {
         stateLabel.setText(suspendButtonText);
+        resumeButton.setText(resumeButtonText);
         setEnabledRecursively(mainPanel, true);
+        updateStackFrameInfo();
       });
     }
 
@@ -412,10 +414,6 @@ public class DebuggerGui {
       stateLabel.setText("Resuming...");
       frameInfo.clear();
       connection.communicate(new MsgResume(), ok -> stateLabel.setText(runningMessage));
-      connection.communicate(new MsgAwaitSuspension(), ok -> {
-        resumeButton.setText(suspendButtonText);
-        setEnabledRecursively(mainPanel, true);
-      });
     }
 
     private void updateStackFrameInfo() {
