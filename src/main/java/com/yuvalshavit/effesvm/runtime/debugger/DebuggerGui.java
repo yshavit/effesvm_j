@@ -9,6 +9,8 @@ import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.EOFException;
@@ -254,7 +256,7 @@ public class DebuggerGui {
         }
       });
       connection.communicate(new MsgGetModules(), resp -> {
-        Map<String,Map<String,List<String>>> functionsByModules = resp.functionsByModule();
+        Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules = resp.functionsByModule();
         opsFrame = createOpsFrame(functionsByModules, pane -> {
           mainSplit.setLeftComponent(pane);
           mainSplit.setDividerLocation(0.5);
@@ -271,9 +273,9 @@ public class DebuggerGui {
       frame.setVisible(true);
     }
 
-    private OpsListWindow createOpsFrame(Map<String,Map<String,List<String>>> functionsByModules, Consumer<Component> add) {
+    private OpsListWindow createOpsFrame(Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules, Consumer<Component> add) {
       Map<String,List<String>> functionNamesByModule = new HashMap<>();
-      Map<Map.Entry<String,String>,List<String>> opsByFunction = new HashMap<>();
+      Map<Map.Entry<String,String>,MsgGetModules.FunctionInfo> opsByFunction = new HashMap<>();
       Map<String,String> activeFunctionPerModule = new HashMap<>();
 
       functionsByModules.forEach((moduleId, functions) -> {
@@ -306,7 +308,10 @@ public class DebuggerGui {
         String functionName = (String) functionChooserModel.getSelectedItem();
         Map.Entry<String,String> functionId = new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName);
         activeOpsModel.clear();
-        opsByFunction.getOrDefault(functionId, Collections.singletonList("ERROR: no function " + functionId)).forEach(activeOpsModel::addElement);
+        opsByFunction
+          .getOrDefault(functionId, new MsgGetModules.FunctionInfo(Collections.singletonList("ERROR: no function " + functionId), null))
+          .opDescriptions()
+          .forEach(activeOpsModel::addElement);
         if (functionName != null) {
           activeFunctionPerModule.put(moduleName, functionName);
         }
@@ -353,11 +358,29 @@ public class DebuggerGui {
           Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
           String moduleName = (String) modulesChooserBox.getSelectedItem();
           String functionName = (String) functionChooserModel.getSelectedItem();
-          // The following object has to match the one set in the lambda
           if (Objects.equals(moduleName, window.activeModule) && Objects.equals(functionName, window.activeFunction) && window.activeOpIdx == index) {
             fromSuper.setBackground(Color.LIGHT_GRAY);
           }
+          if (opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName)).breakpoints().get(index)) {
+            fromSuper.setForeground(Color.RED);
+          }
           return fromSuper;
+        }
+      });
+      activeOpsList.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+          if (e.getClickCount() == 2) {
+            String visibleModule = (String) modulesChooserBox.getSelectedItem();
+            String visibleFunction = (String) functionsComboBox.getSelectedItem();
+            int clickedItem = activeOpsList.locationToIndex(e.getPoint());
+            BitSet breakpoints = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(visibleModule, visibleFunction)).breakpoints();
+            MsgSetBreakpoint toggleMsg = new MsgSetBreakpoint(visibleModule, visibleFunction, clickedItem, !breakpoints.get(clickedItem));
+            connection.communicate(toggleMsg, ok -> {
+              breakpoints.flip(clickedItem);
+              activeOpsList.repaint();
+            });
+          }
         }
       });
       add.accept(rootContent);

@@ -21,7 +21,7 @@ public class SockDebugServer implements DebugServer {
   public SockDebugServer(DebugServerContext context, int port, boolean suspend) {
     this.context = context;
     this.port = port;
-    this.state = new DebuggerState();
+    this.state = new DebuggerState(context);
     if (suspend) {
       state.suspend();
     }
