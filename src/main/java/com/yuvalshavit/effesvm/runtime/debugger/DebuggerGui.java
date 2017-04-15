@@ -169,10 +169,11 @@ public class DebuggerGui {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-          opsFrame.close();
           createConnectDialogue(connection.port);
         }
       });
+      JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+      mainSplit.setPreferredSize(new Dimension(1200, 700));
 
       mainPanel = new JPanel();
       mainPanel.setLayout(new BorderLayout());
@@ -254,10 +255,15 @@ public class DebuggerGui {
       });
       connection.communicate(new MsgGetModules(), resp -> {
         Map<String,Map<String,List<String>>> functionsByModules = resp.functionsByModule();
-        opsFrame = createOpsFrame(functionsByModules);
+        opsFrame = createOpsFrame(functionsByModules, pane -> {
+          mainSplit.setLeftComponent(pane);
+          mainSplit.setDividerLocation(0.5);
+        });
       });
 
-      Container content = frame.getContentPane();
+      frame.getContentPane().add(mainSplit);
+      JPanel content = new JPanel(new BorderLayout());
+      mainSplit.setRightComponent(content);
       content.add(topPanel, BorderLayout.NORTH);
       content.add(mainPanel, BorderLayout.CENTER);
       frame.setLocationRelativeTo(null);
@@ -265,7 +271,7 @@ public class DebuggerGui {
       frame.setVisible(true);
     }
 
-    private OpsListWindow createOpsFrame(Map<String,Map<String,List<String>>> functionsByModules) {
+    private OpsListWindow createOpsFrame(Map<String,Map<String,List<String>>> functionsByModules, Consumer<Component> add) {
       Map<String,List<String>> functionNamesByModule = new HashMap<>();
       Map<Map.Entry<String,String>,List<String>> opsByFunction = new HashMap<>();
       Map<String,String> activeFunctionPerModule = new HashMap<>();
@@ -306,10 +312,7 @@ public class DebuggerGui {
         }
       });
 
-      JFrame frame = new JFrame("modules");
-      frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-      frame.setType(Window.Type.UTILITY);
-      Container rootContent = frame.getContentPane();
+      Container rootContent = new JPanel();
       rootContent.setLayout(new BorderLayout());
       OpsListWindow window = new OpsListWindow() {
         @Override
@@ -320,11 +323,6 @@ public class DebuggerGui {
           activeFunctionPerModule.put(moduleName, functionName);
           modulesChooserBox.setSelectedItem(moduleName); // will also update the function, and page in the ops
           activeOpsList.setSelectedIndex(opIdx);
-        }
-
-        @Override
-        void close() {
-          frame.dispose();
         }
       };
 
@@ -362,9 +360,7 @@ public class DebuggerGui {
           return fromSuper;
         }
       });
-
-      frame.pack();
-      frame.setVisible(true);
+      add.accept(rootContent);
       return window;
     }
 
@@ -374,7 +370,6 @@ public class DebuggerGui {
       int activeOpIdx;
 
       abstract void activate(String moduleId, String functionName, int opIdx);
-      abstract void close();
     }
 
     private JButton stepButton(String label, Msg.NoResponse message) {
