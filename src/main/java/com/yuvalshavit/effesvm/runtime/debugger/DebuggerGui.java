@@ -6,21 +6,13 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketException;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
@@ -36,12 +28,6 @@ import javax.swing.text.PlainDocument;
 
 public class DebuggerGui {
   public static final int DEFAULT_PORT = 6667;
-
-  private static final ThreadFactory daemonThreads = (r) -> {
-    Thread t = new Thread(r);
-    t.setDaemon(true);
-    return t;
-  };
 
   public static void createConnectDialogue(int initialPort) {
     if (initialPort <= 0) {
@@ -103,7 +89,7 @@ public class DebuggerGui {
 
   private static void tryConnect(String portString, JFrame connectionWindow) {
     try {
-      DebugConnection debugConnection = new DebugConnection(Integer.parseInt(portString));
+      DebugClient debugConnection = new DebugClient(Integer.parseInt(portString));
       debugConnection.communicate(new MsgHello(), r -> {
         connectionWindow.dispose();
         createDebugWindow(debugConnection);
@@ -114,7 +100,7 @@ public class DebuggerGui {
   }
 
   public static void connectTo(int port) throws IOException {
-    DebugConnection connection = new DebugConnection(port);
+    DebugClient connection = new DebugClient(port);
     CountDownLatch windowUp = new CountDownLatch(1);
     connection.communicate(new MsgHello(), ok -> {
       createDebugWindow(connection);
@@ -127,7 +113,7 @@ public class DebuggerGui {
     }
   }
 
-  private static void createDebugWindow(DebugConnection connection) {
+  private static void createDebugWindow(DebugClient connection) {
     new DebugWindow(connection).create();
   }
 
@@ -148,7 +134,7 @@ public class DebuggerGui {
     static final String resumeButtonText = "Resume";
     static final String suspendButtonText = "Suspend";
 
-    private final DebugConnection connection;
+    private final DebugClient connection;
 
     private JPanel mainPanel;
     private JLabel stateLabel;
@@ -156,7 +142,7 @@ public class DebuggerGui {
     private DefaultListModel<String> frameInfo;
     private OpsListWindow opsFrame;
 
-    public DebugWindow(DebugConnection connection) {
+    public DebugWindow(DebugClient connection) {
       this.connection = connection;
     }
 
@@ -239,7 +225,7 @@ public class DebuggerGui {
       frameInfoScrollPane.setPreferredSize(new Dimension(600, 400));
       mainPanel.add(frameInfoScrollPane, BorderLayout.CENTER);
 
-      ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(daemonThreads);
+      ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(DebugClient.daemonThreadFactory);
       scheduler.scheduleWithFixedDelay(() -> connection.communicate(new MsgHello(), ok -> {}), 1500, 500, TimeUnit.MILLISECONDS);
       connection.addCloseHandler(() -> {
         onConnectionClosed(topPanel);
@@ -447,63 +433,4 @@ public class DebuggerGui {
     }
   }
 
-  private static class DebugConnection {
-    final int port;
-    final ObjectInputStream input;
-    final ObjectOutputStream output;
-    final BlockingDeque<Runnable> onClose;
-    private final ExecutorService communicationExecutor;
-    private final Socket socket;
-
-    public DebugConnection(int port) throws IOException {
-      this.port = port;
-      this.socket = new Socket(InetAddress.getLocalHost(), port);
-      this.output = new ObjectOutputStream(socket.getOutputStream());
-      this.input = new ObjectInputStream(socket.getInputStream());
-      this.onClose = new LinkedBlockingDeque<>();
-      communicationExecutor = Executors.newSingleThreadExecutor(daemonThreads);
-    }
-
-    void addCloseHandler(Runnable onClose) {
-      this.onClose.add(onClose);
-    }
-
-    <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess, Consumer<Throwable> onFailure) {
-      communicationExecutor.submit(() -> {
-        try {
-          output.writeObject(message);
-          Object responseObj = input.readObject();
-          Response<R> response = message.cast(responseObj);
-          SwingUtilities.invokeLater(() -> response.handle(onSuccess, onFailure));
-        } catch (EOFException | SocketException e) {
-          try {
-            close();
-          } catch (IOException e1) {
-            e1.printStackTrace();
-          }
-        } catch (Exception e) {
-          Response<R> response = Response.forError(e);
-          SwingUtilities.invokeLater(() -> response.handle(onSuccess, onFailure));
-        }
-      });
-    }
-
-    <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
-      communicate(message, onSuccess, Throwable::printStackTrace);
-    }
-
-    public void close() throws IOException {
-      communicationExecutor.shutdownNow();
-      for (Iterator<Runnable> iterator = onClose.iterator(); iterator.hasNext(); ) {
-        Runnable runnable = iterator.next();
-        try {
-          runnable.run();
-        } catch (Exception e2) {
-          e2.printStackTrace();
-        }
-        iterator.remove();
-      }
-      socket.close();
-    }
-  }
 }
