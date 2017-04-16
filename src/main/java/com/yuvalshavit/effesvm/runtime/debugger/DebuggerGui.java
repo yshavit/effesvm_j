@@ -89,7 +89,7 @@ public class DebuggerGui {
 
   private static void tryConnect(String portString, JFrame connectionWindow) {
     try {
-      DebugClient debugConnection = new DebugClient(Integer.parseInt(portString));
+      DebugClient debugConnection = DebugClient.start(Integer.parseInt(portString));
       debugConnection.communicate(new MsgHello(), r -> {
         connectionWindow.dispose();
         createDebugWindow(debugConnection);
@@ -100,7 +100,7 @@ public class DebuggerGui {
   }
 
   public static void connectTo(int port) throws IOException {
-    DebugClient connection = new DebugClient(port);
+    DebugClient connection = DebugClient.start(port);
     CountDownLatch windowUp = new CountDownLatch(1);
     connection.communicate(new MsgHello(), ok -> {
       createDebugWindow(connection);
@@ -147,7 +147,7 @@ public class DebuggerGui {
     }
 
     public void create() {
-      JFrame frame = new JFrame("Debugger connected to " + connection.port);
+      JFrame frame = new JFrame("Debugger connected to " + connection.port());
       frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
       frame.addWindowListener(new WindowAdapter() {
         @Override
@@ -157,7 +157,7 @@ public class DebuggerGui {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-          createConnectDialogue(connection.port);
+          createConnectDialogue(connection.port());
         }
       });
       JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -343,11 +343,12 @@ public class DebuggerGui {
           }
           Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
           String moduleName = (String) modulesChooserBox.getSelectedItem();
-          String functionName = (String) functionChooserModel.getSelectedItem();
+          String functionName = (String) functionsComboBox.getSelectedItem();
           if (Objects.equals(moduleName, window.activeModule) && Objects.equals(functionName, window.activeFunction) && window.activeOpIdx == index) {
             fromSuper.setBackground(Color.LIGHT_GRAY);
           }
-          if (opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName)).breakpoints().get(index)) {
+          MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName));
+          if (functionInfo.breakpoints().get(index)) {
             fromSuper.setForeground(Color.RED);
           }
           return fromSuper;

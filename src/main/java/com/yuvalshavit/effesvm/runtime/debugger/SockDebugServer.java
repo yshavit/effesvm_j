@@ -1,11 +1,11 @@
 package com.yuvalshavit.effesvm.runtime.debugger;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.yuvalshavit.effesvm.runtime.DebugServer;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
@@ -14,66 +14,50 @@ import com.yuvalshavit.effesvm.runtime.EffesState;
 public class SockDebugServer implements DebugServer {
   private final DebuggerState state;
   private final DebugServerContext context;
-  private volatile Socket socket;
-  private volatile boolean active;
-  private final int port;
+  private final BlockingQueue<WithId<?>> pendingResponses;
+  private final ReconnectingSocket socket;
+  private volatile ExecutorService workerThreads;
 
   public SockDebugServer(DebugServerContext context, int port, boolean suspend) {
     this.context = context;
-    this.port = port;
+    socket = new ReconnectingSocket(port);
     this.state = new DebuggerState(context);
+    pendingResponses = new ArrayBlockingQueue<>(64);
     if (suspend) {
       state.suspend();
     }
   }
 
   public void start() throws IOException {
-    active = true;
-    ServerSocket serverSocket = new ServerSocket(port);
-    Thread readerThread = new Thread(() -> {
-      while (active) {
-        Socket localLocket;
-        ObjectInputStream input;
-        ObjectOutputStream output;
+    workerThreads = Executors.newCachedThreadPool(DebugClient.daemonThreadFactory);
+    // One thread for reading messages. As it reads each one, it creates a task that will (a) execute it and (b) put the response on the pendingResponses queue
+    workerThreads.submit(IORunnable.createRunnableLoop(socket::close, socket::close, () -> {
+      Object raw = socket.input().readObject();
+      WithId<?> withId = (WithId<?>) raw;
+      workerThreads.submit(() -> {
+        Msg<?> msg = (Msg<?>) withId.payload();
+        Response<?> response;
         try {
-          localLocket = serverSocket.accept();
-          input = new ObjectInputStream(localLocket.getInputStream());
-          output = new ObjectOutputStream(localLocket.getOutputStream());
-        } catch (IOException e) {
-          e.printStackTrace();
-          return;
+          Serializable responsePayload = msg.process(context, state);
+          response = Response.forResponse(responsePayload);
+        } catch (InterruptedException e) {
+          response = Response.forError(e);
+          Thread.currentThread().interrupt();
+        } catch (Exception e) {
+          response = Response.forError(e);
         }
-        socket = localLocket;
-        while (!localLocket.isClosed()) {
-          try {
-            Object inObj = input.readObject();
-            Msg<?> inMsg = (Msg<?>) inObj;
-            Response<?> response;
-            try {
-              Object responsePayload = inMsg.process(context, state);
-              Serializable serializablePayload = (Serializable) responsePayload;
-              response = Response.forResponse(serializablePayload);
-            } catch (InterruptedException e) {
-              e.printStackTrace();
-              response = Response.forError(e);
-              close();
-            } catch (RuntimeException e) {
-              e.printStackTrace();
-              response = Response.forError(e);
-            }
-            output.writeObject(response);
-          } catch (Exception e) {
-            try {
-              localLocket.close();
-            } catch (Exception e2) {
-              e2.printStackTrace();
-            }
-          }
+        try {
+          pendingResponses.put(withId.withPaylod(response));
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
         }
-      }
-    });
-    readerThread.setDaemon(true);
-    readerThread.start();
+      });
+    }));
+    // One thread for taking responses from the pendingResponses queue and writing them back out
+    workerThreads.submit(IORunnable.createRunnableLoop(socket::close, socket::close, () -> {
+      WithId<?> response = pendingResponses.take();
+      socket.output().writeObject(response);
+    }));
   }
 
   @Override
@@ -88,11 +72,10 @@ public class SockDebugServer implements DebugServer {
 
   @Override
   public void close() throws IOException {
-    active = false;
-    Socket localSocket = socket;
-    socket = null;
-    if (localSocket != null) {
-      localSocket.close();
+    ExecutorService workerThreads = this.workerThreads;
+    if (workerThreads != null) {
+      workerThreads.shutdownNow();
     }
+    socket.close();
   }
 }
