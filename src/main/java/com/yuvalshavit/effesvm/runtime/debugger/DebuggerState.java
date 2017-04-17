@@ -166,4 +166,14 @@ public class DebuggerState {
       }
     }
   }
+
+  public boolean awaitRunStateChanged() throws InterruptedException {
+    boolean initial = running;
+    synchronized (this) {
+      while (running == initial) {
+        wait();
+      }
+    }
+    return ! initial;
+  }
 }

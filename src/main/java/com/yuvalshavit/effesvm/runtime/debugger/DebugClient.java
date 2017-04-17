@@ -53,8 +53,9 @@ class DebugClient implements Closeable {
       WithId<?> withId = (WithId<?>) responseRaw;
       ResponseHandler<?> responseHandler = pendingResponses.remove(withId.id());
       if (responseHandler == null) {
-        System.err.printf("No response handler for message id %d (%s)%n", withId.id(), withId.payload());
+        System.err.printf("no response handler for message id %d (%s)%n", withId.id(), withId.payload());
       } else {
+        System.err.printf("handling message id %d (%s)%n", withId.id(), withId.payload());
         responseHandler.accept(withId.payload());
       }
     });
@@ -86,11 +87,16 @@ class DebugClient implements Closeable {
     ResponseHandler<R> handler = new ResponseHandler<>(sequencer.getAndIncrement(), message, onSuccess, onFailure);
     // register it on the pendingResponses first, so that we're guaranteed to have the response handler registered before we even send the request
     pendingResponses.put(handler.message.id(), handler);
+    System.err.printf("registered message id %d: %s%n", handler.message.id(), message.getClass());
     pendingMessages.add(handler);
   }
 
   <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
     communicate(message, onSuccess, Throwable::printStackTrace);
+  }
+
+  void communicate(Msg.NoResponse message) {
+    communicate(message, ack -> {});
   }
 
   @Override

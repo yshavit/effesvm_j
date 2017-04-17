@@ -117,13 +117,69 @@ public class DebuggerGui {
     new DebugWindow(connection).create();
   }
 
-  private static void setEnabledRecursively(Component component, boolean enabled) {
-    // http://stackoverflow.com/a/13920371/1076640
-    component.setEnabled(enabled);
-    if (component instanceof Container) {
-      for (Component child : ((Container) component).getComponents()) {
-        setEnabledRecursively(child, enabled);
+  private static class ResumeHandler {
+    final Collection<Runnable> onSuspend = Collections.synchronizedList(new ArrayList<>());
+    final Collection<Runnable> onResume = Collections.synchronizedList(new ArrayList<>());
+    final Collection<Component> enabledIffSuspended = Collections.synchronizedList(new ArrayList<>());
+
+    final DebugClient connection;
+
+    public ResumeHandler(DebugClient connection) {
+      this.connection = connection;
+      onSuspend(() -> setEnabledRecursively(enabledIffSuspended, true));
+    }
+
+    public void seeSuspend() {
+      act(onSuspend);
+    }
+
+    public void seeResume() {
+      act(onResume);
+    }
+
+    public void onResume(Runnable action) {
+      onResume.add(action);
+    }
+
+    public void onSuspend(Runnable action) {
+      onSuspend.add(action);
+    }
+
+    public void startWatching() {
+      connection.communicate(new MsgIsSuspended(), this::seeStateChange);
+    }
+
+    private void seeStateChange(boolean isSuspended) {
+      if (isSuspended) {
+        seeSuspend();
+      } else {
+        seeResume();
       }
+      connection.communicate(new MsgAwaitRunStateChanged(), this::seeStateChange);
+    }
+
+    private void act(Collection<Runnable> actions) {
+      for (Runnable action : actions) {
+        SwingUtilities.invokeLater(action);
+      }
+    }
+
+    public void enabledIffSuspended(Component component) {
+      enabledIffSuspended.add(component);
+    }
+
+    public void suspendGui() {
+      setEnabledRecursively(enabledIffSuspended, false);
+    }
+
+    private static void setEnabledRecursively(Collection<? extends Component> components, boolean enabled) {
+      // http://stackoverflow.com/a/13920371/1076640
+      components.forEach(component -> {
+        component.setEnabled(enabled);
+        if (component instanceof Container) {
+          setEnabledRecursively(Arrays.asList(((Container) component).getComponents()), enabled);
+        }
+      });
     }
   }
 
@@ -135,11 +191,8 @@ public class DebuggerGui {
     static final String suspendButtonText = "Suspend";
 
     private final DebugClient connection;
-
-    private JPanel mainPanel;
-    private JLabel stateLabel;
-    private JButton resumeButton;
     private DefaultListModel<String> frameInfo;
+
     private OpsListWindow opsFrame;
 
     public DebugWindow(DebugClient connection) {
@@ -147,6 +200,30 @@ public class DebuggerGui {
     }
 
     public void create() {
+      JPanel mainPanel = new JPanel();
+      mainPanel.setLayout(new BorderLayout());
+
+      ResumeHandler resumeHandler = new ResumeHandler(connection);
+
+      JLabel stateLabel = new JLabel("Remote state pending");
+      JButton resumeButton = createResumeButton(stateLabel, resumeHandler);
+      JPanel stepButtons = createStepButtons(stateLabel, resumeHandler);
+      mainPanel.add(stepButtons, BorderLayout.NORTH);
+
+      frameInfo = new DefaultListModel<>();
+      Container frameInfo = createFrameInfo();
+      resumeHandler.enabledIffSuspended(frameInfo);
+      resumeHandler.enabledIffSuspended(stepButtons);
+      mainPanel.add(frameInfo, BorderLayout.CENTER);
+      connection.addCloseHandler(() -> {
+        stateLabel.setText(connectionClosedMessage);
+        resumeButton.setEnabled(false);
+      });
+
+      JPanel topPanel = new JPanel();
+      topPanel.add(stateLabel);
+      topPanel.add(resumeButton);
+
       JFrame frame = new JFrame("Debugger connected to " + connection.port());
       frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
       frame.addWindowListener(new WindowAdapter() {
@@ -160,34 +237,31 @@ public class DebuggerGui {
           createConnectDialogue(connection.port());
         }
       });
+      connection.addCloseHandler(resumeHandler::suspendGui);
+
       JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
       mainSplit.setPreferredSize(new Dimension(1200, 700));
-
-      mainPanel = new JPanel();
-      mainPanel.setLayout(new BorderLayout());
-      JPanel topPanel = new JPanel();
-      stateLabel = new JLabel("Remote state pending");
-      topPanel.add(stateLabel);
-      resumeButton = new JButton(resumeButtonText);
-      topPanel.add(resumeButton);
-      resumeButton.addActionListener(l -> {
-        switch (resumeButton.getText()) {
-          case resumeButtonText:
-            onResume();
-            break;
-          case suspendButtonText:
-            onSuspend();
-            break;
-        }
+      connection.communicate(new MsgGetModules(), resp -> {
+        Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules = resp.functionsByModule();
+        opsFrame = createOpsFrame(functionsByModules, pane -> {
+          mainSplit.setLeftComponent(pane);
+          mainSplit.setDividerLocation(0.5);
+        });
       });
+      frame.getContentPane().add(mainSplit);
 
-      JPanel stepButtons = new JPanel();
-      stepButtons.add(stepButton("In ⇲", new MsgStepIn()));
-      stepButtons.add(stepButton("Over ↷", new MsgStepOver()));
-      stepButtons.add(stepButton("Out ⇱", new MsgStepOut()));
-      mainPanel.add(stepButtons, BorderLayout.NORTH);
+      JPanel content = new JPanel(new BorderLayout());
+      content.add(topPanel, BorderLayout.NORTH);
+      content.add(mainPanel, BorderLayout.CENTER);
+      mainSplit.setRightComponent(content);
+      frame.setLocationRelativeTo(null);
+      frame.pack();
+      frame.setVisible(true);
 
-      frameInfo = new DefaultListModel<>();
+      resumeHandler.startWatching();
+    }
+
+    private Container createFrameInfo() {
       Pattern frameDividerPattern = Pattern.compile("\\[ *\\d+\\] *(\\* *)?\\[==");
       JList<String> frameInfoList = new JList<>(frameInfo);
       frameInfoList.setCellRenderer(new DefaultListCellRenderer() {
@@ -223,40 +297,47 @@ public class DebuggerGui {
       frameInfoList.setEnabled(false);
       JScrollPane frameInfoScrollPane = new JScrollPane(frameInfoList);
       frameInfoScrollPane.setPreferredSize(new Dimension(600, 400));
-      mainPanel.add(frameInfoScrollPane, BorderLayout.CENTER);
+      return frameInfoScrollPane;
+    }
 
-      ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(DebugClient.daemonThreadFactory);
-      scheduler.scheduleWithFixedDelay(() -> connection.communicate(new MsgHello(), ok -> {}), 1500, 500, TimeUnit.MILLISECONDS);
-      connection.addCloseHandler(() -> {
-        onConnectionClosed(topPanel);
-        scheduler.shutdownNow();
-      });
-      connection.communicate(new MsgIsSuspended(), isSuspended -> {
-        if (!stateLabel.getText().equals(connectionClosedMessage)) {
-          stateLabel.setText(isSuspended ? suspendedMessage : runningMessage);
-          resumeButton.setText(isSuspended ? resumeButtonText : suspendButtonText);
-          setEnabledRecursively(mainPanel, isSuspended);
-          if (isSuspended) {
-            updateStackFrameInfo();
-          }
+    private JButton createResumeButton(JLabel stateLabel, ResumeHandler resumeHandler) {
+      JButton resumeButton = new JButton(resumeButtonText);
+      resumeButton.addActionListener(l -> {
+        resumeHandler.suspendGui();
+        switch (resumeButton.getText()) {
+          case resumeButtonText:
+            resumeButton.setText(suspendButtonText);
+            stateLabel.setText("Resuming...");
+            frameInfo.clear();
+            connection.communicate(new MsgResume());
+            break;
+          case suspendButtonText:
+            resumeButton.setText(suspendButtonText);
+            stateLabel.setText("Suspending...");
+            connection.communicate(new MsgSuspend());
+            break;
         }
       });
-      connection.communicate(new MsgGetModules(), resp -> {
-        Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules = resp.functionsByModule();
-        opsFrame = createOpsFrame(functionsByModules, pane -> {
-          mainSplit.setLeftComponent(pane);
-          mainSplit.setDividerLocation(0.5);
-        });
+      resumeHandler.onResume(() -> {
+        stateLabel.setText(runningMessage);
+        resumeButton.setText(suspendButtonText);
+        resumeButton.setEnabled(true);
       });
+      resumeHandler.onSuspend(() -> {
+        stateLabel.setText(suspendedMessage);
+        resumeButton.setText(resumeButtonText);
+        resumeButton.setEnabled(true);
+        updateStackFrameInfo();
+      });
+      return resumeButton;
+    }
 
-      frame.getContentPane().add(mainSplit);
-      JPanel content = new JPanel(new BorderLayout());
-      mainSplit.setRightComponent(content);
-      content.add(topPanel, BorderLayout.NORTH);
-      content.add(mainPanel, BorderLayout.CENTER);
-      frame.setLocationRelativeTo(null);
-      frame.pack();
-      frame.setVisible(true);
+    private JPanel createStepButtons(JLabel stateLabel, ResumeHandler resumeHandler) {
+      JPanel stepButtons = new JPanel();
+      stepButtons.add(stepButton(stateLabel, resumeHandler, "In ⇲", new MsgStepIn()));
+      stepButtons.add(stepButton(stateLabel, resumeHandler, "Over ↷", new MsgStepOver()));
+      stepButtons.add(stepButton(stateLabel, resumeHandler, "Out ⇱", new MsgStepOut()));
+      return stepButtons;
     }
 
     private OpsListWindow createOpsFrame(Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules, Consumer<Component> add) {
@@ -348,7 +429,7 @@ public class DebuggerGui {
             fromSuper.setBackground(Color.LIGHT_GRAY);
           }
           MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName));
-          if (functionInfo.breakpoints().get(index)) {
+          if (functionInfo != null && functionInfo.breakpoints().get(index)) {
             fromSuper.setForeground(Color.RED);
           }
           return fromSuper;
@@ -382,43 +463,16 @@ public class DebuggerGui {
       abstract void activate(String moduleId, String functionName, int opIdx);
     }
 
-    private JButton stepButton(String label, Msg.NoResponse message) {
+    private JButton stepButton(JLabel stateLabel, ResumeHandler resumeHandler, String label, Msg.NoResponse message) {
       JButton stepOverButton = new JButton(label);
       stepOverButton.addActionListener(l -> {
         connection.communicate(message, ok -> {
           stateLabel.setText(suspendedMessage);
-          setEnabledRecursively(mainPanel, false);
-          connection.communicate(new MsgAwaitSuspension(), suspended -> {
-            setEnabledRecursively(mainPanel, true);
-            updateStackFrameInfo();
-          });
+          resumeHandler.suspendGui();
         });
       });
+      resumeHandler.enabledIffSuspended(stepOverButton);
       return stepOverButton;
-    }
-
-    private void onConnectionClosed(JPanel topPanel) {
-      stateLabel.setText(connectionClosedMessage);
-      setEnabledRecursively(mainPanel, false);
-      setEnabledRecursively(topPanel, false);
-    }
-
-    private void onSuspend() {
-      stateLabel.setText("Suspending...");
-      connection.communicate(new MsgSuspend(), ok -> {
-        stateLabel.setText(suspendButtonText);
-        resumeButton.setText(resumeButtonText);
-        setEnabledRecursively(mainPanel, true);
-        updateStackFrameInfo();
-      });
-    }
-
-    private void onResume() {
-      resumeButton.setText(suspendButtonText);
-      setEnabledRecursively(mainPanel, false);
-      stateLabel.setText("Resuming...");
-      frameInfo.clear();
-      connection.communicate(new MsgResume(), ok -> stateLabel.setText(runningMessage));
     }
 
     private void updateStackFrameInfo() {
