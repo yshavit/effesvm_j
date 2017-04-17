@@ -16,12 +16,6 @@ import java.util.function.Consumer;
 import javax.swing.SwingUtilities;
 
 class DebugClient implements Closeable {
-  public static final ThreadFactory daemonThreadFactory = (r) -> {
-    Thread t = new Thread(r);
-    t.setDaemon(true);
-    return t;
-  };
-
   private final int port;
   private final BlockingDeque<Runnable> onClose;
   private final ConcurrentMap<Integer,ResponseHandler<?>> pendingResponses;

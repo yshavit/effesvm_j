@@ -217,6 +217,7 @@ public class DebuggerGui {
       mainPanel.add(frameInfo, BorderLayout.CENTER);
       connection.addCloseHandler(() -> {
         stateLabel.setText(connectionClosedMessage);
+        stateLabel.setEnabled(false);
         resumeButton.setEnabled(false);
       });
 
@@ -244,6 +245,7 @@ public class DebuggerGui {
       connection.communicate(new MsgGetModules(), resp -> {
         Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules = resp.functionsByModule();
         opsFrame = createOpsFrame(functionsByModules, pane -> {
+          resumeHandler.enabledIffSuspended(pane);
           mainSplit.setLeftComponent(pane);
           mainSplit.setDividerLocation(0.5);
         });

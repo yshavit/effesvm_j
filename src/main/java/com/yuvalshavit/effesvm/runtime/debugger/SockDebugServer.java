@@ -6,6 +6,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import com.yuvalshavit.effesvm.runtime.DebugServer;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
@@ -18,6 +19,12 @@ public class SockDebugServer implements DebugServer {
   private final ReconnectingSocket socket;
   private volatile ExecutorService workerThreads;
 
+  public static final ThreadFactory daemonThreadFactory = (r) -> {
+    Thread t = new Thread(r);
+    t.setDaemon(true);
+    return t;
+  };
+
   public SockDebugServer(DebugServerContext context, int port, boolean suspend) {
     this.context = context;
     socket = new ReconnectingSocket(port);
@@ -29,7 +36,7 @@ public class SockDebugServer implements DebugServer {
   }
 
   public void start() throws IOException {
-    workerThreads = Executors.newCachedThreadPool(DebugClient.daemonThreadFactory);
+    workerThreads = Executors.newCachedThreadPool(daemonThreadFactory);
     // One thread for reading messages. As it reads each one, it creates a task that will (a) execute it and (b) put the response on the pendingResponses queue
     workerThreads.submit(IORunnable.createRunnableLoop(socket::close, socket::close, () -> {
       Object raw = socket.input().readObject();
