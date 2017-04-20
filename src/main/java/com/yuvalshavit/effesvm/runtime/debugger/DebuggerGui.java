@@ -6,6 +6,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -29,6 +30,7 @@ import javax.swing.text.PlainDocument;
 
 public class DebuggerGui {
   public static final int DEFAULT_PORT = 6667;
+  private static final int SCROLLTO_CONTEXT_BUFFER = 5;
 
   public static void createConnectDialogue(int initialPort) {
     if (initialPort <= 0) {
@@ -399,6 +401,8 @@ public class DebuggerGui {
           activeFunctionPerModule.put(moduleName, functionName);
           modulesChooserBox.setSelectedItem(moduleName); // will also update the function, and page in the ops
           activeOpsList.setSelectedIndex(opIdx);
+          Rectangle cellBounds = activeOpsList.getCellBounds(opIdx - SCROLLTO_CONTEXT_BUFFER, opIdx + SCROLLTO_CONTEXT_BUFFER);
+          activeOpsList.scrollRectToVisible(cellBounds);
         }
       };
 

@@ -3,7 +3,6 @@ package com.yuvalshavit.effesvm.runtime.debugger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
