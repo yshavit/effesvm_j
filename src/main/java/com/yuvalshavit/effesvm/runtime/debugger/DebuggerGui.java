@@ -12,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -191,6 +192,7 @@ public class DebuggerGui {
     static final String suspendButtonText = "Suspend";
 
     private final DebugClient connection;
+    private final DebuggerGuiState saveState = new DebuggerGuiState(new File("effesvm-debug-state.txt"));
     private DefaultListModel<String> frameInfo;
 
     private OpsListWindow opsFrame;
@@ -437,21 +439,34 @@ public class DebuggerGui {
           return fromSuper;
         }
       });
-      activeOpsList.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mouseClicked(MouseEvent e) {
-          if (e.getClickCount() == 2) {
-            String visibleModule = (String) modulesChooserBox.getSelectedItem();
-            String visibleFunction = (String) functionsComboBox.getSelectedItem();
-            int clickedItem = activeOpsList.locationToIndex(e.getPoint());
-            BitSet breakpoints = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(visibleModule, visibleFunction)).breakpoints();
-            MsgSetBreakpoint toggleMsg = new MsgSetBreakpoint(visibleModule, visibleFunction, clickedItem, !breakpoints.get(clickedItem));
-            connection.communicate(toggleMsg, ok -> {
-              breakpoints.flip(clickedItem);
-              activeOpsList.repaint();
-            });
-          }
+
+      Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
+      connection.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
+        for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
+          opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(breakpoint.getModuleId(), breakpoint.getFunctionId()))
+            .breakpoints()
+            .set(breakpoint.getOpIdx());
         }
+        rootContent.repaint();
+        activeOpsList.addMouseListener(new MouseAdapter() {
+          @Override
+          public void mouseClicked(MouseEvent e) {
+            if (e.getClickCount() == 2) {
+              String visibleModule = (String) modulesChooserBox.getSelectedItem();
+              String visibleFunction = (String) functionsComboBox.getSelectedItem();
+              int clickedItem = activeOpsList.locationToIndex(e.getPoint());
+              BitSet breakpoints = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(visibleModule, visibleFunction)).breakpoints();
+              MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleModule, visibleFunction, clickedItem);
+              boolean on = !breakpoints.get(clickedItem);
+              saveState.setBreakpoint(breakpoint, on);
+              MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
+              connection.communicate(toggleMsg, ok -> {
+                breakpoints.flip(clickedItem);
+                activeOpsList.repaint();
+              });
+            }
+          }
+        });
       });
       add.accept(rootContent);
       return window;
