@@ -289,9 +289,14 @@ public class EffesOps {
 
   @OperationFactory("debug-print")
   public Operation.Body debugPrint() {
-    return Operation.withIncementingPc(s -> io.errLine(s.getLocalStackSize() > 0
-      ? String.valueOf(s.peek(0).toString(true))
-      : "<the local stack for this frame is empty>"));
+    return Operation.withIncementingPc(s -> {
+      String line = s.getLocalStackSize() > 0
+        ? String.valueOf(s.peek(0).toString(true))
+        : "<the local stack for this frame is empty>";
+      EffesOutput err = io.err();
+      err.write(line);
+      err.write("\n");
+    });
   }
 
   @OperationFactory("bool")
@@ -384,7 +389,7 @@ public class EffesOps {
 
   @OperationFactory("call_String:sout")
   public Operation.Body sout() {
-    return Operation.withIncementingPc(s -> io.out(popString(s)));
+    return Operation.withIncementingPc(s -> io.out().write(popString(s)));
   }
 
   @OperationFactory("call_Stream:stdin")

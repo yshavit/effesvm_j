@@ -2,6 +2,7 @@ package com.yuvalshavit.effesvm.runtime;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public interface EffesInput {
   String readLine();
@@ -9,7 +10,7 @@ public interface EffesInput {
   class FromReader implements EffesInput {
     private final String description;
     private BufferedReader reader;
-    private int linesRead;
+    private final AtomicInteger linesRead = new AtomicInteger(0);
 
     public FromReader(BufferedReader reader, String description) {
       this.reader = reader;
@@ -26,7 +27,7 @@ public interface EffesInput {
           reader.close();
           reader = null;
         } else {
-          ++linesRead;
+          linesRead.incrementAndGet();
         }
         return result;
       } catch (IOException e) {
@@ -36,7 +37,8 @@ public interface EffesInput {
 
     @Override
     public String toString() {
-      return String.format("%s(%d line%s read)", description, linesRead, linesRead == 1 ? "" : "s");
+      int nLines = linesRead.get();
+      return String.format("%s(%d line%s read)", description, nLines, nLines == 1 ? "" : "s");
     }
   }
 }

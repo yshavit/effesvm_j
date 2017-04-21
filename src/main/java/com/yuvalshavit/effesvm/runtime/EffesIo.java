@@ -13,22 +13,17 @@ public interface EffesIo {
   }
 
   EffesInput in();
-  void out(String string);
-  void err(String string);
+  EffesOutput out();
+  EffesOutput err();
   InputStream readFile(String name);
-
-  default void errLine(String string) {
-    err(string);
-    err("\n");
-  }
 
   class Stdio implements EffesIo {
     private static final Stdio instance = new Stdio();
     private Stdio() {}
 
-    private static final EffesInput stdinInput = new EffesInput.FromReader(
-      new BufferedReader(new InputStreamReader(System.in)),
-      "stdin");
+    private static final EffesInput stdinInput = new EffesInput.FromReader(new BufferedReader(new InputStreamReader(System.in)), "stdin");
+    private static final EffesOutput stdoutOutput = new EffesOutput.FromWriter(System.out, "stdout");
+    private static final EffesOutput stderrOutput = new EffesOutput.FromWriter(System.err, "stderr");
 
     @Override
     public EffesInput in() {
@@ -36,15 +31,13 @@ public interface EffesIo {
     }
 
     @Override
-    public void out(String string) {
-      System.out.print(string);
-      System.out.flush();
+    public EffesOutput out() {
+      return stderrOutput;
     }
 
     @Override
-    public void err(String string) {
-      System.err.print(string);
-      System.err.flush();
+    public EffesOutput err() {
+      return stderrOutput;
     }
 
     @Override

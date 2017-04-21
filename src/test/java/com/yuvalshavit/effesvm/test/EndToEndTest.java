@@ -22,6 +22,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.runtime.DebugServer;
 import com.yuvalshavit.effesvm.runtime.EffesInput;
 import com.yuvalshavit.effesvm.runtime.EffesIo;
+import com.yuvalshavit.effesvm.runtime.EffesOutput;
 import com.yuvalshavit.effesvm.runtime.EvmRunner;
 
 public class EndToEndTest {
@@ -121,13 +122,13 @@ public class EndToEndTest {
     }
 
     @Override
-    public void out(String string) {
-      out.append(string);
+    public EffesOutput out() {
+      return out::append;
     }
 
     @Override
-    public void err(String string) {
-      err.append(string);
+    public EffesOutput err() {
+      return err::append;
     }
 
     @Override
