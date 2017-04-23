@@ -6,6 +6,7 @@ import static org.testng.Assert.assertNotNull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -72,11 +73,12 @@ public class EndToEndTest {
       modules.put(module, efct);
     }
 
-    InMemoryIo io = new InMemoryIo(run.in, run.files);
+    InMemoryIo io = new InMemoryIo(run.in, run.filesIn);
     int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, c -> DebugServer.noop);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
     assertEquals(io.err.toString().trim(), run.err.trim(), "stderr");
+    assertEquals(io.filesWritten, run.filesOut, "files written");
   }
 
   public static class Case {
@@ -92,7 +94,8 @@ public class EndToEndTest {
     public String out = "";
     public String err = "";
     public int exit = -1;
-    public Map<String,String> files = Collections.emptyMap();
+    public Map<String,String> filesIn = Collections.emptyMap();
+    public Map<String,String> filesOut = Collections.emptyMap();
     public Integer stackSize = null;
     public String[] args = new String[0];
 
@@ -106,10 +109,12 @@ public class EndToEndTest {
     private final Iterator<String> in;
     private final StringBuilder out;
     private final StringBuilder err;
-    private final Map<String,String> files;
+    private final Map<String,String> filesRead;
+    private final Map<String,String> filesWritten;
 
-    private InMemoryIo(String in, Map<String,String> files) {
-      this.files = files;
+    private InMemoryIo(String in, Map<String,String> filesRead) {
+      this.filesRead = filesRead;
+      this.filesWritten = new TreeMap<>();
       List<String> inLines = in == null ? Collections.emptyList() : Arrays.asList(in.split("\\n"));
       this.in = inLines.iterator();
       out = new StringBuilder();
@@ -133,9 +138,27 @@ public class EndToEndTest {
 
     @Override
     public InputStream readFile(String name) {
-      String contents = files.get(name);
+      String contents = filesRead.get(name);
       assertNotNull(contents, name);
       return new ByteArrayInputStream(contents.getBytes(Charsets.UTF_8));
+    }
+
+    @Override
+    public OutputStream writeFile(String name) {
+      return new OutputStream() {
+        @Override
+        public void write(int b) throws IOException {
+          if (b > 127 || b < 0) {
+            throw new IOException(String.format("byte out of ASCII range: %d (%s)", b, (char) b));
+          }
+          String old = filesWritten.get(name);
+          if (old == null) {
+            old = "";
+          }
+          String updated = old + ((char) b);
+          filesWritten.put(name, updated);
+        }
+      };
     }
   }
 }

@@ -170,27 +170,38 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
-  public static class EffesStreamIn extends EffesNativeObject {
+  public static abstract class EffesDelegatingObj<T> extends EffesNativeObject {
+    private final T underlying;
 
-    private final EffesInput source;
-
-    public EffesStreamIn(EffesInput source) {
-      super(NativeTypeEnum.STREAM_IN.type);
-      this.source = source;
+    private EffesDelegatingObj(NativeTypeEnum type, T elem) {
+      super(type.type);
+      this.underlying = elem;
     }
 
-    public String readLine() {
-      return source.readLine();
+    public T get() {
+      return underlying;
     }
 
     @Override
     public String toString(boolean useArgNames) {
-      return source.toString();
+      return underlying.toString();
     }
 
     @Override
     protected Object equalityState() {
       return this;
+    }
+  }
+
+  public static class EffesStreamIn extends EffesDelegatingObj<EffesInput> {
+    public EffesStreamIn(EffesInput source) {
+      super(NativeTypeEnum.STREAM_IN, source);
+    }
+  }
+
+  public static class EffesStreamOut extends EffesDelegatingObj<EffesOutput> {
+    public EffesStreamOut(EffesOutput sink) {
+      super(NativeTypeEnum.STREAM_OUT, sink);
     }
   }
 
@@ -280,6 +291,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     ARRAY("Array"),
     STRING_BUILDER("StringBuilder"),
     STREAM_IN("StreamIn"),
+    STREAM_OUT("StreamOut"),
     ;
 
     private final NativeType type;

@@ -1,7 +1,11 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -397,6 +401,26 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStreamIn(io.in())));
   }
 
+  @OperationFactory("call_Stream:writeFile")
+  public Operation.Body writeFile() {
+    return Operation.withIncementingPc(s -> {
+      String fileName = popString(s);
+      PrintStream printer = new PrintStream(io.writeFile(fileName));
+
+      EffesNativeObject.EffesStreamOut stream = new EffesNativeObject.EffesStreamOut(new EffesOutput.FromWriter(printer, fileName));
+      s.push(stream);
+    });
+  }
+
+  @OperationFactory(("call_Stream:writeText"))
+  public Operation.Body writeText() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesStreamOut streamOut = (EffesNativeObject.EffesStreamOut) s.pop();
+      EffesNativeObject.EffesString text = (EffesNativeObject.EffesString) s.pop();
+      streamOut.get().write(text.value);
+    });
+  }
+
   @OperationFactory("call_Stream:readFile")
   public Operation.Body readFile() {
     return Operation.withIncementingPc(s -> {
@@ -411,7 +435,7 @@ public class EffesOps {
   public Operation.Body readLine() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesStreamIn streamIn = (EffesNativeObject.EffesStreamIn) s.pop();
-      pushStringOrFalse(s, streamIn.readLine());
+      pushStringOrFalse(s, streamIn.get().readLine());
     });
   }
 

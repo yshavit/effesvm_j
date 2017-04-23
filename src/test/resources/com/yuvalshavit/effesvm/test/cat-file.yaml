@@ -17,7 +17,7 @@ efct: |
   rtrn
 runs:
 - description: normal file
-  files:
+  filesIn:
     my_file.txt: |
       Hello there, human.
       I am a file for testing.

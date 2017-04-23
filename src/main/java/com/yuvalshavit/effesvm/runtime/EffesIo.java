@@ -3,8 +3,10 @@ package com.yuvalshavit.effesvm.runtime;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 
 public interface EffesIo {
 
@@ -16,6 +18,7 @@ public interface EffesIo {
   EffesOutput out();
   EffesOutput err();
   InputStream readFile(String name);
+  OutputStream writeFile(String name);
 
   class Stdio implements EffesIo {
     private static final Stdio instance = new Stdio();
@@ -32,7 +35,7 @@ public interface EffesIo {
 
     @Override
     public EffesOutput out() {
-      return stderrOutput;
+      return stdoutOutput;
     }
 
     @Override
@@ -46,6 +49,15 @@ public interface EffesIo {
         return new FileInputStream(name);
       } catch (FileNotFoundException e) {
         throw new EffesRuntimeException("while opening " + name + " for reading", e);
+      }
+    }
+
+    @Override
+    public OutputStream writeFile(String name) {
+      try {
+        return new FileOutputStream(name);
+      } catch (FileNotFoundException e) {
+        throw new EffesRuntimeException("while opening " + name + " for writing", e);
       }
     }
   }
