@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -163,6 +164,23 @@ public class EvmRunner {
         }
         next.accept(state.pc());
       }
+    } catch (Exception e) {
+      System.err.println("Error!");
+      for (ProgramCounter.State frame : state.getStackTrace()) {
+        EffesFunction<Operation> function = frame.function();
+        Operation functionOp = function.opAt(frame.pc());
+
+        System.err.printf(
+          " %s.%s[#%d L-%d]: %s%n",
+          function.moduleId(),
+          function.id(),
+          frame.pc(),
+          functionOp.info().lineNumber(),
+          LambdaHelpers.consumeAndReturn(new StringJoiner(" ").add(functionOp.info().opcode()), sj -> functionOp.info().arguments().forEach(sj::add)));
+      }
+      System.err.println();
+      System.err.print("Due to: ");
+      e.printStackTrace();
     }
     EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
     return exitCode.value;
