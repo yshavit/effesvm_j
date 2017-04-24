@@ -1,11 +1,8 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -394,6 +391,16 @@ public class EffesOps {
   @OperationFactory("call_String:sout")
   public Operation.Body sout() {
     return Operation.withIncementingPc(s -> io.out().write(popString(s)));
+  }
+
+  @OperationFactory("call_String:concat")
+  public static Operation.Body concat() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesString second = (EffesNativeObject.EffesString) s.pop();
+      EffesNativeObject.EffesString first = (EffesNativeObject.EffesString) s.pop();
+      EffesNativeObject.EffesString result = EffesNativeObject.forString(first.value + second.value);
+      s.push(result);
+    });
   }
 
   @OperationFactory("call_Stream:stdin")

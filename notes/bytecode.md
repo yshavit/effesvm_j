@@ -357,6 +357,10 @@ Pops two elements from the stack, a pattern and a string to search for. Pushes a
 
 Pops a string from the stack and writes it to stdout. No newline is added.
 
+### call_String:concat @first @second -> result
+
+Pops two strings, concatenates them, and pushes the result.
+
 Stream operations
 ----------------------------------------------------------------------------------------
 
