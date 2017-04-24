@@ -360,11 +360,11 @@ Pops a string from the stack and writes it to stdout. No newline is added.
 Stream operations
 ----------------------------------------------------------------------------------------
 
-### call_Stream:stdin -> Stream
+### call_Stream:stdin -> StreamIn
 
 Pushes a StreamIn object representing stdin.`
 
-### call_Stream:readFile @file -> Stream
+### call_Stream:readFile @file -> StreamIn
 
 Opens a file for reading, and pushes its stream to the stack.
 
@@ -380,6 +380,14 @@ Shortcut for:
     call_Stream:readLine
 
 This method only exists historical/convenience purposes.
+
+### call_Stream:writeFile @file -> StreamOut
+
+Opens a file for writing, and pushes its stream to the stack
+
+### call_Stream:writeText @text @stream
+
+Writes the given text to the given output stream.
 
 Other
 ----------------------------------------------------------------------------------------
