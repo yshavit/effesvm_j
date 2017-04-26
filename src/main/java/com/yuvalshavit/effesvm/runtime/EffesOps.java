@@ -422,8 +422,8 @@ public class EffesOps {
   @OperationFactory(("call_Stream:writeText"))
   public Operation.Body writeText() {
     return Operation.withIncementingPc(s -> {
-      EffesNativeObject.EffesStreamOut streamOut = (EffesNativeObject.EffesStreamOut) s.pop();
       EffesNativeObject.EffesString text = (EffesNativeObject.EffesString) s.pop();
+      EffesNativeObject.EffesStreamOut streamOut = (EffesNativeObject.EffesStreamOut) s.pop();
       streamOut.get().write(text.value);
     });
   }

@@ -2,13 +2,13 @@ efct: |
   FUNC : main 1 1 0
   str  my_file.txt                # [name]
   call_Stream:writeFile           # [stream]
-  str  "hello, world\n"            # [stream, str]
+  str  "hello, world\n"           # [stream, str]
   call_Stream:writeText           # []
   int 0
   rtrn
 runs:
 - description: normal file
-  filesout:
+  filesOut:
     my_file.txt: |
       hello, world
   exit: 0

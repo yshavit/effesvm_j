@@ -56,6 +56,9 @@ public class EndToEndTest {
             : (path + ": " + run.description);
           tests.add(new Object[] { run });
         }
+      } catch (Exception e) {
+        System.err.println("for file: " + path);
+        e.printStackTrace();
       }
     }
     return tests.iterator();

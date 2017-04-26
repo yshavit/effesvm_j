@@ -171,7 +171,7 @@ public class EvmRunner {
         Operation functionOp = function.opAt(frame.pc());
 
         System.err.printf(
-          " %s.%s[#%d L-%d]: %s%n",
+          " %s.%s[#%d L.%d]: %s%n",
           function.moduleId(),
           function.id(),
           frame.pc(),
