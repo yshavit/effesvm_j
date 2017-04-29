@@ -22,7 +22,7 @@ efct: |
   rtrn
 runs:
 - err: |
-    main:House{nDoors=2, nWindows=12}
+    main:House(nDoors=2, nWindows=12)
     2
     12
     14

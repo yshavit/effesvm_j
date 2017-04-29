@@ -292,7 +292,7 @@ public class EffesOps {
   public Operation.Body debugPrint() {
     return Operation.withIncementingPc(s -> {
       String line = s.getLocalStackSize() > 0
-        ? String.valueOf(s.peek(0).toString(true))
+        ? String.valueOf(s.peek(0).visit(new EffesRefFormats.Inline(true)).toString())
         : "<the local stack for this frame is empty>";
       EffesOutput err = io.err();
       err.write(line);

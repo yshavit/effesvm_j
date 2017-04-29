@@ -21,6 +21,6 @@ runs:
 - out: |
     dogcat
   err: |
-    main:Animal{species=dog}
-    main:Animal{species=cat}
+    main:Animal(species=dog)
+    main:Animal(species=cat)
   exit: 0

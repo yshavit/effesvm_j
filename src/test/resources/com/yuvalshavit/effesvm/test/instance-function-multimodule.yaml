@@ -23,7 +23,7 @@ otherModules:
     rtrn
 runs:
 - err: |
-    buildings:House{nDoors=2, nWindows=12}
+    buildings:House(nDoors=2, nWindows=12)
     2
     12
     14

@@ -11,5 +11,5 @@ efct: |
 runs:
 - description: some args
   args: [hello, world]
-  out: 'Array{size=2}'
+  out: 'Array(2)'
   exit: 0

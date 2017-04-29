@@ -6,10 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.NativeType> {
@@ -95,8 +93,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean ignored) {
-      return String.format("Array{size=%d}", data.length);
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive("size", data.length);
     }
 
     @Override
@@ -122,8 +120,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean ignored) {
-      return type().toString();
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      // nothing
     }
 
     @Override
@@ -141,8 +139,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean ignored) {
-      return value;
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive(null, value);
     }
 
     @Override
@@ -160,8 +158,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean useArgNames) {
-      return sb.toString();
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive(null, sb);
     }
 
     @Override
@@ -183,8 +181,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean useArgNames) {
-      return underlying.toString();
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive(null, underlying);
     }
 
     @Override
@@ -214,8 +212,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean ignored) {
-      return Integer.toString(value);
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive(null, value);
     }
 
     @Override
@@ -255,14 +253,11 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
 
     @Override
-    public String toString(boolean useArgNames) {
-      StringJoiner joiner = useArgNames
-        ? new StringJoiner(", ", "Match{pattern=" + matcher.pattern().pattern() + ", groups=[", "]")
-        : new StringJoiner(", ", "Match(" + matcher.pattern().pattern() + ",", ")");
-      IntStream.range(1, matcher.groupCount() + 1)
-        .mapToObj(matcher::group)
-        .forEachOrdered(joiner::add);
-      return joiner.toString();
+    protected void visitAttrs(EffesRefVisitor visitor) {
+      visitor.attributePrimitive("pattern", matcher.pattern().pattern());
+      for (int i = 1; i < matcher.groupCount(); ++i) {
+        visitor.attributePrimitive("group[" + i + "]", matcher.group(i));
+      }
     }
 
     @Override
@@ -282,7 +277,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
-  private enum NativeTypeEnum {
+  enum NativeTypeEnum {
     TRUE("True"),
     FALSE("False"),
     INTEGER("Integer"),
@@ -298,6 +293,10 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
     NativeTypeEnum(String name) {
       type = new NativeType(name);
+    }
+
+    BaseEffesType type() {
+      return type;
     }
   }
 }
