@@ -2,7 +2,10 @@ package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Arrays;
 
+import com.yuvalshavit.effesvm.load.EffesModule;
+
 public class EffesObject extends EffesRef<EffesType> {
+  private static final EffesModule.Id consModule = EffesModule.Id.of("ConsList");
   private final EffesRef<?>[] args;
 
   public EffesObject(EffesType type, EffesRef<?>[] args) {
@@ -23,8 +26,57 @@ public class EffesObject extends EffesRef<EffesType> {
 
   @Override
   protected void visitAttrs(EffesRefVisitor visitor) {
-    for (int i = 0; i < args.length; ++i) {
-      visitor.attribute(type().argAt(i), getArgAt(i));
+    if (!visitAttrsForCons(visitor)) {
+      for (int i = 0; i < args.length; ++i) {
+        visitor.attribute(type().argAt(i), getArgAt(i));
+      }
+    }
+  }
+
+  private boolean visitAttrsForCons(EffesRefVisitor visitor) {
+    // special handling for ConsList:Cons, to make things less indented
+    // This is a bit ugly, for sure! The language should eventually provide this in a more language-oriented (not VM-special-cased) way.
+    EffesType type = type();
+    if (isConsType(type) && isConsListRecursive(getArgAt(1))) {
+      int i = 0;
+      EffesRef<?> head = this;
+      while (isConsType(head.type())) {
+        EffesObject headCons = (EffesObject) head;
+        visitor.attribute("[" + i + "]", headCons.getArgAt(0));
+        head = headCons.getArgAt(1);
+        ++i;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private static boolean isConsType(BaseEffesType type) {
+    return isEffesType(type, consModule, "Cons", "head", "tail");
+  }
+
+  private static boolean isEffesType(BaseEffesType type, EffesModule.Id module, String typeName, String... args) {
+    if (!(type instanceof EffesType)) {
+      return false;
+    }
+    EffesType effesType = (EffesType) type;
+    if (module.equals(effesType.moduleId()) && typeName.equals(effesType.name()) && args.length == effesType.nArgs()) {
+      for (int i = 0; i < args.length; ++i) {
+        if (!args[i].equals(effesType.argAt(i))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isConsListRecursive(EffesRef<?> elem) {
+    if (isConsType(elem.type())) {
+      EffesObject cons = (EffesObject) elem;
+      return isConsListRecursive(cons.getArgAt(1));
+    } else {
+      return isEffesType(elem.type(), consModule, "Empty");
     }
   }
 }

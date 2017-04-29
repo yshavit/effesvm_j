@@ -44,6 +44,10 @@ public class EffesType extends BaseEffesType {
     return arguments.get(idx);
   }
 
+  public EffesModule.Id moduleId() {
+    return module;
+  }
+
   @Override
   public String toString() {
     return ScopeId.toString(module, name());
