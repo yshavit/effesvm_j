@@ -182,6 +182,15 @@ public class EffesOps {
     });
   }
 
+  @OperationFactory("call_native:toStringPretty")
+  public static Operation.Body nativeToStringPretty() {
+    return Operation.withIncementingPc(s -> {
+      EffesRef<?> top = s.pop();
+      String pretty = top.visit(new EffesRefFormats.Pretty()).toString();
+      s.push(EffesNativeObject.forString(pretty));
+    });
+  }
+
   @OperationFactory("call_Integer:parse")
   public static Operation.Body parseInt() {
     return Operation.withIncementingPc(s -> {
