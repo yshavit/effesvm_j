@@ -4,6 +4,7 @@ efct: |
   str  "dog"             # new Animal("dog")
   call :Animal Animal
   debug-print
+  debug-print-pretty
   svar 1
   pvar 1                 # print Animal.species
   pfld :Animal species
@@ -22,5 +23,7 @@ runs:
     dogcat
   err: |
     main:Animal(species=dog)
+    main:Animal
+      species: dog
     main:Animal(species=cat)
   exit: 0

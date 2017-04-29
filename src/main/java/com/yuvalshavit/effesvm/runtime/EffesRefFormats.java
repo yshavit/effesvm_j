@@ -75,6 +75,62 @@ public class EffesRefFormats {
     }
   }
 
+  public static class Pretty implements EffesRefVisitor {
+    private final int indents;
+    private final StringBuilder sb;
+    private int level;
+
+    public Pretty(int indents) {
+      this.indents = indents;
+      this.sb = new StringBuilder();
+    }
+
+    public Pretty() {
+      this(2);
+    }
+
+    @Override
+    public void start(BaseEffesType type) {
+      if (!noNameTypes.contains(type)) {
+        sb.append(type);
+      }
+      ++level;
+    }
+
+    @Override
+    public void attributePrimitive(String name, Object value) {
+      seeAttribute(name);
+      sb.append(value);
+    }
+
+    @Override
+    public void attribute(String name, EffesRef<?> value) {
+      seeAttribute(name);
+      value.visit(this);
+    }
+
+    @Override
+    public void end() {
+      --level;
+    }
+
+    @Override
+    public String toString() {
+      return sb.toString();
+    }
+
+    private void seeAttribute(String name) {
+      if (name == null) {
+        return;
+      }
+      sb.append('\n');
+      for (int i = 0, to = indents * level; i < to; ++i) {
+        sb.append(' ');
+      }
+      sb.append(name).append(": ");
+    }
+  }
+
   private enum AttrsSeen {
     SEEN,
     NOT_SEEN,

@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesLinkException;
@@ -290,9 +291,18 @@ public class EffesOps {
 
   @OperationFactory("debug-print")
   public Operation.Body debugPrint() {
+    return debugPrint(() -> new EffesRefFormats.Inline(true));
+  }
+
+  @OperationFactory("debug-print-pretty")
+  public Operation.Body debugPrintPretty() {
+    return debugPrint(EffesRefFormats.Pretty::new);
+  }
+
+  private Operation.Body debugPrint(Supplier<EffesRefVisitor> visitor) {
     return Operation.withIncementingPc(s -> {
       String line = s.getLocalStackSize() > 0
-        ? String.valueOf(s.peek(0).visit(new EffesRefFormats.Inline(true)).toString())
+        ? String.valueOf(s.peek(0).visit(visitor.get()).toString())
         : "<the local stack for this frame is empty>";
       EffesOutput err = io.err();
       err.write(line);
