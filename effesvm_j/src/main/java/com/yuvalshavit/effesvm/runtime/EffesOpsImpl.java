@@ -220,6 +220,11 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   @Override
+  public Operation.Body ne() {
+    return intCmp((l, r) -> (l != r));
+  }
+
+  @Override
   public Operation.Body ge() {
     return intCmp((l, r) -> (l >= r));
   }

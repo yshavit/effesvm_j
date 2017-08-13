@@ -79,6 +79,9 @@ public interface EffesOps<T> {
   @OperationFactory("call_Integer:eq")
   T eq();
 
+  @OperationFactory("call_Integer:ne")
+  T ne();
+
   @OperationFactory("call_Integer:ge")
   T ge();
 

@@ -312,7 +312,7 @@ Parsing is done via Java's `Integer.parseInt`
 
 ### call_Integer:&lt;cmp&gt;
 
-_&lt;cmp&gt;_ is one of: lt, le, eq, ge, gt
+_&lt;cmp&gt;_ is one of: lt, le, eq, ne, ge, gt
 
 Pops two elements from the stack, which must both be of Integer type. Pushes a True if @lhs is less than, less than or equal to, equal to, greater than, or greater than or equal to @rhs (respectively, per opcode). Pushes a False otherwise.
 
