@@ -108,7 +108,7 @@ public class EvmRunner {
     Function<DebugServerContext,DebugServer> debugServerFactory) throws IOException
   {
     // Parse and link the inputs
-    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOps(io));
+    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
     Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
     Parser parser = new Parser(ops);
     for (Map.Entry<EffesModule.Id,Iterable<String>> inputFileEntry : inputFiles.entrySet()) {

@@ -20,20 +20,19 @@ import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
-import com.yuvalshavit.effesvm.ops.OperationFactory;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.VarUnlinkedOperation;
 
-public class EffesOps {
+public class EffesOpsImpl implements EffesOps<Object> {
 
   private final EffesIo io;
 
-  public EffesOps(EffesIo io) {
+  public EffesOpsImpl(EffesIo io) {
     this.io = io;
   }
 
-  @OperationFactory("arry")
-  public static Operation.Body createArray() {
+  @Override
+  public Operation.Body createArray() {
     return Operation.withIncementingPc(s -> {
       int size = popInt(s);
       EffesRef<?> arr = new EffesNativeObject.EffesArray(size);
@@ -41,89 +40,89 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("int")
-  public static Operation.Body pushInt(String value) {
+  @Override
+  public Operation.Body pushInt(String value) {
     int asInt = Integer.parseInt(value);
     EffesNativeObject.EffesInteger obj = EffesNativeObject.forInt(asInt);
     return Operation.withIncementingPc(s -> s.push(obj));
   }
 
-  @OperationFactory("pop")
-  public static Operation.Body pop() {
+  @Override
+  public Operation.Body pop() {
     return Operation.withIncementingPc(EffesState::pop);
   }
 
-  @OperationFactory("pvar")
-  public static VarUnlinkedOperation.Body pvar(String n) {
+  @Override
+  public VarUnlinkedOperation.Body pvar(String n) {
     int idx = nonNegative(n);
     return VarUnlinkedOperation.pushVar(idx);
   }
 
-  @OperationFactory("svar")
-  public static VarUnlinkedOperation.Body svar(String n) {
+  @Override
+  public VarUnlinkedOperation.Body svar(String n) {
     int idx = nonNegative(n);
     return VarUnlinkedOperation.popToVar(idx);
   }
 
-  @OperationFactory("Svar")
-  public static VarUnlinkedOperation.Body Svar(String n) {
+  @Override
+  public VarUnlinkedOperation.Body Svar(String n) {
     int idx = nonNegative(n);
     return VarUnlinkedOperation.copyToVar(idx);
   }
 
 
-  @OperationFactory("goto")
-  public static  UnlinkedOperation.Body gotoAbs(String n) {
+  @Override
+  public UnlinkedOperation.Body gotoAbs(String n) {
     return linkCtx -> {
       PcMove pcMove = pcMoveTo(linkCtx, n);
       return (Operation.Body) s -> pcMove;
     };
   }
 
-  @OperationFactory("goif")
-  public static  UnlinkedOperation.Body gotoIf(String n) {
+  @Override
+  public UnlinkedOperation.Body gotoIf(String n) {
     return buildGoif(n, Boolean::booleanValue);
   }
 
-  @OperationFactory("gofi")
-  public static  UnlinkedOperation.Body gotoIfNot(String n) {
+  @Override
+  public UnlinkedOperation.Body gotoIfNot(String n) {
     return buildGoif(n, b -> !b);
   }
 
-  @OperationFactory("rtrn")
-  public static Operation.Body rtrn() {
+  @Override
+  public Operation.Body rtrn() {
     return s -> {
       s.closeFrame();
       return PcMove.stay();
     };
   }
 
-  @OperationFactory("type")
-  public static  UnlinkedOperation.Body type(String typeName) {
+  @Override
+  public UnlinkedOperation.Body type(String typeName) {
     return typeBuilder(typeName, EffesState::pop, (s, i) -> {});
   }
 
-  @OperationFactory("typp")
-  public static  UnlinkedOperation.Body typp(String typeName) {
+  @Override
+  public UnlinkedOperation.Body typp(String typeName) {
     return typeBuilder(typeName, s -> s.peek(0), (s, i) -> {});
   }
 
-  @OperationFactory("typf")
-  public static UnlinkedOperation.Body typf(String typeName) {
+  @Override
+  public UnlinkedOperation.Body typf(String typeName) {
     return typeBuilder(typeName, EffesState::pop, EffesState::push);
   }
 
-  @OperationFactory("pfld")
-  public static  UnlinkedOperation.Body pushField(String typeName, String fieldName) {
+  @Override
+  public UnlinkedOperation.Body pushField(String typeName, String fieldName) {
     return pushFieldOperation(typeName, fieldName, EffesState::pop);
   }
 
-  @OperationFactory("Pfld")
-  public static  UnlinkedOperation.Body PushField(String typeName, String fieldName) {
+  @Override
+  public UnlinkedOperation.Body PushField(String typeName, String fieldName) {
     return pushFieldOperation(typeName, fieldName, s -> s.peek(0));
   }
 
-  private static UnlinkedOperation.Body pushFieldOperation(String typeName, String fieldName, Function<EffesState,EffesRef<?>> getTop) {
+  private UnlinkedOperation.Body pushFieldOperation(String typeName, String fieldName, Function<EffesState,EffesRef<?>> getTop) {
     return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
       EffesObject obj = (EffesObject) getTop.apply(s);
       if (!obj.type().equals(type)) {
@@ -134,8 +133,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("sfld")
-  public static  UnlinkedOperation.Body storeField(String typeName, String fieldName) {
+  @Override
+  public UnlinkedOperation.Body storeField(String typeName, String fieldName) {
     return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
       EffesRef<?> newFieldValue = s.pop();
       EffesObject obj = (EffesObject) s.pop();
@@ -146,8 +145,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Array:store")
-  public static Operation.Body arrayStore() {
+  @Override
+  public Operation.Body arrayStore() {
     return Operation.withIncementingPc(s -> {
       EffesRef<?> value = s.pop();
       int idx = popInt(s);
@@ -156,8 +155,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Array:get")
-  public static Operation.Body arrayGet() {
+  @Override
+  public Operation.Body arrayGet() {
     return Operation.withIncementingPc(s -> {
       int idx = popInt(s);
       EffesNativeObject.EffesArray arr = (EffesNativeObject.EffesArray) s.pop();
@@ -166,24 +165,24 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Array:len")
-  public static Operation.Body arrayLen() {
+  @Override
+  public Operation.Body arrayLen() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesArray arr = (EffesNativeObject.EffesArray) s.pop();
       s.push(EffesNativeObject.forInt(arr.length()));
     });
   }
 
-  @OperationFactory("call_native:toString")
-  public static Operation.Body nativeToString() {
+  @Override
+  public Operation.Body nativeToString() {
     return Operation.withIncementingPc(s -> {
       EffesRef<?> top = s.pop();
       s.push(EffesNativeObject.forString(top.toString()));
     });
   }
 
-  @OperationFactory("call_native:toStringPretty")
-  public static Operation.Body nativeToStringPretty() {
+  @Override
+  public Operation.Body nativeToStringPretty() {
     return Operation.withIncementingPc(s -> {
       EffesRef<?> top = s.pop();
       String pretty = top.visit(new EffesRefFormats.Pretty()).toString();
@@ -191,8 +190,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Integer:parse")
-  public static Operation.Body parseInt() {
+  @Override
+  public Operation.Body parseInt() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesString str = (EffesNativeObject.EffesString) s.pop();
       EffesRef<?> parseResult;
@@ -205,33 +204,33 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Integer:lt")
-  public static Operation.Body lt() {
+  @Override
+  public Operation.Body lt() {
     return intCmp((l, r) -> (l < r));
   }
 
-  @OperationFactory("call_Integer:le")
-  public static Operation.Body le() {
+  @Override
+  public Operation.Body le() {
     return intCmp((l, r) -> (l <= r));
   }
 
-  @OperationFactory("call_Integer:eq")
-  public static Operation.Body eq() {
+  @Override
+  public Operation.Body eq() {
     return intCmp((l, r) -> (l == r));
   }
 
-  @OperationFactory("call_Integer:ge")
-  public static Operation.Body ge() {
+  @Override
+  public Operation.Body ge() {
     return intCmp((l, r) -> (l >= r));
   }
 
-  @OperationFactory("call_Integer:gt")
-  public static Operation.Body gt() {
+  @Override
+  public Operation.Body gt() {
     return intCmp((l, r) -> (l > r));
   }
 
-  @OperationFactory("call")
-  public static  UnlinkedOperation.Body call(String scopeSpecifier, String functionName) {
+  @Override
+  public UnlinkedOperation.Body call(String scopeSpecifier, String functionName) {
     ScopeId scope = ScopeId.parse(scopeSpecifier);
     if (scope.hasType() && scope.type().equals(functionName)) {
       // constructor
@@ -278,32 +277,32 @@ public class EffesOps {
     }
   }
 
-  @OperationFactory("call_Integer:add")
-  public static Operation.Body iAdd() {
+  @Override
+  public Operation.Body iAdd() {
     return intArith((l, r) -> (l + r));
   }
 
-  @OperationFactory("call_Integer:sub")
-  public static Operation.Body iSub() {
+  @Override
+  public Operation.Body iSub() {
     return intArith((l, r) -> (l - r));
   }
 
-  @OperationFactory("call_Integer:mult")
-  public static Operation.Body iMul() {
+  @Override
+  public Operation.Body iMul() {
     return intArith((l, r) -> (l * r));
   }
 
-  @OperationFactory("call_Integer:div")
-  public static Operation.Body iDiv() {
+  @Override
+  public Operation.Body iDiv() {
     return intArith((l, r) -> (l / r));
   }
 
-  @OperationFactory("debug-print")
+  @Override
   public Operation.Body debugPrint() {
     return debugPrint(() -> new EffesRefFormats.Inline(true));
   }
 
-  @OperationFactory("debug-print-pretty")
+  @Override
   public Operation.Body debugPrintPretty() {
     return debugPrint(EffesRefFormats.Pretty::new);
   }
@@ -319,8 +318,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("bool")
-  public static Operation.Body bool(String sValue) {
+  @Override
+  public Operation.Body bool(String sValue) {
     boolean bValue;
     if ("True".equals(sValue)) {
       bValue = true;
@@ -333,8 +332,8 @@ public class EffesOps {
     return Operation.withIncementingPc(s -> s.push(eValue));
   }
 
-  @OperationFactory("call_Boolean:negate")
-  public static Operation.Body negate() {
+  @Override
+  public Operation.Body negate() {
     return Operation.withIncementingPc(s -> {
       boolean value = popBoolean(s);
       EffesNativeObject.EffesBoolean push = EffesNativeObject.forBoolean(!value);
@@ -342,23 +341,23 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Boolean:and")
-  public static Operation.Body and() {
+  @Override
+  public Operation.Body and() {
     return booleanOp(Boolean::logicalAnd);
   }
 
-  @OperationFactory("call_Boolean:or")
-  public static Operation.Body or() {
+  @Override
+  public Operation.Body or() {
     return booleanOp(Boolean::logicalOr);
   }
 
-  @OperationFactory("call_Boolean:xor")
-  public static Operation.Body xor() {
+  @Override
+  public Operation.Body xor() {
     return booleanOp(Boolean::logicalXor);
   }
 
-  @OperationFactory("call_Match:igroup")
-  public static Operation.Body matchIndexedGroup() {
+  @Override
+  public Operation.Body matchIndexedGroup() {
     return Operation.withIncementingPc(s -> {
       int idx = popInt(s);
       EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
@@ -366,8 +365,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Match:ngroup")
-  public static Operation.Body matchNamedGroup() {
+  @Override
+  public Operation.Body matchNamedGroup() {
     return Operation.withIncementingPc(s -> {
       String name = popString(s);
       EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
@@ -375,22 +374,22 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Match:groupCount")
-  public static Operation.Body matchGroupCount() {
+  @Override
+  public Operation.Body matchGroupCount() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
       s.push(match.groupCount());
     });
   }
 
-  @OperationFactory("str")
-  public static Operation.Body strPush(String value) {
+  @Override
+  public Operation.Body strPush(String value) {
     EffesNativeObject eStr = EffesNativeObject.forString(value);
     return Operation.withIncementingPc(s -> s.push(eStr));
   }
 
-  @OperationFactory("call_String:len")
-  public static Operation.Body stringLen() {
+  @Override
+  public Operation.Body stringLen() {
     return Operation.withIncementingPc(s -> {
       String str = popString(s);
       int len = str.codePointCount(0, str.length());
@@ -398,8 +397,8 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_String:regex")
-  public static Operation.Body stringRegex() {
+  @Override
+  public Operation.Body stringRegex() {
     return Operation.withIncementingPc(s -> {
       String patternStr = popString(s);
       String lookFor = popString(s);
@@ -407,13 +406,13 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_String:sout")
+  @Override
   public Operation.Body sout() {
     return Operation.withIncementingPc(s -> io.out().write(popString(s)));
   }
 
-  @OperationFactory("call_String:concat")
-  public static Operation.Body concat() {
+  @Override
+  public Operation.Body concat() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesString second = (EffesNativeObject.EffesString) s.pop();
       EffesNativeObject.EffesString first = (EffesNativeObject.EffesString) s.pop();
@@ -422,12 +421,12 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Stream:stdin")
+  @Override
   public Operation.Body stdin() {
     return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStreamIn(io.in())));
   }
 
-  @OperationFactory("call_Stream:writeFile")
+  @Override
   public Operation.Body writeFile() {
     return Operation.withIncementingPc(s -> {
       String fileName = popString(s);
@@ -438,7 +437,7 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory(("call_Stream:writeText"))
+  @Override
   public Operation.Body writeText() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesString text = (EffesNativeObject.EffesString) s.pop();
@@ -447,7 +446,7 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Stream:readFile")
+  @Override
   public Operation.Body readFile() {
     return Operation.withIncementingPc(s -> {
       String fileName = popString(s);
@@ -457,7 +456,7 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Stream:readLine")
+  @Override
   public Operation.Body readLine() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesStreamIn streamIn = (EffesNativeObject.EffesStreamIn) s.pop();
@@ -465,7 +464,7 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("call_Stream:stdinLine")
+  @Override
   public Operation.Body stdinLine() {
     return Operation.withIncementingPc(s -> pushStringOrFalse(s, io.in().readLine()));
   }
@@ -474,7 +473,7 @@ public class EffesOps {
     state.push((stringOrNull == null) ? EffesNativeObject.EffesBoolean.FALSE : EffesNativeObject.forString(stringOrNull));
   }
 
-  @OperationFactory("call_StringBuilder:add")
+  @Override
   public Operation.Body stringBuilderAdd() {
     return Operation.withIncementingPc(s -> {
       EffesNativeObject.EffesString toAdd = (EffesNativeObject.EffesString) s.pop();
@@ -484,17 +483,17 @@ public class EffesOps {
     });
   }
 
-  @OperationFactory("labl")
+  @Override
   public LabelUnlinkedOperation.Body label(String name) {
     return new LabelUnlinkedOperation.Body(name);
   }
 
-  @OperationFactory("sbld")
+  @Override
   public Operation.Body sbld() {
     return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStringBuilder()));
   }
 
-  @OperationFactory("fail")
+  @Override
   public Operation.Body fail(String message) {
     return s -> {
       s.getStackTrace().forEach(System.err::println);
@@ -503,7 +502,7 @@ public class EffesOps {
     };
   }
 
-  private static  UnlinkedOperation.Body buildGoif(String loc, Predicate<Boolean> condition) {
+  private UnlinkedOperation.Body buildGoif(String loc, Predicate<Boolean> condition) {
     return linkCtx -> {
       PcMove to = pcMoveTo(linkCtx, loc);
       return s -> {
@@ -527,7 +526,7 @@ public class EffesOps {
     return PcMove.absolute(idx);
   }
 
-  private static Operation.Body booleanOp(BinaryOperator<Boolean> op) {
+  private Operation.Body booleanOp(BinaryOperator<Boolean> op) {
     return Operation.withIncementingPc(s -> {
       boolean a = popBoolean(s);
       boolean b = popBoolean(s);
@@ -544,7 +543,7 @@ public class EffesOps {
     return idx;
   }
 
-  private static  UnlinkedOperation.Body fieldOperation(String typeName, String fieldName, FieldOperator op) {
+  private UnlinkedOperation.Body fieldOperation(String typeName, String fieldName, FieldOperator op) {
     ScopeId scope = ScopeId.parse(typeName);
     if (!scope.hasType()) {
       throw new IllegalArgumentException("scope specifier " + scope + " needs a type");
@@ -556,7 +555,7 @@ public class EffesOps {
     };
   }
 
-  private static Operation.Body intArith(IntBinaryOperator op) {
+  private Operation.Body intArith(IntBinaryOperator op) {
     return Operation.withIncementingPc(s -> {
       int rhs = popInt(s);
       int lhs = popInt(s);
@@ -564,7 +563,7 @@ public class EffesOps {
     });
   }
 
-  private static Operation.Body intCmp(IntCmp intCmp) {
+  private Operation.Body intCmp(IntCmp intCmp) {
     return Operation.withIncementingPc(s -> {
       int rhs = popInt(s);
       int lhs = popInt(s);
@@ -587,7 +586,7 @@ public class EffesOps {
     return effesStr.value;
   }
 
-  private static  UnlinkedOperation.Body typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem, BiConsumer<EffesState,EffesRef<?>> ifMatched) {
+  private UnlinkedOperation.Body typeBuilder(String typeName, Function<EffesState,EffesRef<?>> topItem, BiConsumer<EffesState,EffesRef<?>> ifMatched) {
     return linkCtx -> {
       BaseEffesType checkForType;
       if (typeName.indexOf(':') >= 0) {

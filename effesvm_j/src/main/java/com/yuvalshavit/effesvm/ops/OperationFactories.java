@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.ops;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.LinkContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.PcMove;
+import com.yuvalshavit.effesvm.util.AtMostOne;
 
 public class OperationFactories {
   private static final List<Class<?>> allowedReturnTypes = Arrays.asList(
@@ -29,7 +31,10 @@ public class OperationFactories {
   private static void buildInto(Map<String,ReflectiveOperationBuilder> map, Object suiteInstance) {
     Class<?> enclosingClass_ = suiteInstance.getClass();
     for (Method method : enclosingClass_.getMethods()) {
-      OperationFactory factoryAnnotation = method.getAnnotation(OperationFactory.class);
+      if (method.isBridge()) {
+        continue; // generated bridge function for generics
+      }
+      OperationFactory factoryAnnotation = findAnnotation(method, OperationFactory.class);
       if (factoryAnnotation != null) {
         Class<?> retType = method.getReturnType();
         if (allowedReturnTypes.stream().noneMatch(t -> t.isAssignableFrom(retType))) {
@@ -50,9 +55,28 @@ public class OperationFactories {
     }
   }
 
+  private static <T extends Annotation> T findAnnotation(Method method, Class<T> annotationClass) {
+    AtMostOne<T> annotation = new AtMostOne<>();
+    annotation.accept(method.getAnnotation(annotationClass));
+    // look on all interfaces up the class hierarchy
+    Set<Class<?>> interfaces = new HashSet<>();
+    for (Class<?> cls = method.getDeclaringClass(); cls != null; cls = cls.getSuperclass()) {
+      Collections.addAll(interfaces, cls.getInterfaces());
+    }
+    for (Class<?> oneInterface : interfaces) {
+      try {
+        Method interfaceMethod = oneInterface.getMethod(method.getName(), method.getParameterTypes());
+        annotation.accept(interfaceMethod.getAnnotation(annotationClass));
+      } catch (NoSuchMethodException e) {
+        // that's fine
+      }
+    }
+    return annotation.get();
+  }
+
   private static IllegalArgumentException notAValidFactoryMethod(Class<?> enclosingClass, Method method) {
     return new IllegalArgumentException(String.format(
-      "%s::%s must be public, static, takes only Strings (or a Strings vararg) and return one of %s",
+      "%s::%s must be public, take only Strings (or a Strings vararg) and return one of %s",
       enclosingClass.getName(),
       method.getName(),
       allowedReturnTypes.stream().map(Class::getName).collect(Collectors.joining(", "))));
