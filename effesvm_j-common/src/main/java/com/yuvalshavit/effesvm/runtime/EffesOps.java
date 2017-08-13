@@ -2,7 +2,7 @@ package com.yuvalshavit.effesvm.runtime;
 
 import com.yuvalshavit.effesvm.ops.OperationFactory;
 
-interface EffesOps<T> {
+public interface EffesOps<T> {
   
   @OperationFactory("arry")
   T createArray();
