@@ -16,4 +16,9 @@ public class AtMostOne<T> {
   public T get() {
     return elem;
   }
+
+  @Override
+  public String toString() {
+    return elem == null ? "<empty>" : elem.toString();
+  }
 }
