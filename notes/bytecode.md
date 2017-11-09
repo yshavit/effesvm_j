@@ -203,11 +203,13 @@ Moves the program counter to the specified opcode. The operand may either be a n
 
 ### goif _N_ @condition
 
-Pops the topmost element, which must be an EffesRef whose type is True or False. Iff the type is True, behaves as the `goto` opcode.
+Pops the topmost element, which must be a True or False. Iff the type is True, behaves as the `goto` opcode.
 
 ### gofi _N_ @condition
 
 Pops the topmost element, which must be a True or False. Iff the type is False, behaves as the `goto` opcode
+
+"Go if not"
 
 ### rtrn
 
