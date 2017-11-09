@@ -281,7 +281,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     TRUE("True"),
     FALSE("False"),
     INTEGER("Integer"),
-    STRING("String"),
+    STRING(EffesNativeType.STRING.getEvmType()),
     MATCH("Match"),
     ARRAY("Array"),
     STRING_BUILDER("StringBuilder"),
