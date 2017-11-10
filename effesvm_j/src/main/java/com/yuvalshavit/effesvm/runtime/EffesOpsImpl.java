@@ -406,8 +406,8 @@ public class EffesOpsImpl implements EffesOps<Object> {
   public Operation.Body stringRegex() {
     return Operation.withIncementingPc(s -> {
       String patternStr = popString(s);
-      String lookFor = popString(s);
-      s.push(EffesNativeObject.tryMatch(lookFor, patternStr));
+      String lookIn = popString(s);
+      s.push(EffesNativeObject.tryMatch(lookIn, patternStr));
     });
   }
 
