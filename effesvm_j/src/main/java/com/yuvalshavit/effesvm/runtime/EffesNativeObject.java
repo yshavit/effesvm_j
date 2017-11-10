@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -11,6 +12,15 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.NativeType> {
+
+  private static final EnumMap<EffesNativeType,NativeType> nativeTypes;
+
+  static {
+    nativeTypes = new EnumMap<>(EffesNativeType.class);
+    for (EffesNativeType nativeType : EffesNativeType.values()) {
+      nativeTypes.put(nativeType, new NativeType(nativeType.getEvmType()));
+    }
+  }
 
   private EffesNativeObject(NativeType type) {
     super(type);
@@ -68,18 +78,18 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   }
 
   public static BaseEffesType parseType(String typeName) {
-    return Stream.of(NativeTypeEnum.values())
-      .map(e -> e.type)
-      .filter(t -> t.name().equals(typeName))
+    EffesNativeType ent = Stream.of(EffesNativeType.values())
+      .filter(t -> t.getEvmType().equals(typeName))
       .findFirst()
       .orElseThrow(() -> new NoSuchElementException(typeName));
+    return typeFor(ent);
   }
 
   public static class EffesArray extends EffesNativeObject {
     private final EffesRef<?>[] data;
 
     public EffesArray(int size) {
-      super(NativeTypeEnum.ARRAY.type);
+      super(typeFor(EffesNativeType.ARRAY));
       data = new EffesRef<?>[size];
       Arrays.fill(data, EffesBoolean.FALSE);
     }
@@ -108,15 +118,15 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   }
 
   public static class EffesBoolean extends EffesNativeObject {
-    public static final EffesBoolean TRUE = new EffesBoolean(NativeTypeEnum.TRUE.type);
-    public static final EffesBoolean FALSE = new EffesBoolean(NativeTypeEnum.FALSE.type);
+    public static final EffesBoolean TRUE = new EffesBoolean(typeFor(EffesNativeType.TRUE));
+    public static final EffesBoolean FALSE = new EffesBoolean(typeFor(EffesNativeType.FALSE));
 
     private EffesBoolean(NativeType type) {
       super(type);
     }
 
     public boolean asBoolean() {
-      return type() == NativeTypeEnum.TRUE.type;
+      return type() == typeFor(EffesNativeType.TRUE);
     }
 
     @Override
@@ -134,7 +144,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     public final String value;
 
     private EffesString(String value) {
-      super(NativeTypeEnum.STRING.type);
+      super(typeFor(EffesNativeType.STRING));
       this.value = value;
     }
 
@@ -153,7 +163,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     public final StringBuilder sb;
 
     public EffesStringBuilder() {
-      super(NativeTypeEnum.STRING_BUILDER.type);
+      super(typeFor(EffesNativeType.STRING_BUILDER));
       sb = new StringBuilder();
     }
 
@@ -171,8 +181,8 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
   public static abstract class EffesDelegatingObj<T> extends EffesNativeObject {
     private final T underlying;
 
-    private EffesDelegatingObj(NativeTypeEnum type, T elem) {
-      super(type.type);
+    private EffesDelegatingObj(EffesNativeType type, T elem) {
+      super(EffesNativeObject.typeFor(type));
       this.underlying = elem;
     }
 
@@ -193,13 +203,13 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
   public static class EffesStreamIn extends EffesDelegatingObj<EffesInput> {
     public EffesStreamIn(EffesInput source) {
-      super(NativeTypeEnum.STREAM_IN, source);
+      super(EffesNativeType.STREAM_IN, source);
     }
   }
 
   public static class EffesStreamOut extends EffesDelegatingObj<EffesOutput> {
     public EffesStreamOut(EffesOutput sink) {
-      super(NativeTypeEnum.STREAM_OUT, sink);
+      super(EffesNativeType.STREAM_OUT, sink);
     }
   }
 
@@ -207,7 +217,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     public final int value;
 
     private EffesInteger(int value) {
-      super(NativeTypeEnum.INTEGER.type);
+      super(typeFor(EffesNativeType.INTEGER));
       this.value = value;
     }
 
@@ -226,7 +236,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     private final Matcher matcher;
 
     private EffesMatch(Matcher matcher) {
-      super(NativeTypeEnum.MATCH.type);
+      super(typeFor(EffesNativeType.MATCH));
       this.matcher = matcher;
     }
 
@@ -277,26 +287,33 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     }
   }
 
-  enum NativeTypeEnum {
-    TRUE("True"),
-    FALSE("False"),
-    INTEGER("Integer"),
-    STRING(EffesNativeType.STRING.getEvmType()),
-    MATCH("Match"),
-    ARRAY("Array"),
-    STRING_BUILDER("StringBuilder"),
-    STREAM_IN("StreamIn"),
-    STREAM_OUT("StreamOut"),
-    ;
-
-    private final NativeType type;
-
-    NativeTypeEnum(String name) {
-      type = new NativeType(name);
-    }
-
-    BaseEffesType type() {
-      return type;
-    }
+  static NativeType typeFor(EffesNativeType ent) {
+    NativeType result = nativeTypes.get(ent);
+    assert result != null : "somehow got EffesNativeType without a BaseEffesType mapping: " + ent;
+    return result;
   }
+
+
+//  enum NativeTypeEnum {
+//    TRUE("True"),
+//    FALSE("False"),
+//    INTEGER("Integer"),
+//    STRING(EffesNativeType.STRING.getEvmType()),
+//    MATCH("Match"),
+//    ARRAY("Array"),
+//    STRING_BUILDER("StringBuilder"),
+//    STREAM_IN("StreamIn"),
+//    STREAM_OUT("StreamOut"),
+//    ;
+//
+//    private final NativeType type;
+//
+//    NativeTypeEnum(String name) {
+//      type = new NativeType(name);
+//    }
+//
+//    BaseEffesType type() {
+//      return type;
+//    }
+//  }
 }

@@ -12,8 +12,8 @@ public class EffesRefFormats {
 
   private static Set<BaseEffesType> getNoNameTypes() {
     Set<BaseEffesType> set = new HashSet<>();
-    set.add(EffesNativeObject.NativeTypeEnum.STRING.type());
-    set.add(EffesNativeObject.NativeTypeEnum.INTEGER.type());
+    set.add(EffesNativeObject.typeFor(EffesNativeType.STRING));
+    set.add(EffesNativeObject.typeFor(EffesNativeType.INTEGER));
     return set;
   }
 
