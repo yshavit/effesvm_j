@@ -53,6 +53,11 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   @Override
+  public Operation.Body copy() {
+    return Operation.withIncementingPc(s -> s.push(s.peek(0)));
+  }
+
+  @Override
   public VarUnlinkedOperation.Body pvar(String n) {
     int idx = nonNegative(n);
     return VarUnlinkedOperation.pushVar(idx);

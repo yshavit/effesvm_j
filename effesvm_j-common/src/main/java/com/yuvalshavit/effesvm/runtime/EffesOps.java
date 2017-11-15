@@ -12,6 +12,9 @@ public interface EffesOps<T> {
 
   @OperationFactory("pop")
   T pop();
+
+  @OperationFactory("copy")
+  T copy();
   
   @OperationFactory("pvar")
   T pvar(String n);

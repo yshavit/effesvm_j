@@ -174,6 +174,10 @@ Stack manipulation
 
 Pops and discards the topmost element of the stack.
 
+### copy 
+
+Peeks the top value and pushes it onto the stack; that is, if the stack ended witih [a] before, it'll end in [a, a] after this operation.
+
 ### pvar _N_ -> varValue
 
 Gets local variable N, and pushes it to the stack. The variable itself is unaffected. This errors if the variable has not been set, or if N is out of range.
