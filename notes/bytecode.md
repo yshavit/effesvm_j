@@ -276,11 +276,11 @@ Array operations
 
 Creates an array of size `@size`.
 
-### call_Array:store @idx @value
+### call_Array:store @arr @idx @value
 
 Pops an array, an Integer, and an object of unchecked type. Stores the `@value` reference into the array at the specified index.
 
-### call_Array:get @idx -> value
+### call_Array:get @arr @idx -> value
 
 Pops an array and an Integer, and pushes the array value at that index to the stack. If no value has been stored at that index, pushes a `False`.
 
