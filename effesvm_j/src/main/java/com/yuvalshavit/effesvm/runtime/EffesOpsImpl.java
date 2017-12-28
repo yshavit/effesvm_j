@@ -437,6 +437,11 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   @Override
+  public Operation.Body stdout() {
+    return Operation.withIncementingPc(s -> s.push(new EffesNativeObject.EffesStreamOut(io.out())));
+  }
+
+  @Override
   public Operation.Body writeFile() {
     return Operation.withIncementingPc(s -> {
       String fileName = popString(s);

@@ -151,6 +151,9 @@ public interface EffesOps<T> {
   @OperationFactory("call_String:concat")
   T concat();
 
+  @OperationFactory("call_Stream:stdout")
+  T stdout();
+
   @OperationFactory("call_Stream:stdin")
   T stdin();
 

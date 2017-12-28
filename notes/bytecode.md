@@ -374,6 +374,10 @@ Stream operations
 
 Pushes a StreamIn object representing stdin.`
 
+### call_Stream:stdout -> StreamOut
+
+Pushes a StreamIn object representing stdout.`
+
 ### call_Stream:readFile @file -> StreamIn
 
 Opens a file for reading, and pushes its stream to the stack.
