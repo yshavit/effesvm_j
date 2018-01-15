@@ -15,6 +15,8 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
+import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
+
 public class DebugClient implements Closeable {
   private final int port;
   private final BlockingDeque<Runnable> onClose;

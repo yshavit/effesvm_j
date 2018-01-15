@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime.debugger;
+package com.yuvalshavit.effesvm.runtime.debugger.msg;
 
 import java.io.Serializable;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
 
 public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
 
@@ -14,7 +15,7 @@ public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
   }
 
   @Override
-  Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
+  public Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
     return state.visitStateUnderLock(s -> {
       EffesFunction<Operation> function = s.pc().getCurrentFunction();
       return new Response(s.toStringList(), function.moduleId().toString(), function.id().toString(), s.pc().getOpIdx(), state.getStepsCompleted());

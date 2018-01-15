@@ -1,9 +1,12 @@
-package com.yuvalshavit.effesvm.runtime.debugger;
+package com.yuvalshavit.effesvm.runtime.debugger.msg;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 
 public class MsgSetBreakpoints extends Msg.NoResponse {
   private final Collection<Breakpoint> breakpoints;

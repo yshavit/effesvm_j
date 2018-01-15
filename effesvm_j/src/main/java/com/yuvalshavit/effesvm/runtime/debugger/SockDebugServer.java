@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadFactory;
 import com.yuvalshavit.effesvm.runtime.DebugServer;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 
 public class SockDebugServer implements DebugServer {
   private final DebuggerState state;

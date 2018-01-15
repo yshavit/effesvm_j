@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime.debugger;
+package com.yuvalshavit.effesvm.runtime.debugger.msg;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
 
 public class MsgGetModules extends Msg<MsgGetModules.Response> {
 
@@ -20,7 +21,7 @@ public class MsgGetModules extends Msg<MsgGetModules.Response> {
   }
 
   @Override
-  Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
+  public Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
     Map<EffesModule.Id,EffesModule<Operation>> modules = context.modules();
 
     Map<String,Map<String,FunctionInfo>> modulesPlaintext = new HashMap<>(modules.size());

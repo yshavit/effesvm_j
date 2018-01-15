@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
+
 public class DebuggerGuiState {
   private static final String BREAKPOINT_PREFIX = "BR";
   private static final Pattern BREAKPOINT_PATTERN = Pattern.compile(BREAKPOINT_PREFIX + ": (\\S+) (\\S+) (\\S+)");
