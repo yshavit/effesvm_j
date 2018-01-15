@@ -15,7 +15,7 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-class DebugClient implements Closeable {
+public class DebugClient implements Closeable {
   private final int port;
   private final BlockingDeque<Runnable> onClose;
   private final ConcurrentMap<Integer,ResponseHandler<?>> pendingResponses;
@@ -73,11 +73,11 @@ class DebugClient implements Closeable {
     readerThread.start();
   }
 
-  void addCloseHandler(Runnable onClose) {
+  public void addCloseHandler(Runnable onClose) {
     this.onClose.add(onClose);
   }
 
-  <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess, Consumer<Throwable> onFailure) {
+  public <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess, Consumer<Throwable> onFailure) {
     ResponseHandler<R> handler = new ResponseHandler<>(sequencer.getAndIncrement(), message, onSuccess, onFailure);
     // register it on the pendingResponses first, so that we're guaranteed to have the response handler registered before we even send the request
     pendingResponses.put(handler.message.id(), handler);
@@ -85,11 +85,11 @@ class DebugClient implements Closeable {
     pendingMessages.add(handler);
   }
 
-  <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
+  public <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
     communicate(message, onSuccess, Throwable::printStackTrace);
   }
 
-  void communicate(Msg.NoResponse message) {
+  public void communicate(Msg.NoResponse message) {
     communicate(message, ack -> {});
   }
 

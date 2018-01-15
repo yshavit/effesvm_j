@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime.debugger;
+package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -27,6 +27,21 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
+
+import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
+import com.yuvalshavit.effesvm.runtime.debugger.Msg;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgAwaitRunStateChanged;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgGetFrame;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgGetModules;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgHello;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgIsSuspended;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgResume;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgSetBreakpoints;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgStepIn;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgStepOut;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgStepOver;
+import com.yuvalshavit.effesvm.runtime.debugger.MsgSuspend;
 
 public class DebuggerGui {
   public static final int DEFAULT_PORT = 6667;

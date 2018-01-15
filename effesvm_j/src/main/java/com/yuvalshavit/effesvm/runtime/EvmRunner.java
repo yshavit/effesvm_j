@@ -26,7 +26,7 @@ import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
-import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGui;
+import com.yuvalshavit.effesvm.runtime.debugger.gui.DebuggerGui;
 import com.yuvalshavit.effesvm.runtime.debugger.SockDebugServer;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.SequencedIterator;
