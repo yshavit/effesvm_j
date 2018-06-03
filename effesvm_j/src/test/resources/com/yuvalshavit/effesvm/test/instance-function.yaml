@@ -11,7 +11,7 @@ efct: |
   int  0
   rtrn
 
-  FUNC House describe 0 1 0
+  FUNC :House describe 0 1 0
   pvar 0 # this
   pfld :House nDoors
   debug-print

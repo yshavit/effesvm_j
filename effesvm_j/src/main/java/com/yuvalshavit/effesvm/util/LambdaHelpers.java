@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LambdaHelpers {
   private LambdaHelpers() {}
@@ -17,6 +18,10 @@ public class LambdaHelpers {
   public static <T> T consumeAndReturn(T elem, Consumer<? super T> giveTo) {
     giveTo.accept(elem);
     return elem;
+  }
+
+  public static <T> Function<Object, Stream<T>> downcaster(Class<T> toClass) {
+    return input -> toClass.isInstance(input) ? Stream.of(toClass.cast(input)) : Stream.empty();
   }
 
   public static <I,O> Iterator<O> map(Iterator<? extends I> in, Function<? super I, ? extends O> f) {

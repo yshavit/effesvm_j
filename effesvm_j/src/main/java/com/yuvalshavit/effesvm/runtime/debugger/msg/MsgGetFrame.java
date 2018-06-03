@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
-import com.yuvalshavit.effesvm.ops.Operation;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
 
@@ -17,22 +17,20 @@ public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
   @Override
   public Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
     return state.visitStateUnderLock(s -> {
-      EffesFunction<Operation> function = s.pc().getCurrentFunction();
-      return new Response(s.toStringList(), function.moduleId().toString(), function.id().toString(), s.pc().getOpIdx(), state.getStepsCompleted());
+      EffesFunction function = s.pc().getCurrentFunction();
+      return new Response(s.toStringList(), function.id(), s.pc().getOpIdx(), state.getStepsCompleted());
     });
   }
 
   public static class Response implements Serializable {
     private final List<String> elements;
-    private final String currentModuleId;
-    private final String currentFunctionName;
     private final int opIndex;
     private final int stepsCompleted;
+    private final EffesFunctionId functionId;
 
-    public Response(List<String> elements, String moduleId, String functionName, int opIndex, int stepsCompleted) {
+    public Response(List<String> elements, EffesFunctionId fid, int opIndex, int stepsCompleted) {
       this.elements = elements;
-      this.currentModuleId = moduleId;
-      this.currentFunctionName = functionName;
+      functionId = fid;
       this.opIndex = opIndex;
       this.stepsCompleted = stepsCompleted;
     }
@@ -45,12 +43,8 @@ public class MsgGetFrame extends Msg<MsgGetFrame.Response> {
       return elements;
     }
 
-    public String getCurrentModuleId() {
-      return currentModuleId;
-    }
-
-    public String getCurrentFunctionName() {
-      return currentFunctionName;
+    public EffesFunctionId getFunctionId() {
+      return functionId;
     }
 
     public int getOpIndex() {

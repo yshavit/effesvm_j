@@ -3,7 +3,6 @@ package com.yuvalshavit.effesvm.runtime;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.ops.Operation;
@@ -31,7 +30,7 @@ public class ProgramCounter {
     state.pc = op;
   }
 
-  public void set(EffesFunction<Operation> function, int op) {
+  public void set(EffesFunction function, int op) {
     requireNonNull(function, "function");
     state.function = function;
     setOpIdx(op);
@@ -41,7 +40,7 @@ public class ProgramCounter {
     return state.function.opAt(getOpIdx());
   }
 
-  public EffesFunction<Operation> getCurrentFunction() {
+  public EffesFunction getCurrentFunction() {
     return state.function;
   }
 
@@ -58,7 +57,7 @@ public class ProgramCounter {
     return state.toString();
   }
 
-  public static State firstLineOfFunction(EffesFunction<Operation> function) {
+  public static State firstLineOfFunction(EffesFunction function) {
     return new State(function, 0);
   }
 
@@ -67,10 +66,10 @@ public class ProgramCounter {
   }
 
   public static class State {
-    private EffesFunction<Operation> function;
+    private EffesFunction function;
     private int pc;
 
-    private State(EffesFunction<Operation> function, int pc) {
+    private State(EffesFunction function, int pc) {
       this.function = function;
       this.pc = pc;
     }
@@ -84,7 +83,7 @@ public class ProgramCounter {
       this.pc = from.pc;
     }
 
-    public EffesFunction<Operation> function() {
+    public EffesFunction function() {
       return function;
     }
 
@@ -111,7 +110,13 @@ public class ProgramCounter {
 
     @Override
     public String toString() {
-      return (this == end) ? "<end>" : String.format("%s[%d]", function, pc);
+      if (this == end) {
+        return "<end>";
+      } else if (function == null) {
+        return "<no function>";
+      } else {
+        return function.id().toString("@" + pc);
+      }
     }
   }
 }

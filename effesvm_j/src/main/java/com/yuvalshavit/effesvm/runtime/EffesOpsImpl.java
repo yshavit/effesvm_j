@@ -13,11 +13,12 @@ import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesLinkException;
 import com.yuvalshavit.effesvm.load.EffesLoadException;
 import com.yuvalshavit.effesvm.load.LinkContext;
-import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
@@ -241,11 +242,11 @@ public class EffesOpsImpl implements EffesOps<Object> {
 
   @Override
   public UnlinkedOperation.Body call(String scopeSpecifier, String functionName) {
-    ScopeId scope = ScopeId.parse(scopeSpecifier);
-    if (scope.hasType() && scope.type().equals(functionName)) {
-      // constructor
-      return linkCtxt -> {
-        EffesType type = linkCtxt.type(scope);
+    return linkCtx -> {
+      EffesFunctionId functionId = EffesFunctionId.parse(scopeSpecifier, functionName, linkCtx.currentModule());
+      if (functionId.isConstructor()) {
+        // constructor
+        EffesType type = functionId.getScope().mapRequiringInstanceType(linkCtx::type);
         return runCtx -> {
           EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
           for (int i = args.length - 1; i >= 0; --i) {
@@ -255,26 +256,20 @@ public class EffesOpsImpl implements EffesOps<Object> {
           runCtx.push(obj);
           return PcMove.next();
         };
-      };
-    } else {
-      // non-constructor function
-      return linkCtx -> {
-        boolean isInstanceMethod = scope.hasType();
-        EffesFunction<?> f = linkCtx.getFunctionInfo(scope, functionName);
-        PcMove pcMove = linkCtx.firstOpOf(scope, functionName);
-        EffesType requiredType = isInstanceMethod ? linkCtx.type(scope) : null;
+      } else {
+        // non-constructor function
+        EffesFunction f = linkCtx.getFunctionInfo(functionId);
+        PcMove pcMove = PcMove.firstCallIn(f);
+        EffesType instanceTargetType = functionId.getScope().map(m -> null, linkCtx::type);
         return c -> {
-          if (f == null) {
-            throw new EffesLoadException("link error: no such function");
-          }
           int nArgs = f.nArgs(); // does not count the "this" reference
-          if (isInstanceMethod) {
+          if (instanceTargetType != null) {
             Object instance = c.peek(nArgs);
             if (!(instance instanceof EffesObject)) {
               throw new EffesRuntimeException(String.format("instance function invoked on non-EffesObject instance: %s", instance));
             }
             EffesType instanceType = ((EffesObject) instance).type();
-            if (!requiredType.equals(instanceType)) {
+            if (!instanceTargetType.equals(instanceType)) {
               throw new EffesRuntimeException(String.format("instance function invoked on wrong EffesObject instance: %s", instance));
             }
             ++nArgs; // to include the "this" reference
@@ -283,8 +278,8 @@ public class EffesOpsImpl implements EffesOps<Object> {
           c.openFrame(nArgs, f.hasRv(), f.nVars());
           return pcMove;
         };
-      };
-    }
+      }
+    };
   }
 
   @Override
@@ -528,7 +523,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   private static PcMove pcMoveTo(LinkContext linkCtx, String dest) {
-    int nOps = linkCtx.getCurrentLinkingFunctionInfo().nOps();
+    int nOps = linkCtx.nOpsInCurrentFunction();
     int idx;
     try {
       idx = Integer.parseInt(dest);
@@ -559,15 +554,11 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   private UnlinkedOperation.Body fieldOperation(String typeName, String fieldName, FieldOperator op) {
-    ScopeId scope = ScopeId.parse(typeName);
-    if (!scope.hasType()) {
-      throw new IllegalArgumentException("scope specifier " + scope + " needs a type");
-    }
-    return linkContext -> {
-      EffesType type = linkContext.type(scope);
-      int fieldIndex = type.argIndex(fieldName);
-      return Operation.withIncementingPc(op.fieldOperation(type, fieldIndex));
-    };
+    return linkContext -> EfctScopeDesc.parse(typeName, linkContext.currentModule()).mapRequiringInstanceType((m, t) -> {
+        EffesType type = linkContext.type(m, t);
+        int fieldIndex = type.argIndex(fieldName);
+        return Operation.withIncementingPc(op.fieldOperation(type, fieldIndex));
+      });
   }
 
   private Operation.Body intArith(IntBinaryOperator op) {
@@ -605,7 +596,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
     return linkCtx -> {
       BaseEffesType checkForType;
       if (typeName.indexOf(':') >= 0) {
-        checkForType = linkCtx.type(linkCtx.scopeIdBuilder().parse(typeName));
+        checkForType = EfctScopeDesc.parse(typeName, linkCtx.currentModule()).mapRequiringInstanceType(linkCtx::type);
       } else {
         checkForType = EffesNativeObject.parseType(typeName);
       }

@@ -28,6 +28,9 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
@@ -262,8 +265,8 @@ public class DebuggerGui {
       JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
       mainSplit.setPreferredSize(new Dimension(1200, 700));
       connection.communicate(new MsgGetModules(), resp -> {
-        Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules = resp.functionsByModule();
-        opsFrame = createOpsFrame(functionsByModules, pane -> {
+        Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
+        opsFrame = createOpsFrame(functionsByModule, pane -> {
           resumeHandler.enabledIffSuspended(pane);
           mainSplit.setLeftComponent(pane);
           mainSplit.setDividerLocation(0.5);
@@ -361,47 +364,57 @@ public class DebuggerGui {
       return stepButtons;
     }
 
-    private OpsListWindow createOpsFrame(Map<String,Map<String,MsgGetModules.FunctionInfo>> functionsByModules, Consumer<Component> add) {
-      Map<String,List<String>> functionNamesByModule = new HashMap<>();
-      Map<Map.Entry<String,String>,MsgGetModules.FunctionInfo> opsByFunction = new HashMap<>();
-      Map<String,String> activeFunctionPerModule = new HashMap<>();
+    private OpsListWindow createOpsFrame(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules, Consumer<Component> add) {
+      Map<EffesModule.Id,List<EffesFunctionId>> functionNamesByModule = new HashMap<>();
+      Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction = new HashMap<>();
+      Map<EffesModule.Id,EffesFunctionId> activeFunctionPerModule = new HashMap<>();
 
       functionsByModules.forEach((moduleId, functions) -> {
-        List<String> functionNames = new ArrayList<>(functions.size());
+        List<EffesFunctionId> functionNames = new ArrayList<>(functions.size());
         functionNamesByModule.put(moduleId, functionNames);
-        functions.forEach((functionName, ops) -> {
-          functionNames.add(functionName);
-          Map.Entry<String,String> functionId = new AbstractMap.SimpleImmutableEntry<>(moduleId, functionName);
+        functions.forEach((functionId, ops) -> {
+          functionNames.add(functionId);
           opsByFunction.put(functionId, ops);
         });
-        Collections.sort(functionNames);
+        functionNames.sort((a, b) -> {
+          EfctScopeDesc aScope = a.getScope();
+          EfctScopeDesc bScope = b.getScope();
+          int cmp = aScope.getModuleId().toString().compareTo(bScope.getModuleId().toString());
+          if (cmp == 0) {
+            String aType = aScope.map(m -> "", (m, t) -> t);
+            String bType = bScope.map(m -> "", (m, t) -> t);
+            cmp = aType.compareTo(bType);
+          }
+          if (cmp == 0) {
+            cmp = a.getFunctionName().compareTo(b.getFunctionName());
+          }
+          return cmp;
+        });
         activeFunctionPerModule.put(moduleId, functionNames.get(0));
       });
 
-      JComboBox<String> modulesChooserBox = new JComboBox<>(functionsByModules.keySet().toArray(new String[0]));
-      DefaultComboBoxModel<String> functionChooserModel = new DefaultComboBoxModel<>();
-      JComboBox<String> functionsComboBox = new JComboBox<>(functionChooserModel);
+      JComboBox<EffesModule.Id> modulesChooserBox = new JComboBox<>(functionsByModules.keySet().toArray(new EffesModule.Id[0]));
+      DefaultComboBoxModel<EffesFunctionId> functionChooserModel = new DefaultComboBoxModel<>();
+      JComboBox<EffesFunctionId> functionsComboBox = new JComboBox<>(functionChooserModel);
       DefaultListModel<String> activeOpsModel = new DefaultListModel<>();
       JList<String> activeOpsList = new JList<>(activeOpsModel);
 
       modulesChooserBox.addActionListener(action -> {
-        String moduleName = (String) modulesChooserBox.getSelectedItem();
+        EffesModule.Id module = (EffesModule.Id) modulesChooserBox.getSelectedItem();
         functionChooserModel.removeAllElements();
-        String activeFunction = activeFunctionPerModule.get(moduleName); // save this before the function box's listener overwrites it
-        functionNamesByModule.getOrDefault(moduleName, Collections.emptyList()).forEach(functionChooserModel::addElement);
+        EffesFunctionId activeFunction = activeFunctionPerModule.get(module); // save this before the function box's listener overwrites it
+        functionNamesByModule.getOrDefault(module, Collections.emptyList()).forEach(functionChooserModel::addElement);
         functionChooserModel.setSelectedItem(activeFunction);
       });
       functionsComboBox.addActionListener(action -> {
-        String moduleName = (String) modulesChooserBox.getSelectedItem();
-        String functionName = (String) functionChooserModel.getSelectedItem();
-        Map.Entry<String,String> functionId = new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName);
+        EffesFunctionId functionId = (EffesFunctionId) functionChooserModel.getSelectedItem();
         activeOpsModel.clear();
         opsByFunction
           .getOrDefault(functionId, new MsgGetModules.FunctionInfo(Collections.singletonList("ERROR: no function " + functionId), null))
           .opDescriptions()
           .forEach(activeOpsModel::addElement);
-        if (functionName != null) {
-          activeFunctionPerModule.put(moduleName, functionName);
+        if (functionId != null) {
+          activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
         }
       });
 
@@ -409,12 +422,10 @@ public class DebuggerGui {
       rootContent.setLayout(new BorderLayout());
       OpsListWindow window = new OpsListWindow() {
         @Override
-        void activate(String moduleName, String functionName, int opIdx) {
-          this.activeModule = moduleName;
-          this.activeFunction = functionName;
+        void activate(EffesFunctionId functionId, int opIdx) {
           this.activeOpIdx = opIdx;
-          activeFunctionPerModule.put(moduleName, functionName);
-          modulesChooserBox.setSelectedItem(moduleName); // will also update the function, and page in the ops
+          activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
+          modulesChooserBox.setSelectedItem(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
           activeOpsList.setSelectedIndex(opIdx);
           Rectangle cellBounds = activeOpsList.getCellBounds(opIdx - SCROLLTO_CONTEXT_BUFFER, opIdx + SCROLLTO_CONTEXT_BUFFER);
           activeOpsList.scrollRectToVisible(cellBounds);
@@ -446,12 +457,11 @@ public class DebuggerGui {
             }
           }
           Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-          String moduleName = (String) modulesChooserBox.getSelectedItem();
-          String functionName = (String) functionsComboBox.getSelectedItem();
-          if (Objects.equals(moduleName, window.activeModule) && Objects.equals(functionName, window.activeFunction) && window.activeOpIdx == index) {
+          EffesFunctionId functionId = (EffesFunctionId) functionsComboBox.getSelectedItem();
+          if (Objects.equals(functionId, window.activeFunction) && window.activeOpIdx == index) {
             fromSuper.setBackground(Color.LIGHT_GRAY);
           }
-          MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(moduleName, functionName));
+          MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(functionId);
           if (functionInfo != null && functionInfo.breakpoints().get(index)) {
             fromSuper.setForeground(Color.RED);
           }
@@ -462,7 +472,7 @@ public class DebuggerGui {
       Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
       connection.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
         for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
-          opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(breakpoint.getModuleId(), breakpoint.getFunctionId()))
+          opsByFunction.get(breakpoint.getFid())
             .breakpoints()
             .set(breakpoint.getOpIdx());
         }
@@ -471,11 +481,10 @@ public class DebuggerGui {
           @Override
           public void mouseClicked(MouseEvent e) {
             if (e.getClickCount() == 2) {
-              String visibleModule = (String) modulesChooserBox.getSelectedItem();
-              String visibleFunction = (String) functionsComboBox.getSelectedItem();
+              EffesFunctionId visibleFunction = (EffesFunctionId) functionsComboBox.getSelectedItem();
               int clickedItem = activeOpsList.locationToIndex(e.getPoint());
-              BitSet breakpoints = opsByFunction.get(new AbstractMap.SimpleImmutableEntry<>(visibleModule, visibleFunction)).breakpoints();
-              MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleModule, visibleFunction, clickedItem);
+              BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
+              MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItem);
               boolean on = !breakpoints.get(clickedItem);
               saveState.setBreakpoint(breakpoint, on);
               MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
@@ -492,21 +501,18 @@ public class DebuggerGui {
     }
 
     private abstract class OpsListWindow {
-      String activeModule;
-      String activeFunction;
+      EffesFunctionId activeFunction;
       int activeOpIdx;
 
-      abstract void activate(String moduleId, String functionName, int opIdx);
+      abstract void activate(EffesFunctionId functionId, int opIdx);
     }
 
     private JButton stepButton(JLabel stateLabel, ResumeHandler resumeHandler, String label, Msg.NoResponse message) {
       JButton stepOverButton = new JButton(label);
-      stepOverButton.addActionListener(l -> {
-        connection.communicate(message, ok -> {
-          stateLabel.setText(suspendedMessage);
-          resumeHandler.suspendGui();
-        });
-      });
+      stepOverButton.addActionListener(l -> connection.communicate(message, ok -> {
+        stateLabel.setText(suspendedMessage);
+        resumeHandler.suspendGui();
+      }));
       resumeHandler.enabledIffSuspended(stepOverButton);
       return stepOverButton;
     }
@@ -519,7 +525,7 @@ public class DebuggerGui {
           : (frames.getStepsCompleted() + " steps completed");
         frameInfo.addElement(howMany);
         frames.describeElements().forEach(frameInfo::addElement);
-        opsFrame.activate(frames.getCurrentModuleId(), frames.getCurrentFunctionName(), frames.getOpIndex());
+        opsFrame.activate(frames.getFunctionId(), frames.getOpIndex());
       });
     }
   }

@@ -1,26 +1,35 @@
 package com.yuvalshavit.effesvm.load;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.List;
-import java.util.Objects;
 
-public class EffesFunction<T> {
+import com.yuvalshavit.effesvm.ops.Operation;
 
-  private final EffesModule.Id moduleId;
-  private final Id id;
+public class EffesFunction {
+
+  private final EffesFunctionId id;
   private final int nArgs;
   private final boolean hasRv;
-  private final int nVars;
-  private final List<T> ops;
+  private int nVars = -1;
+  private List<Operation> ops;
 
-  public EffesFunction(EffesModule.Id moduleId, Id id, int nVars, boolean hasRv, int nArgs, List<T> ops) {
-    this.moduleId = moduleId;
+  public EffesFunction(EffesFunctionId id, boolean hasRv, int nArgs) {
     this.id = id;
     this.nArgs = nArgs;
     this.hasRv = hasRv;
-    this.nVars = nVars;
+  }
+
+  void setOps(List<Operation> ops) {
+    if (this.ops != null) {
+      throw new IllegalArgumentException("ops already set");
+    }
     this.ops = ops;
+  }
+
+  void setNVars(int nVars) {
+    if (this.nVars >= 0) {
+      throw new IllegalStateException("nVars already set");
+    }
+    this.nVars = nVars;
   }
 
   public int nArgs() {
@@ -32,22 +41,21 @@ public class EffesFunction<T> {
   }
 
   public int nVars() {
+    if (nVars < 0) {
+      throw new IllegalStateException("nVars not set");
+    }
     return nVars;
   }
 
   public int nOps() {
-    return ops.size();
+    return ops().size();
   }
 
-  public T opAt(int idx) {
-    return ops.get(idx);
+  public Operation opAt(int idx) {
+    return ops().get(idx);
   }
 
-  public EffesModule.Id moduleId() {
-    return moduleId;
-  }
-
-  public Id id() {
+  public EffesFunctionId id() {
     return id;
   }
 
@@ -56,57 +64,10 @@ public class EffesFunction<T> {
     return String.valueOf(id);
   }
 
-  /** The "local id" of a function, only meaningful within a module */
-  public static class Id {
-    private static final String MODULE_FUNCTION = ":";
-    private final String typeName;
-    private final String functionName;
-
-    public Id(String typeName, String functionName) {
-      this.typeName = requireNonNull(typeName, "typeName");
-      this.functionName = requireNonNull(functionName, "functionName");
+  private List<Operation> ops() {
+    if (ops == null) {
+      throw new IllegalArgumentException("ops not set");
     }
-
-    public Id(String functionName) {
-      this(MODULE_FUNCTION, functionName);
-    }
-
-    public String typeName() {
-      if (!hasTypeName()) {
-        throw new IllegalArgumentException("function is a module function");
-      }
-      return typeName;
-    }
-
-    public boolean hasTypeName() {
-      return !MODULE_FUNCTION.equals(typeName);
-    }
-
-    public String functionName() {
-      return functionName;
-    }
-
-    @Override
-    public String toString() {
-      return typeName + ':' + functionName;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      Id id = (Id) o;
-      return Objects.equals(typeName, id.typeName) && Objects.equals(functionName, id.functionName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(typeName, functionName);
-    }
-
+    return ops;
   }
 }

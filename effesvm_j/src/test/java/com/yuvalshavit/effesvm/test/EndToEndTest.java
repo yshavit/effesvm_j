@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.ResourcesScanner;
@@ -30,7 +29,7 @@ public class EndToEndTest {
   private static final String DEFAULT_MODULE_NAME = "main";
 
   @DataProvider(name = "tests")
-  public Iterator<Object[]> tests() throws IOException {
+  public Iterator<Object[]> tests() {
     String packageName = getClass().getPackage().getName();
     Reflections reflections = new Reflections(packageName, new ResourcesScanner());
     Set<String> yamlPaths = reflections.getResources(Pattern.compile(".*\\.yaml"));
@@ -65,19 +64,19 @@ public class EndToEndTest {
   }
 
   @Test(dataProvider = "tests")
-  public void run(Run run) throws IOException {
-    Map<EffesModule.Id,Iterable<String>> modules = new HashMap<>(run.efctByModule.size());
+  public void run(Run run) {
+    Map<EffesModule.Id,List<String>> modules = new HashMap<>(run.efctByModule.size());
     for (Map.Entry<String,String> efctByModule : run.efctByModule.entrySet()) {
-      EffesModule.Id module = EffesModule.Id.of(efctByModule.getKey());
-      Iterable<String> efct = () -> Stream.concat(
-        Stream.of(Parser.EFCT_0_HEADER),
-        Stream.of(efctByModule.getValue().split("\\n")))
-        .iterator();
+      EffesModule.Id module = new EffesModule.Id(efctByModule.getKey());
+      String[] lines = efctByModule.getValue().split("\\n");
+      List<String> efct = new ArrayList<>(lines.length + 1);
+      efct.add(Parser.EFCT_0_HEADER);
+      Collections.addAll(efct, lines);
       modules.put(module, efct);
     }
 
     InMemoryIo io = new InMemoryIo(run.in, run.filesIn);
-    int exitCode = EvmRunner.run(modules, EffesModule.Id.of(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, c -> DebugServer.noop);
+    int exitCode = EvmRunner.run(modules, new EffesModule.Id(DEFAULT_MODULE_NAME), run.args, io, run.stackSize, c -> DebugServer.noop);
     assertEquals(exitCode, run.exit, "exit code");
     assertEquals(io.out.toString().trim(), run.out.trim(), "stdout");
     assertEquals(io.err.toString().trim(), run.err.trim(), "stderr");

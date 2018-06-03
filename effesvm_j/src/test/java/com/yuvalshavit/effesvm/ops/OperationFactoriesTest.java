@@ -10,13 +10,14 @@ import java.util.function.Function;
 
 import org.testng.annotations.Test;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.LinkContext;
-import com.yuvalshavit.effesvm.load.ScopeId;
 import com.yuvalshavit.effesvm.runtime.EffesNativeObject;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 import com.yuvalshavit.effesvm.runtime.EffesType;
-import com.yuvalshavit.effesvm.runtime.PcMove;
 import com.yuvalshavit.effesvm.runtime.ProgramCounter;
 
 public class OperationFactoriesTest {
@@ -38,32 +39,29 @@ public class OperationFactoriesTest {
 
   @Test
   public void linking() {
+    EffesModule.Id currentModule = new EffesModule.Id("MyLinkerModule");
     LinkContext linkContext = new LinkContext() {
+
       @Override
-      public EffesType type(ScopeId id) {
-        if (id.inCurrentModule() && id.hasType() && id.type().equals("link-type-name")) {
-          return new EffesType("the-link-type", Collections.emptyList());
+      public EffesModule.Id currentModule() {
+        return currentModule;
+      }
+
+      @Override
+      public EffesType type(EffesModule.Id id, String typeName) {
+        if (id.equals(currentModule) && "link-type-name".equals(typeName)) {
+          return new EffesType(currentModule, "the-link-type", Collections.emptyList());
         }
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public EffesFunction<?> getFunctionInfo(ScopeId scope, String function) {
+      public EffesFunction getFunctionInfo(EffesFunctionId id) {
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public PcMove firstOpOf(ScopeId scopeId, String function) {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public EffesFunction<?> getCurrentLinkingFunctionInfo() {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public ScopeId.Builder scopeIdBuilder() {
+      public int nOpsInCurrentFunction() {
         throw new UnsupportedOperationException();
       }
 
@@ -72,6 +70,7 @@ public class OperationFactoriesTest {
         throw new UnsupportedOperationException();
       }
     };
+
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
     checkOp("the-link-type", builder, linkContext);
   }
@@ -110,7 +109,8 @@ public class OperationFactoriesTest {
     @OperationFactory("with-linking")
     public static UnlinkedOperation.Body build3() {
       return (LinkContext linkCtx) -> {
-        EffesType type = linkCtx.type(ScopeId.parse(":link-type-name"));
+        EfctScopeDesc scope = EfctScopeDesc.parse(":link-type-name", linkCtx.currentModule());
+        EffesType type = scope.mapRequiringInstanceType(linkCtx::type);
         EffesNativeObject.EffesString str = EffesNativeObject.forString(type.name());
         return Operation.withIncementingPc(s -> s.push(str));
       };

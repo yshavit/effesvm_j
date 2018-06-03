@@ -12,7 +12,7 @@ efct: |
 otherModules:
   buildings: |
     TYPE 0 House nDoors nWindows
-    FUNC House describe 0 1 0
+    FUNC :House describe 0 1 0
     pvar 0 # this
     pfld :House nDoors             # this is how you'd typically bind it, since House is defined in this module
     debug-print

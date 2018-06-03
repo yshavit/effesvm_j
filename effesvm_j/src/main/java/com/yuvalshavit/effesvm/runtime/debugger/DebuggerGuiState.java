@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
 public class DebuggerGuiState {
@@ -52,7 +54,11 @@ public class DebuggerGuiState {
             System.err.println("invalid breakpoint line: " + line);
             return;
           }
-          breakpoints.add(new MsgSetBreakpoints.Breakpoint(breakpointMatcher.group(1), breakpointMatcher.group(2), opIdx));
+          String scopeId = breakpointMatcher.group(1);
+          String functionName = breakpointMatcher.group(2);
+          EfctScopeDesc scope = EfctScopeDesc.parse(scopeId, null);
+          EffesFunctionId functionId = new EffesFunctionId(scope, functionName);
+          breakpoints.add(new MsgSetBreakpoints.Breakpoint(functionId, opIdx));
         } else {
           System.err.println("invalid line: " + line);
         }
@@ -65,7 +71,7 @@ public class DebuggerGuiState {
   private void save() {
     Iterable<String> breakpointIter = () -> this.breakpoints
       .stream()
-      .map(b -> String.format("%s: %s %s %s", BREAKPOINT_PREFIX, b.getModuleId(), b.getFunctionId(), b.getOpIdx()))
+      .map(b -> String.format("%s: %s %s %s", BREAKPOINT_PREFIX, b.getFid().getScope(), b.getFid().getFunctionName(), b.getOpIdx()))
       .iterator();
     try {
       Files.write(saveFile.toPath(), breakpointIter);

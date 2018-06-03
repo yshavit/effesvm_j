@@ -6,30 +6,30 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
 import com.yuvalshavit.effesvm.load.EffesFunction;
-import com.yuvalshavit.effesvm.load.EffesLoadException;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesFunctionParser;
 import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.load.Linker;
+import com.yuvalshavit.effesvm.load.OutlinedModule;
 import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
-import com.yuvalshavit.effesvm.ops.UnlinkedOperation;
 import com.yuvalshavit.effesvm.runtime.debugger.gui.DebuggerGui;
 import com.yuvalshavit.effesvm.runtime.debugger.SockDebugServer;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
-import com.yuvalshavit.effesvm.util.SequencedIterator;
 
 public class EvmRunner {
 
@@ -69,26 +69,16 @@ public class EvmRunner {
     String classpath = System.getenv().getOrDefault("EFFES_CLASSPATH", ".");
     Path classpathPath = FileSystems.getDefault().getPath(classpath);
 
-    Map<EffesModule.Id,Iterable<String>> inputFiles = new HashMap<>(args.length);
+    Map<EffesModule.Id,List<String>> inputFiles = new HashMap<>(args.length);
     try (DirectoryStream<Path> efctFile = Files.newDirectoryStream(classpathPath, "*.efct")) {
       for (Path path : efctFile) {
-        Iterable<String> lines = () -> {
-          try {
-            return Files.lines(path).iterator();
-          } catch (IOException e) {
-            throw new EffesLoadException("while reading " + path, e);
-          }
-        };
-        Path relativePath = path.subpath(classpathPath.getNameCount(), path.getNameCount());
-        ArrayList<String> moduleSegments = LambdaHelpers.consumeAndReturn(
-          new ArrayList<>(relativePath.getNameCount()),
-          list -> relativePath.forEach(segment -> list.add(segment.toString())));
-        moduleSegments.set(moduleSegments.size() - 1, moduleSegments.get(moduleSegments.size() - 1).replaceAll("\\.efct$", ""));
-        EffesModule.Id id = EffesModule.Id.of(moduleSegments.toArray(new String[0]));
+        List<String> lines = Files.lines(path).collect(Collectors.toList());
+        String moduleName = path.toFile().getName().replaceAll("\\.efct$", "");
+        EffesModule.Id id = new EffesModule.Id(moduleName);
         inputFiles.put(id, lines);
       }
     }
-    EffesModule.Id main = EffesModule.Id.parse(args[0]);
+    EffesModule.Id main = new EffesModule.Id(args[0]);
     if (!inputFiles.containsKey(main)) {
       throw new IllegalArgumentException(main + " not found among " + inputFiles.keySet());
     }
@@ -100,28 +90,27 @@ public class EvmRunner {
   }
 
   public static int run(
-    Map<EffesModule.Id,Iterable<String>> inputFiles,
+    Map<EffesModule.Id,List<String>> inputFiles,
     EffesModule.Id main,
     String[] argv,
     EffesIo io,
     Integer stackSize,
-    Function<DebugServerContext,DebugServer> debugServerFactory) throws IOException
+    Function<DebugServerContext,DebugServer> debugServerFactory)
   {
     // Parse and link the inputs
-    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
-    Map<EffesModule.Id,EffesModule<UnlinkedOperation>> parsed = new HashMap<>(inputFiles.size());
-    Parser parser = new Parser(ops);
-    for (Map.Entry<EffesModule.Id,Iterable<String>> inputFileEntry : inputFiles.entrySet()) {
-      Iterator<String> inputFileLines = inputFileEntry.getValue().iterator();
+    Map<EffesModule.Id,OutlinedModule> outline = new HashMap<>(inputFiles.size());
+    for (Map.Entry<EffesModule.Id,List<String>> inputFileEntry : inputFiles.entrySet()) {
+      List<String> inputFileLines = inputFileEntry.getValue();
       EffesModule.Id moduleId = inputFileEntry.getKey();
-      EffesModule<UnlinkedOperation> unlinkedModule = parser.parse(moduleId, SequencedIterator.wrap(inputFileLines));
-      parsed.put(moduleId, unlinkedModule);
+      OutlinedModule outlinedModule = Parser.parse(moduleId, inputFileLines);
+      outline.put(moduleId, outlinedModule);
     }
-    Map<EffesModule.Id,EffesModule<Operation>> linkedModules = Linker.link(parsed);
+    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
+    Map<EffesModule.Id, EffesModule> linkedModules = EffesFunctionParser.parse(outline, ops);
 
-    EffesModule<Operation> linkedModule = linkedModules.get(main);
+    EffesModule linkedModule = linkedModules.get(main);
 
-    EffesFunction<Operation> mainFunction = linkedModule.getFunction(new EffesFunction.Id("main"));
+    EffesFunction mainFunction = linkedModule.getFunction(new EffesFunctionId(EfctScopeDesc.ofStatic(main), "main"));
     if (mainFunction.nArgs() != 1) {
       throw new EffesRuntimeException("::main must take 1 argument");
     }
@@ -150,6 +139,7 @@ public class EvmRunner {
         try {
           debugServer.beforeAction(state);
           op = state.pc().getOp();
+          state.toStringList();
           next = op.apply(state);
         } catch (Exception e) {
           String message = "with pc " + state.pc();
@@ -167,12 +157,11 @@ public class EvmRunner {
     } catch (Exception e) {
       System.err.println("Error!");
       for (ProgramCounter.State frame : state.getStackTrace()) {
-        EffesFunction<Operation> function = frame.function();
+        EffesFunction function = frame.function();
         Operation functionOp = function.opAt(frame.pc());
 
         System.err.printf(
-          " %s.%s[#%d L.%d]: %s%n",
-          function.moduleId(),
+          " %s[#%d L.%d]: %s%n",
           function.id(),
           frame.pc(),
           functionOp.info().lineNumber(),

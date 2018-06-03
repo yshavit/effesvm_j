@@ -3,29 +3,18 @@ package com.yuvalshavit.effesvm.runtime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.load.ScopeId;
 
 public class EffesType extends BaseEffesType {
   private final EffesModule.Id module;
   private final List<String> arguments;
 
-  public EffesType(String name, List<String> arguments) {
-    this(EffesModule.Id.of(), name, arguments);
-  }
-
   public EffesType(EffesModule.Id module, String name, List<String> arguments) {
     super(name);
     this.module = module;
     this.arguments = new ArrayList<>(arguments);
-  }
-
-  public EffesType withModuleId(EffesModule.Id newModuleId) {
-    if (!module.currentModulePlaceholder()) {
-      throw new IllegalStateException("type already has a module id: " + newModuleId);
-    }
-    return new EffesType(newModuleId, name(), arguments);
   }
 
   public int nArgs() {
@@ -49,7 +38,27 @@ public class EffesType extends BaseEffesType {
   }
 
   @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    EffesType effesType = (EffesType) o;
+    return
+      Objects.equals(name(), effesType.name()) &&
+      Objects.equals(module, effesType.module) &&
+      Objects.equals(arguments, effesType.arguments);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name(), module, arguments);
+  }
+
+  @Override
   public String toString() {
-    return ScopeId.toString(module, name());
+    return String.format("%s:%s", module.getName(), name());
   }
 }

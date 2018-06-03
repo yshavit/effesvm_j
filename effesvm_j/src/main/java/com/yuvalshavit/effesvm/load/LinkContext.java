@@ -4,10 +4,9 @@ import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.runtime.PcMove;
 
 public interface LinkContext {
-  ScopeId.Builder scopeIdBuilder();
-  EffesType type(ScopeId id);
-  EffesFunction<?> getFunctionInfo(ScopeId scope, String function);
-  EffesFunction<?> getCurrentLinkingFunctionInfo();
-  PcMove firstOpOf(ScopeId scopeId, String function);
+  EffesModule.Id currentModule();
+  EffesType type(EffesModule.Id id, String typeName);
+  EffesFunction getFunctionInfo(EffesFunctionId id);
+  int nOpsInCurrentFunction();
   int findLabelOpIndex(String label);
 }

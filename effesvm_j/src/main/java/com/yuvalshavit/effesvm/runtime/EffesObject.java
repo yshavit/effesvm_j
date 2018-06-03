@@ -5,7 +5,7 @@ import java.util.Arrays;
 import com.yuvalshavit.effesvm.load.EffesModule;
 
 public class EffesObject extends EffesRef<EffesType> {
-  private static final EffesModule.Id consModule = EffesModule.Id.of("ConsList");
+  private static final EffesModule.Id consModule = new EffesModule.Id("ConsList");
   private final EffesRef<?>[] args;
 
   public EffesObject(EffesType type, EffesRef<?>[] args) {
@@ -55,14 +55,14 @@ public class EffesObject extends EffesRef<EffesType> {
     return isEffesType(type, consModule, "Cons", "head", "tail");
   }
 
-  private static boolean isEffesType(BaseEffesType type, EffesModule.Id module, String typeName, String... args) {
-    if (!(type instanceof EffesType)) {
+  private static boolean isEffesType(BaseEffesType typeToCheck, EffesModule.Id targetTypeModule, String targetTypeName, String... targetTypeArgs) {
+    if (!(typeToCheck instanceof EffesType)) {
       return false;
     }
-    EffesType effesType = (EffesType) type;
-    if (module.equals(effesType.moduleId()) && typeName.equals(effesType.name()) && args.length == effesType.nArgs()) {
-      for (int i = 0; i < args.length; ++i) {
-        if (!args[i].equals(effesType.argAt(i))) {
+    EffesType effesType = (EffesType) typeToCheck;
+    if (targetTypeModule.equals(effesType.moduleId()) && targetTypeName.equals(effesType.name()) && targetTypeArgs.length == effesType.nArgs()) {
+      for (int i = 0; i < targetTypeArgs.length; ++i) {
+        if (!targetTypeArgs[i].equals(effesType.argAt(i))) {
           return false;
         }
       }

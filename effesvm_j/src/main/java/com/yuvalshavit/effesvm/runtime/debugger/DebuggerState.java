@@ -7,7 +7,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
-import com.yuvalshavit.effesvm.ops.Operation;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
@@ -16,7 +16,7 @@ public class DebuggerState {
    * First key is a module id, second key is a function id. The BitSet is such that it has a True bit at the index one past its last op; that is,
    * bitset.length() is the number of ops in the function.
    */
-  private final Map<String,Map<String,BitSet>> modulesToFunctionsToOpBreakPoints = new HashMap<>();
+  private final Map<EffesFunctionId,BitSet> functionIdToOpBreakPoints = new HashMap<>();
   private static final Predicate<EffesState> always = e -> true;
   private static final Predicate<EffesState> never = e -> false;
   private volatile int stepsCompleted;
@@ -25,15 +25,11 @@ public class DebuggerState {
   private EffesState effesState;
 
   public DebuggerState(DebugServerContext context) {
-    context.modules().forEach((moduleId, moduleData) -> {
-      Map<String,BitSet> functionsMap = new HashMap<>();
-      modulesToFunctionsToOpBreakPoints.put(moduleId.toString(), functionsMap);
-      moduleData.functions().forEach(function -> {
-        BitSet bs = new BitSet(function.nOps() + 1);
-        bs.set(function.nOps());
-        functionsMap.put(function.id().toString(), bs);
-      });
-    });
+    context.modules().forEach((mid, module) -> module.functions().forEach(function -> {
+      BitSet bs = new BitSet(function.nOps() + 1);
+      bs.set(function.nOps());
+      functionIdToOpBreakPoints.put(function.id(), bs);
+    }));
   }
 
   public void suspend() {
@@ -84,28 +80,24 @@ public class DebuggerState {
     });
   }
 
-  public void setBreakpoint(String moduleId, String functionId, int opIdx, boolean on) {
-    useBitSet(moduleId, functionId, bs -> {
+  public void setBreakpoint(EffesFunctionId fid, int opIdx, boolean on) {
+    useBitSet(fid, bs -> {
       if (opIdx < 0 || opIdx >= bs.length()) {
-        throw new IndexOutOfBoundsException(String.format("%s%s[%d]", moduleId, functionId, opIdx));
+        throw new IndexOutOfBoundsException(fid.toString("@" + opIdx));
       }
       bs.set(opIdx, on);
       return null;
     });
   }
 
-  public BitSet getDebugPoints(String moduleIdStr, String functionId) {
-    return useBitSet(moduleIdStr, functionId, bs -> (BitSet) bs.clone());
+  public BitSet getDebugPoints(EffesFunctionId fid) {
+    return useBitSet(fid, bs -> (BitSet) bs.clone());
   }
 
-  private <R> R useBitSet(String moduleId, String functionId, Function<? super BitSet, ? extends R> action) {
-    Map<String,BitSet> functionsToBitset = modulesToFunctionsToOpBreakPoints.get(moduleId);
-    if (functionsToBitset == null) {
-      throw new IllegalArgumentException(String.format("no such function: %s %s", moduleId, functionId));
-    }
-    BitSet bitSet = functionsToBitset.get(functionId);
+  private <R> R useBitSet(EffesFunctionId fid, Function<? super BitSet, ? extends R> action) {
+    BitSet bitSet = functionIdToOpBreakPoints.get(fid);
     if (bitSet == null) {
-      throw new IllegalArgumentException(String.format("no such function: %s %s", moduleId, functionId));
+      throw new IllegalArgumentException(String.format("no such function: %s", fid));
     }
     //noinspection SynchronizationOnLocalVariableOrMethodParameter
     synchronized (bitSet) {
@@ -138,11 +130,9 @@ public class DebuggerState {
       if (suspendBeforeNextAction.test(state)) {
         shouldSuspend = true;
       } else {
-        EffesFunction<Operation> currentFunction = state.pc().getCurrentFunction();
-        String currentModuleId = currentFunction.moduleId().toString();
-        String currentFunctionId = currentFunction.id().toString();
+        EffesFunction currentFunction = state.pc().getCurrentFunction();
         int currentOpIdx = state.pc().getOpIdx();
-        shouldSuspend = useBitSet(currentModuleId, currentFunctionId, bs -> bs.get(currentOpIdx));
+        shouldSuspend = useBitSet(currentFunction.id(), bs -> bs.get(currentOpIdx));
       }
       if (shouldSuspend) {
         running = false;

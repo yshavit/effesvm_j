@@ -21,7 +21,7 @@ public class PcMove implements Consumer<ProgramCounter> {
     return new PcMove(pcObj -> pcObj.setOpIdx(pc), "to " + pc);
   }
 
-  public static PcMove firstCallIn(EffesFunction<Operation> function) {
+  public static PcMove firstCallIn(EffesFunction function) {
     if (function == null) {
       throw new IllegalArgumentException();
     }

@@ -9,10 +9,12 @@ import java.util.List;
 import java.util.Map;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
+
+import lombok.Data;
 
 public class MsgGetModules extends Msg<MsgGetModules.Response> {
 
@@ -21,39 +23,29 @@ public class MsgGetModules extends Msg<MsgGetModules.Response> {
   }
 
   @Override
-  public Response process(DebugServerContext context, DebuggerState state) throws InterruptedException {
-    Map<EffesModule.Id,EffesModule<Operation>> modules = context.modules();
+  public Response process(DebugServerContext context, DebuggerState state) {
+    Map<EffesModule.Id,EffesModule> modules = context.modules();
 
-    Map<String,Map<String,FunctionInfo>> modulesPlaintext = new HashMap<>(modules.size());
-    modules.forEach( (moduleId, module) -> {
-      Collection<EffesFunction<Operation>> functions = module.functions();
-      Map<String,FunctionInfo> functionsPlaintext = new HashMap<>(functions.size());
-      String moduleIdStr = moduleId.toString();
-      for (EffesFunction<Operation> function : functions) {
+    Map<EffesModule.Id,Map<EffesFunctionId,FunctionInfo>> modulesPlaintext = new HashMap<>(modules.size());
+    modules.forEach((moduleId, module) -> {
+      Collection<EffesFunction> functions = module.functions();
+      Map<EffesFunctionId,FunctionInfo> functionsPlaintext = new HashMap<>(functions.size());
+      for (EffesFunction function : functions) {
         List<String> ops = new ArrayList<>(function.nOps());
         for (int i = 0; i < function.nOps(); ++i) {
           ops.add(function.opAt(i).toString());
         }
-        String functionId = function.id().toString();
-        BitSet breakpoints = state.getDebugPoints(moduleIdStr, functionId);
-        functionsPlaintext.put(functionId, new FunctionInfo(ops, breakpoints));
+        BitSet breakpoints = state.getDebugPoints(function.id());
+        functionsPlaintext.put(function.id(), new FunctionInfo(ops, breakpoints));
       }
-      modulesPlaintext.put(moduleIdStr, functionsPlaintext);
+      modulesPlaintext.put(moduleId, functionsPlaintext);
     });
     return new Response(modulesPlaintext);
   }
 
+  @Data
   public static class Response implements Serializable {
-
-    private final Map<String,Map<String,FunctionInfo>> functions;
-
-    public Response(Map<String, Map<String,FunctionInfo>> functions) {
-      this.functions = functions;
-    }
-
-    public Map<String,Map<String,FunctionInfo>> functionsByModule() {
-      return functions;
-    }
+    private final Map<EffesModule.Id,Map<EffesFunctionId,FunctionInfo>> functions;
   }
 
   public static class FunctionInfo implements Serializable {
