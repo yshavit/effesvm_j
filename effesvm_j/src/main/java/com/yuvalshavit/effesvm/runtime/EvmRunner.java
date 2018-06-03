@@ -132,6 +132,7 @@ public class EvmRunner {
     state.popToVar(0);
     // Start the main loop
     DebugServerContext debugServerContext = new DebugServerContext(Collections.unmodifiableMap(linkedModules));
+    int steps = 1;
     try (DebugServer debugServer = debugServerFactory.apply(debugServerContext)) {
       while (!state.pc().isAt(ProgramCounter.end())) {
         Operation op = null;
@@ -141,6 +142,7 @@ public class EvmRunner {
           op = state.pc().getOp();
           state.toStringList();
           next = op.apply(state);
+          ++steps;
         } catch (Exception e) {
           String message = "with pc " + state.pc();
           String lastSeenLabel = state.lastSeenLabel();
@@ -155,7 +157,7 @@ public class EvmRunner {
         next.accept(state.pc());
       }
     } catch (Exception e) {
-      System.err.println("Error!");
+      System.err.printf("Error at step %d:%n", steps);
       for (ProgramCounter.State frame : state.getStackTrace()) {
         EffesFunction function = frame.function();
         Operation functionOp = function.opAt(frame.pc());
