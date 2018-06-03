@@ -9,8 +9,8 @@ efct: |
   pvar 1                 # print Animal.species
   pfld :Animal species
   call_String:sout
-  pvar 1                 # Animal.species = cat
-  str  "cat"
+  str  "cat"             # Animal.species = cat
+  pvar 1
   sfld :Animal species
   pvar 1                 # print Animal.species
   debug-print

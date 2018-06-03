@@ -261,9 +261,9 @@ _typename_ is a functionscope, as defined above, which must have a type name
 
 Like `pfld`, but the topmost EffesRef is peeked from the stack instead of popped.
 
-### sfld typename fieldname @effesItem @effesItemField
+### sfld typename fieldname @value @target 
 
-Pops an EffesRef of type _typename_ and a value, and sets the specified constructor argument (by name) to the value. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
+Pops a value and an EffesRef target of type _typename_, and sets the specified constructor argument (by name) on the target to the value. Errors if the topmost item is not an EffesRef of the right type, or if that type does not have a field by that name.
 
 ### call_native:toString @obj -> string
 
@@ -316,7 +316,7 @@ Pops a String from the stack and tries to parse it as an Integer. Pushes the par
 
 Parsing is done via Java's `Integer.parseInt`
 
-### call_Integer:&lt;cmp&gt;
+### call_Integer:&lt;cmp&gt; @lhs @rhs -> result
 
 _&lt;cmp&gt;_ is one of: lt, le, eq, ne, ge, gt
 

@@ -142,8 +142,8 @@ public class EffesOpsImpl implements EffesOps<Object> {
   @Override
   public UnlinkedOperation.Body storeField(String typeName, String fieldName) {
     return fieldOperation(typeName, fieldName, (type, fieldIndex) -> s -> {
-      EffesRef<?> newFieldValue = s.pop();
       EffesObject obj = (EffesObject) s.pop();
+      EffesRef<?> newFieldValue = s.pop();
       if (!obj.type().equals(type)) {
         throw new EffesRuntimeException(String.format("can't fetch %s.%s on an object of type %s", type.argAt(fieldIndex), fieldName, obj.type()));
       }
