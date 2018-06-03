@@ -1,8 +1,8 @@
 efct: |
   TYPE 0 House nDoors nWindows
   FUNC : main 1 1 0
-  int  2
   int  12
+  int  2
   call :House House
   debug-print
   call :House describe

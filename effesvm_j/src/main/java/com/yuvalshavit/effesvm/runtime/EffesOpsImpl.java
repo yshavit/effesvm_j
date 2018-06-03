@@ -249,7 +249,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
         EffesType type = functionId.getScope().mapRequiringInstanceType(linkCtx::type);
         return runCtx -> {
           EffesRef<?>[] args = new EffesRef<?>[type.nArgs()];
-          for (int i = args.length - 1; i >= 0; --i) {
+          for (int i = 0; i < args.length ; ++i) {
             args[i] = runCtx.pop();
           }
           EffesObject obj = new EffesObject(type, args);

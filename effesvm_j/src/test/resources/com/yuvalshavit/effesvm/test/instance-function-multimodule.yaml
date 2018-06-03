@@ -1,7 +1,7 @@
 efct: |
   FUNC : main 1 1 0
-  int  2
   int  12
+  int  2
   call buildings:House House
   debug-print
   call buildings:House describe

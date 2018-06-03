@@ -241,7 +241,7 @@ Calls a function.
 - If _functionscope_ is as defined above, in the _Function Declarations_ sections
 - If _functionscope_ defines a type scope, and functionname is the type name (e.g. `:Person Person`), this is a constructor call
 
-This op will pop _n_ args, where _n_ is the number of args the function requires. These are provided in reverse order: the topmost value is the first argument of the function invocation. Instance functions always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance function.
+This op will pop _n_ args, where _n_ is the number of args the function requires. These should be pushed to the stack in reverse order: the topmost value is the first argument of the function invocation. Instance functions always take at least one argument, and the first argument (that is, the topmost one) must be an EffesRef of the same type that defines the instance function.
 
 This op will push one value to the stack, the function's return value. 
 
