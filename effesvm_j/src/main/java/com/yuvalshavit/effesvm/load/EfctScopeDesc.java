@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.load;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -8,7 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @EqualsAndHashCode
-public class EfctScopeDesc {
+public class EfctScopeDesc implements Serializable {
   @Getter
   private final EffesModule.Id moduleId;
   private final String optionalTypeName;

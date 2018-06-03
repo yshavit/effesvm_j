@@ -428,7 +428,9 @@ public class DebuggerGui {
           modulesChooserBox.setSelectedItem(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
           activeOpsList.setSelectedIndex(opIdx);
           Rectangle cellBounds = activeOpsList.getCellBounds(opIdx - SCROLLTO_CONTEXT_BUFFER, opIdx + SCROLLTO_CONTEXT_BUFFER);
-          activeOpsList.scrollRectToVisible(cellBounds);
+          if (cellBounds != null) {
+            activeOpsList.scrollRectToVisible(cellBounds);
+          }
         }
       };
 
