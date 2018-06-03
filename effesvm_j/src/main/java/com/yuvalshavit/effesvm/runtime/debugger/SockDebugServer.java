@@ -6,6 +6,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 
 import com.yuvalshavit.effesvm.runtime.DebugServer;
@@ -36,30 +37,34 @@ public class SockDebugServer implements DebugServer {
     }
   }
 
-  public void start() throws IOException {
+  public void start() {
     workerThreads = Executors.newCachedThreadPool(daemonThreadFactory);
     // One thread for reading messages. As it reads each one, it creates a task that will (a) execute it and (b) put the response on the pendingResponses queue
     workerThreads.submit(IORunnable.createRunnableLoop(socket::close, socket::close, () -> {
       Object raw = socket.input().readObject();
       WithId<?> withId = (WithId<?>) raw;
-      workerThreads.submit(() -> {
-        Msg<?> msg = (Msg<?>) withId.payload();
-        Response<?> response;
-        try {
-          Serializable responsePayload = msg.process(context, state);
-          response = Response.forResponse(responsePayload);
-        } catch (InterruptedException e) {
-          response = Response.forError(e);
-          Thread.currentThread().interrupt();
-        } catch (Exception e) {
-          response = Response.forError(e);
-        }
-        try {
-          pendingResponses.put(withId.withPaylod(response));
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-      });
+      try {
+        workerThreads.submit(() -> {
+          Msg<?> msg = (Msg<?>) withId.payload();
+          Response<?> response;
+          try {
+            Serializable responsePayload = msg.process(context, state);
+            response = Response.forResponse(responsePayload);
+          } catch (InterruptedException e) {
+            response = Response.forError(e);
+            Thread.currentThread().interrupt();
+          } catch (Exception e) {
+            response = Response.forError(e);
+          }
+          try {
+            pendingResponses.put(withId.withPaylod(response));
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
+        });
+      } catch (RejectedExecutionException e) {
+        // no problem, just meant the thread was shut down
+      }
     }));
     // One thread for taking responses from the pendingResponses queue and writing them back out
     workerThreads.submit(IORunnable.createRunnableLoop(socket::close, socket::close, () -> {
