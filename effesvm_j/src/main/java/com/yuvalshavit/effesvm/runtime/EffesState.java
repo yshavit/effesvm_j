@@ -192,6 +192,9 @@ public class EffesState {
         fpIdx = 0;
       }
     }
+    if (frames.get(frames.size() - 1).equals(ProgramCounter.end())) {
+      frames.remove(frames.size() - 1);
+    }
     return Collections.unmodifiableList(frames);
   }
 

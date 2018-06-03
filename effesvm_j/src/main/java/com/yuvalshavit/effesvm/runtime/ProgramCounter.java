@@ -2,13 +2,39 @@ package com.yuvalshavit.effesvm.runtime;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collections;
 import java.util.Objects;
 
+import com.yuvalshavit.effesvm.load.EfctScopeDesc;
 import com.yuvalshavit.effesvm.load.EffesFunction;
+import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class ProgramCounter {
-  private static final State end = new State(null, -1);
+  private static final State end = new State(createBootstrap(), 0);
+
+  private static EffesFunction createBootstrap() {
+    EffesModule.Id bootstrapModule = new EffesModule.Id("$bootstrap");
+    EffesFunction function = new EffesFunction(new EffesFunctionId(EfctScopeDesc.ofStatic(bootstrapModule), "$"), true, 1);
+    function.setOps(Collections.singletonList(new Operation() {
+      private OpInfo info = new OpInfo(bootstrapModule, "<end>", Collections.emptyList(), -1);
+
+      @Override
+      public OpInfo info() {
+        return info;
+      }
+
+      @Override
+      public PcMove apply(EffesState effesState) {
+        return PcMove.stay();
+      }
+    }));
+    function.setNVars(1);
+    return function;
+  }
+
   private final State state = new State(end);
 
   public ProgramCounter(State state) {

@@ -18,14 +18,14 @@ public class EffesFunction {
     this.hasRv = hasRv;
   }
 
-  void setOps(List<Operation> ops) {
+  public void setOps(List<Operation> ops) {
     if (this.ops != null) {
       throw new IllegalArgumentException("ops already set");
     }
     this.ops = ops;
   }
 
-  void setNVars(int nVars) {
+  public void setNVars(int nVars) {
     if (this.nVars >= 0) {
       throw new IllegalStateException("nVars already set");
     }

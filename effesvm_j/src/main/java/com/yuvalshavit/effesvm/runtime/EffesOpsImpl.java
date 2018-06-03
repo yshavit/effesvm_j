@@ -99,7 +99,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
   public Operation.Body rtrn() {
     return s -> {
       s.closeFrame();
-      return PcMove.stay();
+      return PcMove.next();
     };
   }
 
@@ -274,7 +274,6 @@ public class EffesOpsImpl implements EffesOps<Object> {
             }
             ++nArgs; // to include the "this" reference
           }
-          PcMove.next().accept(c.pc()); // set up the return jump point
           c.openFrame(nArgs, f.hasRv(), f.nVars());
           return pcMove;
         };

@@ -424,6 +424,7 @@ public class DebuggerGui {
         @Override
         void activate(EffesFunctionId functionId, int opIdx) {
           this.activeOpIdx = opIdx;
+          this.activeFunction = functionId;
           activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
           modulesChooserBox.setSelectedItem(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
           activeOpsList.setSelectedIndex(opIdx);
