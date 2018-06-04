@@ -1,11 +1,9 @@
 package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -13,12 +11,23 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
-import javax.swing.*;
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
+import javax.swing.JFormattedTextField;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
@@ -30,7 +39,6 @@ import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgAwaitRunStateChanged;
-import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetFrame;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgHello;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgIsSuspended;
@@ -207,7 +215,7 @@ public class DebuggerGui {
     private final DebugClient connection;
     private final DebuggerGuiState saveState = new DebuggerGuiState(new File("effesvm-debug-state.txt"));
     private FunctionsView functionsView;
-    private DefaultListModel<String> frameInfo;
+    private FramesView framesView;
 
 
     public DebugWindow(DebugClient connection) {
@@ -219,17 +227,16 @@ public class DebuggerGui {
       mainPanel.setLayout(new BorderLayout());
 
       ResumeHandler resumeHandler = new ResumeHandler(connection);
+      framesView = new FramesView(connection);
 
       JLabel stateLabel = new JLabel("Remote state pending");
       JButton resumeButton = createResumeButton(stateLabel, resumeHandler);
       JPanel stepButtons = createStepButtons(stateLabel, resumeHandler);
       mainPanel.add(stepButtons, BorderLayout.NORTH);
 
-      frameInfo = new DefaultListModel<>();
-      Container frameInfo = createFrameInfo();
-      resumeHandler.enabledIffSuspended(frameInfo);
+      resumeHandler.enabledIffSuspended(framesView.getRootPane());
       resumeHandler.enabledIffSuspended(stepButtons);
-      mainPanel.add(frameInfo, BorderLayout.CENTER);
+      mainPanel.add(framesView.getRootPane(), BorderLayout.CENTER);
       connection.addCloseHandler(() -> {
         stateLabel.setText(connectionClosedMessage);
         stateLabel.setEnabled(false);
@@ -260,6 +267,7 @@ public class DebuggerGui {
       connection.communicate(new MsgGetModules(), resp -> {
         Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
         functionsView = new FunctionsView(saveState, functionsByModule);
+        framesView.setUpdateListener(functionsView::activate);
         functionsView.openConnection(connection);
         Container pane = functionsView.getRootContent();
         resumeHandler.enabledIffSuspended(pane);
@@ -279,45 +287,6 @@ public class DebuggerGui {
       resumeHandler.startWatching();
     }
 
-    private Container createFrameInfo() {
-      Pattern frameDividerPattern = Pattern.compile("\\[ *\\d+\\] *(\\* *)?\\[==");
-      JList<String> frameInfoList = new JList<>(frameInfo);
-      frameInfoList.setCellRenderer(new DefaultListCellRenderer() {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-          Component fromSuper = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-          if (index <= 1) {
-            fromSuper.setBackground(Color.LIGHT_GRAY);
-            fromSuper.setForeground(Color.BLUE.darker());
-            fromSuper.setFont(fromSuper.getFont().deriveFont(Font.BOLD));
-            if (fromSuper instanceof JComponent) {
-              JComponent superJComponent = (JComponent) fromSuper;
-              superJComponent.setBorder(BorderFactory.createEtchedBorder());
-            }
-          } else if (value instanceof String) {
-            String text = (String) value;
-            Matcher frameDividerMatch = frameDividerPattern.matcher(text);
-            if (frameDividerMatch.find()) {
-              fromSuper.setBackground(Color.LIGHT_GRAY);
-              if (frameDividerMatch.group(1) != null) {
-                fromSuper.setFont(fromSuper.getFont().deriveFont(Font.BOLD));
-              }
-              if (fromSuper instanceof JComponent) {
-                JComponent superJComponent = (JComponent) fromSuper;
-                superJComponent.setBorder(BorderFactory.createEtchedBorder());
-              }
-            }
-          }
-          return fromSuper;
-        }
-      });
-      frameInfoList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-      frameInfoList.setEnabled(false);
-      JScrollPane frameInfoScrollPane = new JScrollPane(frameInfoList);
-      frameInfoScrollPane.setPreferredSize(new Dimension(600, 400));
-      return frameInfoScrollPane;
-    }
-
     private JButton createResumeButton(JLabel stateLabel, ResumeHandler resumeHandler) {
       JButton resumeButton = new JButton(resumeButtonText);
       resumeButton.addActionListener(l -> {
@@ -326,7 +295,7 @@ public class DebuggerGui {
           case resumeButtonText:
             resumeButton.setText(suspendButtonText);
             stateLabel.setText("Resuming...");
-            frameInfo.clear();
+            framesView.clearStackFrameInfo();
             connection.communicate(new MsgResume());
             break;
           case suspendButtonText:
@@ -345,7 +314,7 @@ public class DebuggerGui {
         stateLabel.setText(suspendedMessage);
         resumeButton.setText(resumeButtonText);
         resumeButton.setEnabled(true);
-        updateStackFrameInfo();
+        framesView.updateStackFrameInfo();
       });
       return resumeButton;
     }
@@ -368,17 +337,6 @@ public class DebuggerGui {
       return stepOverButton;
     }
 
-    private void updateStackFrameInfo() {
-      connection.communicate(new MsgGetFrame(), frames -> {
-        frameInfo.clear();
-        String howMany = (frames.getStepsCompleted() == 1)
-          ? "1 step completed"
-          : (frames.getStepsCompleted() + " steps completed");
-        frameInfo.addElement(howMany);
-        frames.describeElements().forEach(frameInfo::addElement);
-        functionsView.activate(frames.getFunctionId(), frames.getOpIndex());
-      });
-    }
   }
 
 }
