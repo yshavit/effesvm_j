@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
@@ -56,7 +56,7 @@ public class DebuggerGuiState {
           }
           String scopeId = breakpointMatcher.group(1);
           String functionName = breakpointMatcher.group(2);
-          EfctScopeDesc scope = EfctScopeDesc.parse(scopeId, null);
+          EfctScope scope = EfctScope.parse(scopeId, null);
           EffesFunctionId functionId = new EffesFunctionId(scope, functionName);
           breakpoints.add(new MsgSetBreakpoints.Breakpoint(functionId, opIdx));
         } else {

@@ -28,7 +28,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
@@ -377,8 +377,8 @@ public class DebuggerGui {
           opsByFunction.put(functionId, ops);
         });
         functionNames.sort((a, b) -> {
-          EfctScopeDesc aScope = a.getScope();
-          EfctScopeDesc bScope = b.getScope();
+          EfctScope aScope = a.getScope();
+          EfctScope bScope = b.getScope();
           int cmp = aScope.getModuleId().toString().compareTo(bScope.getModuleId().toString());
           if (cmp == 0) {
             String aType = aScope.map(m -> "", (m, t) -> t);

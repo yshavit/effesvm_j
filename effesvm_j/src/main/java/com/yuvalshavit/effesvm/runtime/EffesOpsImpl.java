@@ -13,7 +13,7 @@ import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesLinkException;
@@ -553,7 +553,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   private UnlinkedOperation.Body fieldOperation(String typeName, String fieldName, FieldOperator op) {
-    return linkContext -> EfctScopeDesc.parse(typeName, linkContext.currentModule()).mapRequiringInstanceType((m, t) -> {
+    return linkContext -> EfctScope.parse(typeName, linkContext.currentModule()).mapRequiringInstanceType((m, t) -> {
         EffesType type = linkContext.type(m, t);
         int fieldIndex = type.argIndex(fieldName);
         return Operation.withIncementingPc(op.fieldOperation(type, fieldIndex));
@@ -595,7 +595,7 @@ public class EffesOpsImpl implements EffesOps<Object> {
     return linkCtx -> {
       BaseEffesType checkForType;
       if (typeName.indexOf(':') >= 0) {
-        checkForType = EfctScopeDesc.parse(typeName, linkCtx.currentModule()).mapRequiringInstanceType(linkCtx::type);
+        checkForType = EfctScope.parse(typeName, linkCtx.currentModule()).mapRequiringInstanceType(linkCtx::type);
       } else {
         checkForType = EffesNativeObject.parseType(typeName);
       }

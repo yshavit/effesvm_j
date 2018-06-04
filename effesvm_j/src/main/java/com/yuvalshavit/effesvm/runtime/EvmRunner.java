@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesFunctionParser;
@@ -110,7 +110,7 @@ public class EvmRunner {
 
     EffesModule linkedModule = linkedModules.get(main);
 
-    EffesFunction mainFunction = linkedModule.getFunction(new EffesFunctionId(EfctScopeDesc.ofStatic(main), "main"));
+    EffesFunction mainFunction = linkedModule.getFunction(new EffesFunctionId(EfctScope.ofStatic(main), "main"));
     if (mainFunction.nArgs() != 1) {
       throw new EffesRuntimeException("::main must take 1 argument");
     }

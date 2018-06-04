@@ -5,7 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.Objects;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
@@ -17,7 +17,7 @@ public class ProgramCounter {
 
   private static EffesFunction createBootstrap() {
     EffesModule.Id bootstrapModule = new EffesModule.Id("$bootstrap");
-    EffesFunction function = new EffesFunction(new EffesFunctionId(EfctScopeDesc.ofStatic(bootstrapModule), "$"), true, 1);
+    EffesFunction function = new EffesFunction(new EffesFunctionId(EfctScope.ofStatic(bootstrapModule), "$"), true, 1);
     function.setOps(Collections.singletonList(new Operation() {
       private OpInfo info = new OpInfo(bootstrapModule, "<end>", Collections.emptyList(), -1);
 

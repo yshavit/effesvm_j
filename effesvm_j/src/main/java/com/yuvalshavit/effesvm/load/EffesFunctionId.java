@@ -6,18 +6,18 @@ import lombok.Data;
 
 @Data
 public class EffesFunctionId implements Serializable {
-  private final EfctScopeDesc scope;
+  private final EfctScope scope;
   private final String functionName;
 
   public static EffesFunctionId parse(String scopeDesc, String functionName, EffesModule.Id context) {
-    return new EffesFunctionId(EfctScopeDesc.parse(scopeDesc, context), functionName);
+    return new EffesFunctionId(EfctScope.parse(scopeDesc, context), functionName);
   }
 
   public boolean isConstructor() {
     return scope.map(m -> false, (m, t) -> t.equals(functionName));
   }
 
-  public EffesFunctionId(EfctScopeDesc scope, String functionName) {
+  public EffesFunctionId(EfctScope scope, String functionName) {
     this.scope = scope;
     this.functionName = functionName;
   }

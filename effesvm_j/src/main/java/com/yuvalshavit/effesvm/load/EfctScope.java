@@ -9,21 +9,21 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @EqualsAndHashCode
-public class EfctScopeDesc implements Serializable {
+public class EfctScope implements Serializable {
   @Getter
   private final EffesModule.Id moduleId;
   private final String optionalTypeName;
 
-  private EfctScopeDesc(EffesModule.Id moduleId, String optionalTypeName) {
+  private EfctScope(EffesModule.Id moduleId, String optionalTypeName) {
     this.moduleId = moduleId;
     this.optionalTypeName = optionalTypeName;
   }
 
-  public static EfctScopeDesc ofStatic(EffesModule.Id moduleId) {
-    return new EfctScopeDesc(moduleId, null);
+  public static EfctScope ofStatic(EffesModule.Id moduleId) {
+    return new EfctScope(moduleId, null);
   }
 
-  public static EfctScopeDesc parse(String desc, EffesModule.Id context) {
+  public static EfctScope parse(String desc, EffesModule.Id context) {
     String[] descSplit = desc.split(":", 2);
     if (descSplit.length != 2) {
       throw new IllegalArgumentException("bad " + EffesFunctionId.class.getSimpleName() + ": " + desc);
@@ -32,7 +32,7 @@ public class EfctScopeDesc implements Serializable {
       ? Objects.requireNonNull(context, "can't parse relative EffesFunctionId without context")
       : new EffesModule.Id(descSplit[0]);
     String typeDesc = descSplit[1].isEmpty() ? null : descSplit[1];
-    return new EfctScopeDesc(module, typeDesc);
+    return new EfctScope(module, typeDesc);
   }
 
   @Override

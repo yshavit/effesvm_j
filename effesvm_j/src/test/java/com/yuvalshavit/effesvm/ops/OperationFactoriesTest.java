@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import org.testng.annotations.Test;
 
-import com.yuvalshavit.effesvm.load.EfctScopeDesc;
+import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
@@ -109,7 +109,7 @@ public class OperationFactoriesTest {
     @OperationFactory("with-linking")
     public static UnlinkedOperation.Body build3() {
       return (LinkContext linkCtx) -> {
-        EfctScopeDesc scope = EfctScopeDesc.parse(":link-type-name", linkCtx.currentModule());
+        EfctScope scope = EfctScope.parse(":link-type-name", linkCtx.currentModule());
         EffesType type = scope.mapRequiringInstanceType(linkCtx::type);
         EffesNativeObject.EffesString str = EffesNativeObject.forString(type.name());
         return Operation.withIncementingPc(s -> s.push(str));
