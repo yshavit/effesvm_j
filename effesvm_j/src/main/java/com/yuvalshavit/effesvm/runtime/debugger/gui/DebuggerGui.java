@@ -48,28 +48,37 @@ public class DebuggerGui {
     private final DebugClient connection;
     private final DebuggerGuiState saveState = new DebuggerGuiState(new File("effesvm-debug-state.txt"));
     private FunctionsView functionsView;
-    private FramesView framesView;
 
     public DebugWindow(DebugClient connection) {
       this.connection = connection;
     }
 
     public void create() {
-      JPanel mainPanel = new JPanel();
-      mainPanel.setLayout(new BorderLayout());
-
       ResumeHandler resumeHandler = new ResumeHandler(connection);
-      framesView = new FramesView(connection);
+      FramesView framesView = new FramesView(connection);
       ControlsView controlsView = new ControlsView(connection, resumeHandler, framesView::updateStackFrameInfo, framesView::updateStackFrameInfo);
       Component stepButtons = controlsView.getStepButtons();
-
-      mainPanel.add(stepButtons, BorderLayout.NORTH);
-
       resumeHandler.enabledIffSuspended(framesView.getRootPane());
       resumeHandler.enabledIffSuspended(stepButtons);
-      mainPanel.add(framesView.getRootPane(), BorderLayout.CENTER);
       connection.addCloseHandler(controlsView::showConnectionClosed);
+      connection.addCloseHandler(resumeHandler::suspendGui);
 
+      JSplitPane mainSplit = showMainWindow(framesView, controlsView, stepButtons);
+
+      connection.communicate(new MsgGetModules(), resp -> {
+        Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
+        functionsView = new FunctionsView(saveState, functionsByModule);
+        framesView.setUpdateListener(functionsView::activate);
+        functionsView.openConnection(connection);
+        Container pane = functionsView.getRootContent();
+        resumeHandler.enabledIffSuspended(pane);
+        mainSplit.setLeftComponent(pane);
+        mainSplit.setDividerLocation(0.5);
+      });
+      resumeHandler.startWatching();
+    }
+
+    private JSplitPane showMainWindow(FramesView framesView, ControlsView controlsView, Component stepButtons) {
       JFrame frame = new JFrame("Debugger connected to " + connection.port());
       frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
       frame.addWindowListener(new WindowAdapter() {
@@ -83,31 +92,23 @@ public class DebuggerGui {
           ConnectDialogue.create(connection.port());
         }
       });
-      connection.addCloseHandler(resumeHandler::suspendGui);
+      JPanel framesAndSteps = new JPanel();
+      framesAndSteps.setLayout(new BorderLayout());
+      framesAndSteps.add(stepButtons, BorderLayout.NORTH);
+      framesAndSteps.add(framesView.getRootPane(), BorderLayout.CENTER);
 
       JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
       mainSplit.setPreferredSize(new Dimension(1200, 700));
-      connection.communicate(new MsgGetModules(), resp -> {
-        Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
-        functionsView = new FunctionsView(saveState, functionsByModule);
-        framesView.setUpdateListener(functionsView::activate);
-        functionsView.openConnection(connection);
-        Container pane = functionsView.getRootContent();
-        resumeHandler.enabledIffSuspended(pane);
-        mainSplit.setLeftComponent(pane);
-        mainSplit.setDividerLocation(0.5);
-      });
       frame.getContentPane().add(mainSplit);
 
-      JPanel content = new JPanel(new BorderLayout());
-      content.add(controlsView.getResumeButtonPane(), BorderLayout.NORTH);
-      content.add(mainPanel, BorderLayout.CENTER);
-      mainSplit.setRightComponent(content);
+      JPanel framesAndControls = new JPanel(new BorderLayout());
+      framesAndControls.add(controlsView.getResumeButtonPane(), BorderLayout.NORTH);
+      framesAndControls.add(framesAndSteps, BorderLayout.CENTER);
+      mainSplit.setRightComponent(framesAndControls);
       frame.setLocationRelativeTo(null);
       frame.pack();
       frame.setVisible(true);
-
-      resumeHandler.startWatching();
+      return mainSplit;
     }
   }
 }
