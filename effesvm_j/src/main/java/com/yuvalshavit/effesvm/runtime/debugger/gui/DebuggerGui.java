@@ -6,11 +6,8 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -18,7 +15,6 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +24,6 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.PlainDocument;
 
-import com.yuvalshavit.effesvm.load.EfctScope;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
@@ -40,7 +35,6 @@ import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgHello;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgIsSuspended;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResume;
-import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepIn;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOut;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOver;
@@ -48,7 +42,6 @@ import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSuspend;
 
 public class DebuggerGui {
   public static final int DEFAULT_PORT = 6667;
-  private static final int SCROLLTO_CONTEXT_BUFFER = 5;
 
   public static void createConnectDialogue(int initialPort) {
     if (initialPort <= 0) {
@@ -213,9 +206,9 @@ public class DebuggerGui {
 
     private final DebugClient connection;
     private final DebuggerGuiState saveState = new DebuggerGuiState(new File("effesvm-debug-state.txt"));
+    private FunctionsView functionsView;
     private DefaultListModel<String> frameInfo;
 
-    private OpsListWindow opsFrame;
 
     public DebugWindow(DebugClient connection) {
       this.connection = connection;
@@ -266,11 +259,12 @@ public class DebuggerGui {
       mainSplit.setPreferredSize(new Dimension(1200, 700));
       connection.communicate(new MsgGetModules(), resp -> {
         Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
-        opsFrame = createOpsFrame(functionsByModule, pane -> {
-          resumeHandler.enabledIffSuspended(pane);
-          mainSplit.setLeftComponent(pane);
-          mainSplit.setDividerLocation(0.5);
-        });
+        functionsView = new FunctionsView(saveState, functionsByModule);
+        functionsView.openConnection(connection);
+        Container pane = functionsView.getRootContent();
+        resumeHandler.enabledIffSuspended(pane);
+        mainSplit.setLeftComponent(pane);
+        mainSplit.setDividerLocation(0.5);
       });
       frame.getContentPane().add(mainSplit);
 
@@ -364,152 +358,6 @@ public class DebuggerGui {
       return stepButtons;
     }
 
-    private OpsListWindow createOpsFrame(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules, Consumer<Component> add) {
-      Map<EffesModule.Id,List<EffesFunctionId>> functionNamesByModule = new HashMap<>();
-      Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction = new HashMap<>();
-      Map<EffesModule.Id,EffesFunctionId> activeFunctionPerModule = new HashMap<>();
-
-      functionsByModules.forEach((moduleId, functions) -> {
-        List<EffesFunctionId> functionNames = new ArrayList<>(functions.size());
-        functionNamesByModule.put(moduleId, functionNames);
-        functions.forEach((functionId, ops) -> {
-          functionNames.add(functionId);
-          opsByFunction.put(functionId, ops);
-        });
-        functionNames.sort((a, b) -> {
-          EfctScope aScope = a.getScope();
-          EfctScope bScope = b.getScope();
-          int cmp = aScope.getModuleId().toString().compareTo(bScope.getModuleId().toString());
-          if (cmp == 0) {
-            String aType = aScope.map(m -> "", (m, t) -> t);
-            String bType = bScope.map(m -> "", (m, t) -> t);
-            cmp = aType.compareTo(bType);
-          }
-          if (cmp == 0) {
-            cmp = a.getFunctionName().compareTo(b.getFunctionName());
-          }
-          return cmp;
-        });
-        activeFunctionPerModule.put(moduleId, functionNames.get(0));
-      });
-
-      JComboBox<EffesModule.Id> modulesChooserBox = new JComboBox<>(functionsByModules.keySet().toArray(new EffesModule.Id[0]));
-      DefaultComboBoxModel<EffesFunctionId> functionChooserModel = new DefaultComboBoxModel<>();
-      JComboBox<EffesFunctionId> functionsComboBox = new JComboBox<>(functionChooserModel);
-      DefaultListModel<String> activeOpsModel = new DefaultListModel<>();
-      JList<String> activeOpsList = new JList<>(activeOpsModel);
-
-      modulesChooserBox.addActionListener(action -> {
-        EffesModule.Id module = (EffesModule.Id) modulesChooserBox.getSelectedItem();
-        functionChooserModel.removeAllElements();
-        EffesFunctionId activeFunction = activeFunctionPerModule.get(module); // save this before the function box's listener overwrites it
-        functionNamesByModule.getOrDefault(module, Collections.emptyList()).forEach(functionChooserModel::addElement);
-        functionChooserModel.setSelectedItem(activeFunction);
-      });
-      functionsComboBox.addActionListener(action -> {
-        EffesFunctionId functionId = (EffesFunctionId) functionChooserModel.getSelectedItem();
-        activeOpsModel.clear();
-        opsByFunction
-          .getOrDefault(functionId, new MsgGetModules.FunctionInfo(Collections.singletonList("ERROR: no function " + functionId), null))
-          .opDescriptions()
-          .forEach(activeOpsModel::addElement);
-        if (functionId != null) {
-          activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
-        }
-      });
-
-      Container rootContent = new JPanel();
-      rootContent.setLayout(new BorderLayout());
-      OpsListWindow window = new OpsListWindow() {
-        @Override
-        void activate(EffesFunctionId functionId, int opIdx) {
-          this.activeOpIdx = opIdx;
-          this.activeFunction = functionId;
-          activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
-          modulesChooserBox.setSelectedItem(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
-          activeOpsList.setSelectedIndex(opIdx);
-          Rectangle cellBounds = activeOpsList.getCellBounds(opIdx - SCROLLTO_CONTEXT_BUFFER, opIdx + SCROLLTO_CONTEXT_BUFFER);
-          if (cellBounds != null) {
-            activeOpsList.scrollRectToVisible(cellBounds);
-          }
-        }
-      };
-
-      JPanel selectorGroup = new JPanel();
-      selectorGroup.add(modulesChooserBox);
-      selectorGroup.add(functionsComboBox);
-      rootContent.add(selectorGroup, BorderLayout.NORTH);
-
-      JScrollPane opsScrollPane = new JScrollPane(activeOpsList);
-      opsScrollPane.setPreferredSize(new Dimension(600, 700));
-      activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-
-      rootContent.add(opsScrollPane, BorderLayout.CENTER);
-      Pattern lineNumberFinder = Pattern.compile("^#(\\d+) *");
-      activeOpsList.setCellRenderer(new DefaultListCellRenderer() {
-        @Override
-        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-          if (value instanceof String) {
-            String valueStr = (String) value;
-            Matcher lineNumberMatcher = lineNumberFinder.matcher(valueStr);
-            if (lineNumberMatcher.find()) {
-              StringBuilder sb = new StringBuilder(valueStr.length() + 10); // +10 is more than enough
-              sb.append(index).append('(').append(lineNumberMatcher.group(1)).append(") ");
-              sb.append(valueStr, lineNumberMatcher.end(), valueStr.length());
-              value = sb.toString();
-            }
-          }
-          Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-          EffesFunctionId functionId = (EffesFunctionId) functionsComboBox.getSelectedItem();
-          if (Objects.equals(functionId, window.activeFunction) && window.activeOpIdx == index) {
-            fromSuper.setBackground(Color.LIGHT_GRAY);
-          }
-          MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(functionId);
-          if (functionInfo != null && functionInfo.breakpoints().get(index)) {
-            fromSuper.setForeground(Color.RED);
-          }
-          return fromSuper;
-        }
-      });
-
-      Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
-      connection.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
-        for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
-          opsByFunction.get(breakpoint.getFid())
-            .breakpoints()
-            .set(breakpoint.getOpIdx());
-        }
-        rootContent.repaint();
-        activeOpsList.addMouseListener(new MouseAdapter() {
-          @Override
-          public void mouseClicked(MouseEvent e) {
-            if (e.getClickCount() == 2) {
-              EffesFunctionId visibleFunction = (EffesFunctionId) functionsComboBox.getSelectedItem();
-              int clickedItem = activeOpsList.locationToIndex(e.getPoint());
-              BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-              MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItem);
-              boolean on = !breakpoints.get(clickedItem);
-              saveState.setBreakpoint(breakpoint, on);
-              MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
-              connection.communicate(toggleMsg, ok -> {
-                breakpoints.flip(clickedItem);
-                activeOpsList.repaint();
-              });
-            }
-          }
-        });
-      });
-      add.accept(rootContent);
-      return window;
-    }
-
-    private abstract class OpsListWindow {
-      EffesFunctionId activeFunction;
-      int activeOpIdx;
-
-      abstract void activate(EffesFunctionId functionId, int opIdx);
-    }
-
     private JButton stepButton(JLabel stateLabel, ResumeHandler resumeHandler, String label, Msg.NoResponse message) {
       JButton stepOverButton = new JButton(label);
       stepOverButton.addActionListener(l -> connection.communicate(message, ok -> {
@@ -528,7 +376,7 @@ public class DebuggerGui {
           : (frames.getStepsCompleted() + " steps completed");
         frameInfo.addElement(howMany);
         frames.describeElements().forEach(frameInfo::addElement);
-        opsFrame.activate(frames.getFunctionId(), frames.getOpIndex());
+        functionsView.activate(frames.getFunctionId(), frames.getOpIndex());
       });
     }
   }
