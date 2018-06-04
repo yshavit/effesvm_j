@@ -27,6 +27,7 @@ import com.yuvalshavit.effesvm.load.OutlinedModule;
 import com.yuvalshavit.effesvm.load.Parser;
 import com.yuvalshavit.effesvm.ops.Operation;
 import com.yuvalshavit.effesvm.ops.OperationFactories;
+import com.yuvalshavit.effesvm.runtime.debugger.gui.ConnectDialogue;
 import com.yuvalshavit.effesvm.runtime.debugger.gui.DebuggerGui;
 import com.yuvalshavit.effesvm.runtime.debugger.SockDebugServer;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
@@ -45,7 +46,7 @@ public class EvmRunner {
     }
     if (args[0].startsWith(DEBUGGER_OPTION)) {
       if (args.length == 1) {
-        DebuggerGui.createConnectDialogue(-1);
+        ConnectDialogue.create(-1);
       } else if (args.length == 2) {
         int port;
         try {
@@ -58,7 +59,7 @@ public class EvmRunner {
         try {
           DebuggerGui.connectTo(port);
         } catch (ConnectException e) {
-          DebuggerGui.createConnectDialogue(port);
+          ConnectDialogue.create(port);
         }
       } else {
         System.err.printf("%s [port]. No other options allowed.%n", DEBUGGER_OPTION);
