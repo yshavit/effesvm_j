@@ -8,7 +8,12 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Iterator;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -51,7 +56,7 @@ public class DebugClient implements Closeable {
       if (responseHandler == null) {
         System.err.printf("no response handler for message id %d (%s)%n", withId.id(), withId.payload());
       } else {
-        System.err.printf("handling message id %d (%s)%n", withId.id(), withId.payload());
+//        System.err.printf("handling message id %d (%s)%n", withId.id(), withId.payload());
         responseHandler.accept(withId.payload());
       }
     });
@@ -83,16 +88,12 @@ public class DebugClient implements Closeable {
     ResponseHandler<R> handler = new ResponseHandler<>(sequencer.getAndIncrement(), message, onSuccess, onFailure);
     // register it on the pendingResponses first, so that we're guaranteed to have the response handler registered before we even send the request
     pendingResponses.put(handler.message.id(), handler);
-    System.err.printf("registered message id %d: %s%n", handler.message.id(), message.getClass());
+//    System.err.printf("registered message id %d: %s%n", handler.message.id(), message.getClass());
     pendingMessages.add(handler);
   }
 
   public <R extends Serializable, M extends Msg<R>> void communicate(M message, Consumer<R> onSuccess) {
     communicate(message, onSuccess, Throwable::printStackTrace);
-  }
-
-  public void communicate(Msg.NoResponse message) {
-    communicate(message, ack -> {});
   }
 
   @Override
