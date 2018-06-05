@@ -9,7 +9,7 @@ import javax.swing.JPanel;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 
@@ -19,8 +19,12 @@ class FunctionsView {
   private final OpsListPane opsListPane;
   private final Container rootContent;
 
-  public FunctionsView(DebuggerGuiState saveState, Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules) {
-    functionPicker = new FunctionPicker(functionsByModules);
+  public FunctionsView(
+    DebuggerGuiState saveState,
+    Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules,
+    DebuggerEvents debuggerEvents)
+  {
+    functionPicker = new FunctionPicker(functionsByModules, debuggerEvents);
     opsListPane = new OpsListPane(
       saveState,
       functionsByModules
@@ -39,10 +43,8 @@ class FunctionsView {
     selectorGroup.add(functionPicker.getFunctionsChooserBox());
     rootContent.add(selectorGroup, BorderLayout.NORTH);
     rootContent.add(opsListPane.getScrollPane(), BorderLayout.CENTER);
-  }
 
-  void openConnection(DebugClient connection) {
-    opsListPane.openConnection(connection, rootContent::repaint);
+    opsListPane.openConnection(debuggerEvents, rootContent::repaint);
   }
 
   Container getRootContent() {

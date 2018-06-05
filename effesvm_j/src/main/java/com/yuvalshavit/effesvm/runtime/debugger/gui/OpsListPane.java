@@ -22,7 +22,7 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
-import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
@@ -57,9 +57,10 @@ class OpsListPane {
     return opsScrollPane;
   }
 
-  void openConnection(DebugClient connection, Runnable callback) {
+  void openConnection(DebuggerEvents debuggerEvents, Runnable callback) {
     Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
-    connection.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, activeOpsModel::clear);
+    debuggerEvents.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
       for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
         opsByFunction.get(breakpoint.getFid())
           .breakpoints()
@@ -77,7 +78,7 @@ class OpsListPane {
             boolean on = !breakpoints.get(clickedItem);
             saveState.setBreakpoint(breakpoint, on);
             MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
-            connection.communicate(toggleMsg, ok -> {
+            debuggerEvents.communicate(toggleMsg, ok -> {
               breakpoints.flip(clickedItem);
               activeOpsList.repaint();
             });

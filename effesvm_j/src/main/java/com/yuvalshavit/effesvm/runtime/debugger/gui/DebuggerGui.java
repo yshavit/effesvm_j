@@ -19,6 +19,7 @@ import javax.swing.WindowConstants;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgHello;
@@ -45,51 +46,47 @@ public class DebuggerGui {
 
   private static class DebugWindow {
 
-    private final DebugClient connection;
+    private final DebuggerEvents debuggerEvents;
     private final DebuggerGuiState saveState = new DebuggerGuiState(new File("effesvm-debug-state.txt"));
+    private final int connectionOriginalPort;
     private FunctionsView functionsView;
 
     public DebugWindow(DebugClient connection) {
-      this.connection = connection;
+      debuggerEvents = new DebuggerEvents(connection);
+      connectionOriginalPort = connection.port();
     }
 
     public void create() {
-      ResumeHandler resumeHandler = new ResumeHandler(connection);
-      FramesView framesView = new FramesView(connection);
-      ControlsView controlsView = new ControlsView(connection, resumeHandler, framesView::updateStackFrameInfo, framesView::updateStackFrameInfo);
+      FramesView framesView = new FramesView(debuggerEvents);
+      ControlsView controlsView = new ControlsView(debuggerEvents);
       Component stepButtons = controlsView.getStepButtons();
-      resumeHandler.enabledIffSuspended(framesView.getRootPane());
-      resumeHandler.enabledIffSuspended(stepButtons);
-      connection.addCloseHandler(controlsView::showConnectionClosed);
-      connection.addCloseHandler(resumeHandler::suspendGui);
 
       JSplitPane mainSplit = showMainWindow(framesView, controlsView, stepButtons);
 
-      connection.communicate(new MsgGetModules(), resp -> {
+      debuggerEvents.communicate(new MsgGetModules(), resp -> {
         Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
-        functionsView = new FunctionsView(saveState, functionsByModule);
+        functionsView = new FunctionsView(saveState, functionsByModule, debuggerEvents);
         framesView.setUpdateListener(functionsView::activate);
-        functionsView.openConnection(connection);
         Container pane = functionsView.getRootContent();
-        resumeHandler.enabledIffSuspended(pane);
         mainSplit.setLeftComponent(pane);
         mainSplit.setDividerLocation(0.5);
+
+        debuggerEvents.sendInitialState();
       });
-      resumeHandler.startWatching();
     }
 
     private JSplitPane showMainWindow(FramesView framesView, ControlsView controlsView, Component stepButtons) {
-      JFrame frame = new JFrame("Debugger connected to " + connection.port());
+      JFrame frame = new JFrame("Debugger connected to " + connectionOriginalPort);
       frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
       frame.addWindowListener(new WindowAdapter() {
         @Override
         public void windowClosed(WindowEvent event) {
           try {
-            connection.close();
+            debuggerEvents.requestConnectionClose();
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-          ConnectDialogue.create(connection.port());
+          ConnectDialogue.create(connectionOriginalPort);
         }
       });
       JPanel framesAndSteps = new JPanel();

@@ -16,19 +16,21 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
-import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetFrame;
 
 class FramesView {
-  private final DebugClient connection;
+  private final DebuggerEvents debuggerEvents;
   private FrameUpdateListener updateListener;
   private DefaultListModel<String> frameInfo;
   private final Container rootPane;
 
-  FramesView(DebugClient connection) {
-    this.connection = connection;
+  FramesView(DebuggerEvents debuggerEvents) {
+    this.debuggerEvents = debuggerEvents;
     frameInfo = new DefaultListModel<>();
-    rootPane = createFrameInfo();
+    rootPane = createFrameInfo(debuggerEvents);
+    debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, this::updateStackFrameInfo);
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, frameInfo::clear);
   }
 
   void setUpdateListener(FrameUpdateListener listener) {
@@ -42,12 +44,8 @@ class FramesView {
     return rootPane;
   }
 
-  void clearStackFrameInfo() {
-    frameInfo.clear();
-  }
-
-  void updateStackFrameInfo() {
-    connection.communicate(new MsgGetFrame(), frames -> {
+  private void updateStackFrameInfo() {
+    debuggerEvents.communicate(new MsgGetFrame(), frames -> {
       frameInfo.clear();
       String howMany = (frames.getStepsCompleted() == 1)
         ? "1 step completed"
@@ -58,11 +56,12 @@ class FramesView {
     });
   }
 
-  private Container createFrameInfo() {
+  private Container createFrameInfo(DebuggerEvents debuggerEvents) {
     JList<String> frameInfoList = new JList<>(frameInfo);
     frameInfoList.setCellRenderer(new FrameListCellRenderer());
     frameInfoList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-    frameInfoList.setEnabled(false);
+    debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> frameInfoList.setEnabled(true));
+    debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> frameInfoList.setEnabled(false));
     JScrollPane frameInfoScrollPane = new JScrollPane(frameInfoList);
     frameInfoScrollPane.setPreferredSize(new Dimension(600, 400));
     return frameInfoScrollPane;

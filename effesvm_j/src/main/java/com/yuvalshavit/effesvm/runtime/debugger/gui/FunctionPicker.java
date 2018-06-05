@@ -13,6 +13,7 @@ import javax.swing.JComboBox;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 
 class FunctionPicker {
@@ -22,7 +23,7 @@ class FunctionPicker {
   private final DefaultComboBoxModel<EffesFunctionId> functionChooserModel;
   private final JComboBox<EffesModule.Id> modulesChooserBox;
 
-  FunctionPicker(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules) {
+  FunctionPicker(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules, DebuggerEvents events) {
     functionNamesByModule = new HashMap<>();
     activeFunctionPerModule = new HashMap<>();
 
@@ -38,6 +39,12 @@ class FunctionPicker {
     modulesChooserBox = createModuleChooser(functionChooserModel, functionsByModules.keySet().toArray(new EffesModule.Id[0]));
     functionsChooserBox = new JComboBox<>(functionChooserModel);
     addListener(this::setActiveFunctionForModule);
+    events.on(DebuggerEvents.Type.CLOSED, () -> {
+      functionsChooserBox.setEnabled(false);
+      functionChooserModel.removeAllElements();
+      modulesChooserBox.setEnabled(false);
+      modulesChooserBox.setModel(new DefaultComboBoxModel<>()); // empty
+    });
   }
 
   Component getModulesChooserBox() {

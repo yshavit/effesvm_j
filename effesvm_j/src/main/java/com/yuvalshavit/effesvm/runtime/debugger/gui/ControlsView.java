@@ -6,41 +6,57 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import com.yuvalshavit.effesvm.runtime.debugger.DebugClient;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResume;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepIn;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOut;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOver;
-import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSuspend;
 
 public class ControlsView {
-  private static final String runningMessage = "Running";
-  private static final String resumeButtonText = "Resume";
-  private static final String suspendButtonText = "Suspend";
-  private static final String suspendedMessage = "Suspended";
-  private static final String connectionClosedMessage = "Connection closed";
+  private static final String RUNNING_MESSAGE = "Running";
+  private static final String RESUME_BUTTON_TEXT = "Resume";
+  private static final String SUSPEND_BUTTON_TEXT = "Suspend";
+  private static final String SUSPENDED_MESSAGE = "Suspended";
+  private static final String CONNECTION_CLOSED_MESSAGE = "Connection closed";
+  private static final String CLOSED_BUTTON_TEXT = "Closed";
 
-  private final DebugClient connection;
-  private final Runnable onSuspend;
-  private final Runnable onResume;
   private final JPanel stepButtons;
   private final JPanel resumePane;
-  private final JLabel stateLabel;
-  private final JButton resumeButton;
 
-  public ControlsView(DebugClient connection, ResumeHandler resumeHandler, Runnable onSuspend, Runnable onResume) {
-    this.connection = connection;
-    this.onSuspend = onSuspend;
-    this.onResume = onResume;
+  public ControlsView(DebuggerEvents debuggerEvents) {
+    JLabel stateLabel = new JLabel("Remote state pending");
 
-    stateLabel = new JLabel("Remote state pending");
-    resumeButton = createResumeButton(stateLabel, resumeHandler);
-    stepButtons = createStepButtons(stateLabel, resumeHandler);
+    JButton resumeOrSuspendButton = createResumeButton(debuggerEvents);
+    stepButtons = createStepButtons(debuggerEvents);
 
     resumePane = new JPanel();
     resumePane.add(stateLabel);
-    resumePane.add(resumeButton);
+    resumePane.add(resumeOrSuspendButton);
+
+    debuggerEvents.on(DebuggerEvents.Type.SUSPEND_REQUESTED, () -> {
+      stateLabel.setText("Suspending...");
+      resumeOrSuspendButton.setEnabled(false);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> {
+      stateLabel.setText(SUSPENDED_MESSAGE);
+      resumeOrSuspendButton.setText(RESUME_BUTTON_TEXT);
+      resumeOrSuspendButton.setEnabled(true);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.RESUME_REQUESTED, () -> {
+      stateLabel.setText("Resuming...");
+      resumeOrSuspendButton.setEnabled(false);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> {
+      stateLabel.setText(RUNNING_MESSAGE);
+      resumeOrSuspendButton.setText(SUSPEND_BUTTON_TEXT);
+      resumeOrSuspendButton.setEnabled(true);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, () -> {
+      stateLabel.setText(CONNECTION_CLOSED_MESSAGE);
+      stateLabel.setEnabled(false);
+      resumeOrSuspendButton.setEnabled(false);
+    });
   }
 
   Component getStepButtons() {
@@ -51,59 +67,48 @@ public class ControlsView {
     return resumePane;
   }
 
-  void showConnectionClosed() {
-    stateLabel.setText(connectionClosedMessage);
-    stateLabel.setEnabled(false);
-    resumeButton.setEnabled(false);
-
-  }
-
-  private JPanel createStepButtons(JLabel stateLabel, ResumeHandler resumeHandler) {
+  private JPanel createStepButtons(DebuggerEvents debuggerEvents) {
     JPanel stepButtons = new JPanel();
-    stepButtons.add(stepButton(stateLabel, resumeHandler, "In ⇲", new MsgStepIn()));
-    stepButtons.add(stepButton(stateLabel, resumeHandler, "Over ↷", new MsgStepOver()));
-    stepButtons.add(stepButton(stateLabel, resumeHandler, "Out ⇱", new MsgStepOut()));
+    stepButtons.add(stepButton(debuggerEvents, "In ⇲", new MsgStepIn()));
+    stepButtons.add(stepButton(debuggerEvents, "Over ↷", new MsgStepOver()));
+    stepButtons.add(stepButton(debuggerEvents, "Out ⇱", new MsgStepOut()));
     return stepButtons;
   }
 
-  private JButton stepButton(JLabel stateLabel, ResumeHandler resumeHandler, String label, Msg.NoResponse message) {
+  private JButton stepButton(DebuggerEvents debuggerEvents, String label, Msg.NoResponse message) {
     JButton stepOverButton = new JButton(label);
-    stepOverButton.addActionListener(l -> connection.communicate(message, ok -> {
-      stateLabel.setText(suspendedMessage);
-      resumeHandler.suspendGui();
-    }));
-    resumeHandler.enabledIffSuspended(stepOverButton);
+    debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> stepOverButton.setEnabled(false));
+    debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> stepOverButton.setEnabled(true));
+    stepOverButton.addActionListener(l -> debuggerEvents.requestResume(message));
     return stepOverButton;
   }
 
-  private JButton createResumeButton(JLabel stateLabel, ResumeHandler resumeHandler) {
-    JButton resumeButton = new JButton(resumeButtonText);
+  private JButton createResumeButton(DebuggerEvents debuggerEvents) {
+    JButton resumeButton = new JButton(RESUME_BUTTON_TEXT);
+    debuggerEvents.on(DebuggerEvents.Type.SUSPEND_REQUESTED, () -> resumeButton.setText(SUSPEND_BUTTON_TEXT));
+    debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> {
+      resumeButton.setText(RESUME_BUTTON_TEXT);
+      resumeButton.setEnabled(true);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.RESUME_REQUESTED, () -> resumeButton.setText(SUSPEND_BUTTON_TEXT));
+    debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> {
+      resumeButton.setText(SUSPEND_BUTTON_TEXT);
+      resumeButton.setEnabled(true);
+    });
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, () -> {
+      resumeButton.setText(CLOSED_BUTTON_TEXT);
+      resumeButton.setEnabled(false);
+    });
+
     resumeButton.addActionListener(l -> {
-      resumeHandler.suspendGui();
       switch (resumeButton.getText()) {
-        case resumeButtonText:
-          resumeButton.setText(suspendButtonText);
-          stateLabel.setText("Resuming...");
-          onResume.run();
-          connection.communicate(new MsgResume());
+        case RESUME_BUTTON_TEXT:
+          debuggerEvents.requestResume(new MsgResume());
           break;
-        case suspendButtonText:
-          resumeButton.setText(suspendButtonText);
-          stateLabel.setText("Suspending...");
-          connection.communicate(new MsgSuspend());
+        case SUSPEND_BUTTON_TEXT:
+          debuggerEvents.requestSuspend();
           break;
       }
-    });
-    resumeHandler.onResume(() -> {
-      stateLabel.setText(runningMessage);
-      resumeButton.setText(suspendButtonText);
-      resumeButton.setEnabled(true);
-    });
-    resumeHandler.onSuspend(() -> {
-      stateLabel.setText(suspendedMessage);
-      resumeButton.setText(resumeButtonText);
-      resumeButton.setEnabled(true);
-      onSuspend.run();
     });
     return resumeButton;
   }
