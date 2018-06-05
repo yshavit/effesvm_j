@@ -9,6 +9,7 @@ import javax.swing.JPanel;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResume;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResumeBase;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepIn;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOut;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOver;
@@ -75,7 +76,7 @@ public class ControlsView {
     return stepButtons;
   }
 
-  private JButton stepButton(DebuggerEvents debuggerEvents, String label, Msg.NoResponse message) {
+  private JButton stepButton(DebuggerEvents debuggerEvents, String label, MsgResumeBase message) {
     JButton stepOverButton = new JButton(label);
     debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> stepOverButton.setEnabled(false));
     debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> stepOverButton.setEnabled(true));

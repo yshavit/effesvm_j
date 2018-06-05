@@ -13,6 +13,7 @@ import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgAwaitSuspended;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgIsSuspended;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSuspend;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResumeBase;
 
 public class DebuggerEvents {
   private final DebugClient connection;
@@ -39,7 +40,7 @@ public class DebuggerEvents {
     handlers.get(eventType).add(runnable);
   }
 
-  public void requestResume(Msg.NoResponse message) {
+  public void requestResume(MsgResumeBase message) {
     alertHandlers(Type.RESUME_REQUESTED);
     connection.communicate(message, ok -> {
       alertHandlers(Type.RESUMED);
