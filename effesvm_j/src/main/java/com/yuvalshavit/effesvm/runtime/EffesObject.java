@@ -1,11 +1,13 @@
 package com.yuvalshavit.effesvm.runtime;
 
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 
 import com.yuvalshavit.effesvm.load.EffesModule;
 
 public class EffesObject extends EffesRef<EffesType> {
-  private static final EffesModule.Id consModule = new EffesModule.Id("ConsList");
+  private static final EffesModule.Id QUEUE_MODULE = new EffesModule.Id("Queue");
+  private static final String QUEUE_NAME = "Queue";
   private final EffesRef<?>[] args;
 
   public EffesObject(EffesType type, EffesRef<?>[] args) {
@@ -25,16 +27,33 @@ public class EffesObject extends EffesRef<EffesType> {
   }
 
   @Override
+  public String toString() {
+    // Special handling for Queue:Queue. Ugly, but makes debugging much easier!
+    if (isConsListRecursive(this)) {
+      StringBuilder sb = new StringBuilder(QUEUE_NAME).append('(');
+      int emptyLen = sb.length();
+      visitAttrsForCons((idx, value) -> sb.append(value).append(", "));
+      if (sb.length() != emptyLen) {
+        sb.setLength(sb.length() - 2);
+      }
+      sb.append(')');
+      return sb.toString();
+    } else {
+      return super.toString();
+    }
+  }
+
+  @Override
   protected void visitAttrs(EffesRefVisitor visitor) {
-    if (!visitAttrsForCons(visitor)) {
+    if (!visitAttrsForCons(visitor::attribute)) {
       for (int i = 0; i < args.length; ++i) {
         visitor.attribute(type().argAt(i), getArgAt(i));
       }
     }
   }
 
-  private boolean visitAttrsForCons(EffesRefVisitor visitor) {
-    // special handling for ConsList:Cons, to make things less indented
+  private boolean visitAttrsForCons(BiConsumer<String,EffesRef<?>> handler) {
+    // special handling for Queue:Queue, to make things less indented
     // This is a bit ugly, for sure! The language should eventually provide this in a more language-oriented (not VM-special-cased) way.
     EffesType type = type();
     if (isConsType(type) && isConsListRecursive(getArgAt(1))) {
@@ -42,7 +61,7 @@ public class EffesObject extends EffesRef<EffesType> {
       EffesRef<?> head = this;
       while (isConsType(head.type())) {
         EffesObject headCons = (EffesObject) head;
-        visitor.attribute("[" + i + "]", headCons.getArgAt(0));
+        handler.accept("[" + i + "]", headCons.getArgAt(0));
         head = headCons.getArgAt(1);
         ++i;
       }
@@ -52,7 +71,7 @@ public class EffesObject extends EffesRef<EffesType> {
   }
 
   private static boolean isConsType(BaseEffesType type) {
-    return isEffesType(type, consModule, "Cons", "head", "tail");
+    return isEffesType(type, QUEUE_MODULE, QUEUE_NAME, "head", "tail");
   }
 
   private static boolean isEffesType(BaseEffesType typeToCheck, EffesModule.Id targetTypeModule, String targetTypeName, String... targetTypeArgs) {
@@ -76,7 +95,7 @@ public class EffesObject extends EffesRef<EffesType> {
       EffesObject cons = (EffesObject) elem;
       return isConsListRecursive(cons.getArgAt(1));
     } else {
-      return isEffesType(elem.type(), consModule, "Empty");
+      return isEffesType(elem.type(), QUEUE_MODULE, "Empty");
     }
   }
 }
