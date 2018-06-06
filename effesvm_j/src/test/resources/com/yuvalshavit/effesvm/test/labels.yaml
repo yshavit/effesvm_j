@@ -12,8 +12,8 @@ efct: |
   int  1
   call_Integer:add
   svar 1
-  pvar 1
   int  1
+  pvar 1
   call_Integer:gt
   gofi $backward
   pvar 1

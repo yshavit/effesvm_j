@@ -21,8 +21,8 @@ efct: |
   int  0                   # for idx = 0 ...
   svar 2
   pvar 2                   # idx < array.len
-  pvar 1
   call_Array:len
+  pvar 1
   call_Integer:lt
   gofi 39                  # jump to after the loops
   pvar 2                   # print "{idx} = {value}"

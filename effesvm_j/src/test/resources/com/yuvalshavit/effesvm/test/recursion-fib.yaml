@@ -16,8 +16,8 @@ efct: |
 
   FUNC : fib 1 1 0
   # arg0: n
-  pvar 0
   int  1
+  pvar 0
   call_Integer:le
   gofi 6            # go to fib(n-1) + fib(n-2)
   pvar 0

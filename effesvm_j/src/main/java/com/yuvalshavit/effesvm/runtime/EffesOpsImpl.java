@@ -570,8 +570,8 @@ public class EffesOpsImpl implements EffesOps<Object> {
 
   private Operation.Body intCmp(IntCmp intCmp) {
     return Operation.withIncementingPc(s -> {
-      int rhs = popInt(s);
       int lhs = popInt(s);
+      int rhs = popInt(s);
       s.push(EffesNativeObject.forBoolean(intCmp.cmp(lhs, rhs)));
     });
   }

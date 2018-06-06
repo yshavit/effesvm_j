@@ -20,8 +20,8 @@ efct: |
   rtrn
   pvar 1                  # for (local2 = local0 ; ...
   svar 3
-  pvar 3                  # if local2 < local1, jump to "for" body
-  pvar 2
+  pvar 2                  # if local2 < local1, jump to "for" body
+  pvar 3
   call_Integer:lt
   goif 21
   goto 31                 # otherwise, jump to exit 0 to exit "for" loop
