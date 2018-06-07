@@ -3,47 +3,47 @@ efct: |
   FUNC : main 1 1 0
   # local0: the array
   # local1: idx
-  int  5
-  arry
-  svar 1
-  pvar 1
-  int  2
-  str  "some value"
-  call_Array:store
-  str  "array of length "
-  call_String:sout
-  pvar 1
-  call_Array:len
-  call_native:toString
-  call_String:sout
-  str  "\n"
-  call_String:sout
-  int  0                   # for idx = 0 ...
-  svar 2
-  pvar 2                   # idx < array.len
-  call_Array:len
-  pvar 1
-  call_Integer:lt
-  gofi 39                  # jump to after the loops
-  pvar 2                   # print "{idx} = {value}"
-  call_native:toString
-  call_String:sout
-  str  " = "
-  call_String:sout
-  pvar 1
-  pvar 2
-  call_Array:get
-  call_native:toString
-  call_String:sout
-  str  "\n"
-  call_String:sout
-  pvar 2                   # ++idx
-  int  1
-  call_Integer:add
-  svar 2
-  goto 17                 # jump to top of loop
-  int  0
-  rtrn
+  int  5                      # [5]
+  arry                        # [arr]
+  svar 1                      # []                        $1 = arr
+  pvar 1                      # [arr]
+  int  2                      # [arr, 1]
+  str  "some value"           # [arr, 1, "some value"]
+  call_Array:store            # []
+  str  "array of length "     # ["arr of length"]
+  call_String:sout            # []
+  pvar 1                      # [arr]
+  call_Array:len              # [arr.len]
+  call_native:toString        # ["len"]
+  call_String:sout            # []
+  str  "\n"                   # [nl]
+  call_String:sout            # []
+  int  0                      # [0]                       for idx = 0 ...
+  svar 2                      # []        $2.i = 0
+  pvar 1                      # [$1.arr]                  idx < arr.len  line 17
+  call_Array:len              # [arr.len]
+  pvar 2                      # [arr.len, $2.i]
+  call_Integer:lt             # [isLt]
+  gofi 39                     # []                        jump to after the loops
+  pvar 2                      # [$2.i]                    print "{idx} = {value}"
+  call_native:toString        # ["${i}"]
+  call_String:sout            # []
+  str  " = "                  # [" = "]
+  call_String:sout            # []
+  pvar 1                      # [arr]
+  pvar 2                      # [arr, i]
+  call_Array:get              # [arr(1)]
+  call_native:toString        # ["${arr(1)}"]
+  call_String:sout            # []
+  str  "\n"                   # [nl]
+  call_String:sout            # []
+  pvar 2                      # [$2.i]                    ++idx
+  int  1                      # [1]
+  call_Integer:add            # [$2.1+1]
+  svar 2                      # []
+  goto 17                     # []                        jump to top of loop
+  int  0                      # [0] line 39
+  rtrn                        # [0]
 runs:
 - exit: 0
   out: |

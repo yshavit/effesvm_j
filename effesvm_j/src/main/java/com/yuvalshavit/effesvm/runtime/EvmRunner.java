@@ -123,7 +123,7 @@ public class EvmRunner {
     if (stackSize == null) {
       stackSize = STACK_SIZE;
     }
-    EffesState state = new EffesState(ProgramCounter.end(), stackSize, mainFunction.nVars() + 1); // +1 for argv
+    EffesState state = new EffesState(ProgramCounter.start(), stackSize, mainFunction.nVars() + 1); // +1 for argv
 
     state.pc().restore(ProgramCounter.firstLineOfFunction(mainFunction));
     // put argv in

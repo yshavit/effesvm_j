@@ -26,7 +26,7 @@ public class EffesState {
   }
 
   EffesState(int nLocalVars, EffesRef<?>... args) {
-    this(ProgramCounter.end(), 500, nLocalVars, args);
+    this(ProgramCounter.start(), 500, nLocalVars, args);
   }
 
   public void push(EffesRef<?> o) {
@@ -192,7 +192,7 @@ public class EffesState {
         fpIdx = 0;
       }
     }
-    if (frames.get(frames.size() - 1).equals(ProgramCounter.end())) {
+    if (frames.get(frames.size() - 1).equals(ProgramCounter.start())) {
       frames.remove(frames.size() - 1);
     }
     return Collections.unmodifiableList(frames);

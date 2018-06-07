@@ -13,7 +13,9 @@ import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.ops.Operation;
 
 public class ProgramCounter {
-  private static final State end = new State(createBootstrap(), 0);
+  private static final EffesFunction bootstrap = createBootstrap();
+  private static final State start = new State(bootstrap, -1);
+  private static final State end = new State(bootstrap, 0);
 
   private static EffesFunction createBootstrap() {
     EffesModule.Id bootstrapModule = new EffesModule.Id("$bootstrap");
@@ -35,10 +37,14 @@ public class ProgramCounter {
     return function;
   }
 
-  private final State state = new State(end);
+  private final State state = new State(start);
 
   public ProgramCounter(State state) {
     this.state.restoreFrom(state);
+  }
+
+  public static State start() {
+    return start;
   }
 
   public static State end() {
@@ -136,7 +142,9 @@ public class ProgramCounter {
 
     @Override
     public String toString() {
-      if (this == end) {
+      if (this == start) {
+        return "start";
+      } else if (this == end) {
         return "<end>";
       } else if (function == null) {
         return "<no function>";

@@ -32,9 +32,9 @@ efct: |
   call_String:sout
   int  0              # for idx = 0 ; ...
   svar 2
-  pvar 2              # idx <= groupCount
-  call_Match:groupCount
   pvar 1
+  call_Match:groupCount
+  pvar 2              # idx <= groupCount
   call_Integer:le
   gofi 51             # jump to after the loop
   pvar 2              # print "${idx}: ${group capture}"
