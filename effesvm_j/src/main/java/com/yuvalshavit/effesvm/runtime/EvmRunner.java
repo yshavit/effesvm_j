@@ -141,7 +141,6 @@ public class EvmRunner {
         try {
           debugServer.beforeAction(state);
           op = state.pc().getOp();
-          state.toStringList();
           next = op.apply(state);
           ++steps;
         } catch (Exception e) {
