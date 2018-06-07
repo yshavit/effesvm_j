@@ -98,6 +98,23 @@ public class EvmRunner {
     Integer stackSize,
     Function<DebugServerContext,DebugServer> debugServerFactory)
   {
+    Map<EffesModule.Id, EffesModule> linkedModules = parseAndLink(io, inputFiles);
+
+    EffesModule linkedModule = linkedModules.get(main);
+    EffesFunction mainFunction = linkedModule.getFunction(new EffesFunctionId(EfctScope.ofStatic(main), "main"));
+    if (mainFunction.nArgs() != 1) {
+      throw new EffesRuntimeException("::main must take 1 argument");
+    }
+    if (!mainFunction.hasRv()) {
+      throw new EffesRuntimeException("::main must return a value");
+    }
+    EffesState state = createStack(argv, stackSize, mainFunction);
+    runMain(debugServerFactory, linkedModules, state);
+    EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
+    return exitCode.value;
+  }
+
+  private static Map<EffesModule.Id, EffesModule> parseAndLink(EffesIo io, Map<EffesModule.Id, List<String>> inputFiles) {
     // Parse and link the inputs
     Map<EffesModule.Id,OutlinedModule> outline = new HashMap<>(inputFiles.size());
     for (Map.Entry<EffesModule.Id,List<String>> inputFileEntry : inputFiles.entrySet()) {
@@ -107,18 +124,10 @@ public class EvmRunner {
       outline.put(moduleId, outlinedModule);
     }
     Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
-    Map<EffesModule.Id, EffesModule> linkedModules = EffesFunctionParser.parse(outline, ops);
+    return EffesFunctionParser.parse(outline, ops);
+  }
 
-    EffesModule linkedModule = linkedModules.get(main);
-
-    EffesFunction mainFunction = linkedModule.getFunction(new EffesFunctionId(EfctScope.ofStatic(main), "main"));
-    if (mainFunction.nArgs() != 1) {
-      throw new EffesRuntimeException("::main must take 1 argument");
-    }
-    if (!mainFunction.hasRv()) {
-      throw new EffesRuntimeException("::main must return a value");
-    }
-
+  private static EffesState createStack(String[] argv, Integer stackSize, EffesFunction mainFunction) {
     // Create the stack
     if (stackSize == null) {
       stackSize = STACK_SIZE;
@@ -131,7 +140,10 @@ public class EvmRunner {
       new EffesNativeObject.EffesArray(argv.length),
       effesArgv -> IntStream.range(0, argv.length).forEach(i -> effesArgv.store(i, EffesNativeObject.forString(argv[i])))));
     state.popToVar(0);
-    // Start the main loop
+    return state;
+  }
+
+  private static void runMain(Function<DebugServerContext, DebugServer> debugServerFactory, Map<EffesModule.Id, EffesModule> linkedModules, EffesState state) {
     DebugServerContext debugServerContext = new DebugServerContext(Collections.unmodifiableMap(linkedModules));
     int steps = 1;
     try (DebugServer debugServer = debugServerFactory.apply(debugServerContext)) {
@@ -173,8 +185,6 @@ public class EvmRunner {
       System.err.print("Due to: ");
       e.printStackTrace();
     }
-    EffesNativeObject.EffesInteger exitCode = (EffesNativeObject.EffesInteger) state.getFinalPop();
-    return exitCode.value;
   }
 
   private static DebugServer getDebugServer(DebugServerContext context) {
