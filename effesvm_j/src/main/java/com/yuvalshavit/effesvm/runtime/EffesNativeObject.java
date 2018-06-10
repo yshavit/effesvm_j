@@ -68,10 +68,11 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
    * @return an EffesMatch, or False
    */
   public static EffesNativeObject tryMatch(String lookIn, String pattern) {
-    Pattern patternObj = Pattern.compile(pattern);
+    Pattern patternObj = Pattern.compile("^" + pattern);
     Matcher matcher = patternObj.matcher(lookIn);
-    if (matcher.matches()) {
-      return new EffesMatch(matcher);
+    if (matcher.find() && matcher.start() == 0) {
+      String tail = lookIn.substring(matcher.end());
+      return new EffesMatch(matcher, tail);
     } else {
       return EffesBoolean.FALSE;
     }
@@ -234,10 +235,16 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
   public static class EffesMatch extends EffesNativeObject {
     private final Matcher matcher;
+    private final EffesString tail;
 
-    private EffesMatch(Matcher matcher) {
+    private EffesMatch(Matcher matcher, String tail) {
       super(typeFor(EffesNativeType.MATCH));
       this.matcher = matcher;
+      this.tail = EffesString.forString(tail);
+    }
+
+    public EffesString tail() {
+      return tail;
     }
 
     public EffesNativeObject group(int idx) {

@@ -343,6 +343,10 @@ Pops a Matcher from the top of the stack. Pushes the captured group _name_ to th
 
 Pops a Matcher from the top of the stack. Pushes the number of captured groups it has, including named captured groups.
 
+### call_Match:tail @match -> String
+
+Pops a Matcher from the top of the stack. Pushes its tail.
+
 String operations
 ----------------------------------------------------------------------------------------
 
@@ -358,6 +362,7 @@ Pops an element from the stack, which must be a String. Pushes an Integer repres
 
 Pops two elements from the stack, a pattern and a string to search for. Pushes a False if the pattern does not match, or a Match object if it does.
 
+A pattern matches starting from the beginning of the string, but it does not have to go to the end of the string. Any portion of the string that isn't matched goes into the matcher's tail.
 
 ### call_String:sout @string
 

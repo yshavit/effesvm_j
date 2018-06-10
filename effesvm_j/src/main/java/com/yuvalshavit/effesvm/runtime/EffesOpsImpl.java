@@ -387,6 +387,14 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   @Override
+  public Operation.Body matchTail() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesMatch match = (EffesNativeObject.EffesMatch) s.pop();
+      s.push(match.tail());
+    });
+  }
+
+  @Override
   public Operation.Body strPush(String value) {
     EffesNativeObject eStr = EffesNativeObject.forString(value);
     return Operation.withIncementingPc(s -> s.push(eStr));

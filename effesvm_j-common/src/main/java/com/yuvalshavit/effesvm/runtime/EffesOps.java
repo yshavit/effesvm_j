@@ -136,6 +136,9 @@ public interface EffesOps<T> {
   @OperationFactory("call_Match:groupCount")
   T matchGroupCount();
 
+  @OperationFactory("call_Match:tail")
+  T matchTail();
+
   @OperationFactory("str")
   T strPush(String value);
 
