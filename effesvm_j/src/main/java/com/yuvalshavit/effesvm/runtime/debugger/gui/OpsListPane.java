@@ -105,7 +105,9 @@ class OpsListPane {
       .forEach(activeOpsModel::addElement);
     if (functionId.equals(currentFunctionId)) {
       activeOpsList.setSelectedIndex(currentOpIdx);
-      Rectangle cellBounds = activeOpsList.getCellBounds(currentOpIdx - SCROLLTO_CONTEXT_BUFFER, currentOpIdx + SCROLLTO_CONTEXT_BUFFER);
+      Rectangle cellBounds = activeOpsList.getCellBounds(
+        Math.max(currentOpIdx - SCROLLTO_CONTEXT_BUFFER, 0),
+        Math.min(currentOpIdx + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
       if (cellBounds != null) {
         activeOpsList.scrollRectToVisible(cellBounds);
       }
