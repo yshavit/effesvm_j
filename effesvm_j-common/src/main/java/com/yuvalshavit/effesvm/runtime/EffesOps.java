@@ -178,6 +178,9 @@ public interface EffesOps<T> {
   @OperationFactory("call_StringBuilder:add")
   T stringBuilderAdd();
 
+  @OperationFactory("call_StringBuilder:get")
+  T stringBuilderGet();
+
   @OperationFactory("labl")
   T label(String name);
 

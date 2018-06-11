@@ -501,6 +501,14 @@ public class EffesOpsImpl implements EffesOps<Object> {
   }
 
   @Override
+  public Operation.Body stringBuilderGet() {
+    return Operation.withIncementingPc(s -> {
+      EffesNativeObject.EffesStringBuilder sb = (EffesNativeObject.EffesStringBuilder) s.pop();
+      s.push(EffesNativeObject.EffesString.forString(sb.getString()));
+    });
+  }
+
+  @Override
   public LabelUnlinkedOperation.Body label(String name) {
     return new LabelUnlinkedOperation.Body(name);
   }

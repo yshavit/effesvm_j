@@ -177,6 +177,10 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
     protected Object equalityState() {
       return sb.toString();
     }
+
+    public String getString() {
+      return sb.toString();
+    }
   }
 
   public static abstract class EffesDelegatingObj<T> extends EffesNativeObject {
