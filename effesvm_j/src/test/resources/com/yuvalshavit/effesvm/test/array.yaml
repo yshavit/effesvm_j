@@ -50,6 +50,6 @@ runs:
     array of length 5
     0 = False
     1 = False
-    2 = some value
+    2 = "some value"
     3 = False
     4 = False

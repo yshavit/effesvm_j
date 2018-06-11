@@ -45,39 +45,7 @@ public class EffesRefFormats {
     @Override
     public void attributePrimitive(String name, Object value) {
       seeAttribute(name);
-      value.toString().chars().forEach(c -> {
-        switch (c) {
-          case '\t':
-            sb.append("\\t");
-            break;
-          case '\b':
-            sb.append("\\b");
-            break;
-          case '\n':
-            sb.append("\\n");
-            break;
-          case '\r':
-            sb.append("\\r");
-            break;
-          case '\f':
-            sb.append("\\f");
-            break;
-          case '"':
-            sb.append("\\\"");
-            break;
-          case '\\':
-            sb.append("\\\\");
-            break;
-          default:
-            if (Character.isISOControl(c)) {
-              sb.append("\\u{");
-              sb.append(Integer.toHexString(c));
-              sb.append('}');
-            } else {
-              sb.appendCodePoint(c);
-            }
-        }
-      });
+      sb.append(value);
     }
 
     private void seeAttribute(String name) {

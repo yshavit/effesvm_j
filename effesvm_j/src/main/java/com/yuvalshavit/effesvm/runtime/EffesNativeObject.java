@@ -151,12 +151,53 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
     @Override
     protected void visitAttrs(EffesRefVisitor visitor) {
-      visitor.attributePrimitive(null, value);
+      visitor.attributePrimitive(null, toString());
     }
 
     @Override
     protected Object equalityState() {
       return value;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(value.length() + 2);
+      sb.append('"');
+      value.chars().forEach(c -> {
+        switch (c) {
+          case '\t':
+            sb.append("\\t");
+            break;
+          case '\b':
+            sb.append("\\b");
+            break;
+          case '\n':
+            sb.append("\\n");
+            break;
+          case '\r':
+            sb.append("\\r");
+            break;
+          case '\f':
+            sb.append("\\f");
+            break;
+          case '"':
+            sb.append("\\\"");
+            break;
+          case '\\':
+            sb.append("\\\\");
+            break;
+          default:
+            if (Character.isISOControl(c)) {
+              sb.append("\\u{");
+              sb.append(Integer.toHexString(c));
+              sb.append('}');
+            } else {
+              sb.appendCodePoint(c);
+            }
+        }
+      });
+      sb.append('"');
+      return sb.toString();
     }
   }
 

@@ -26,14 +26,14 @@ public class OperationFactoriesTest {
   public void zeroArgs() {
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "zero-args");
     assertExceptionThrown(() -> builder.build(null, 1, "arg1"));
-    checkOp("zero-args result", builder, null);
+    checkOp("\"zero-args result\"", builder, null);
   }
 
   @Test
   public void twoArgs() {
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "two-args");
     assertExceptionThrown(() -> builder.build(null, 1));
-    checkOp("two-args result: hello, world", builder, null , "hello", "world");
+    checkOp("\"two-args result: hello, world\"", builder, null , "hello", "world");
     assertExceptionThrown(() -> builder.build(null, 1, "one", "two", "three"));
   }
 
@@ -72,7 +72,7 @@ public class OperationFactoriesTest {
     };
 
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
-    checkOp("the-link-type", builder, linkContext);
+    checkOp("\"the-link-type\"", builder, linkContext);
   }
 
   @Test(enabled = false, description = "https://trello.com/c/owvHdZCx")

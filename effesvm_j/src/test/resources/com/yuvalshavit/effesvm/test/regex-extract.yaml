@@ -80,8 +80,8 @@ runs:
     .*o (.*)
   out: |
     Found a match:
-    0: hello world
-    1: world
+    0: "hello world"
+    1: "world"
   exit: 0
 - description: empty numbered group
   in: |
@@ -89,9 +89,9 @@ runs:
     .*o (goodbye)?(.*)
   out: |
     Found a match:
-    0: hello world
+    0: "hello world"
     1: False
-    2: world
+    2: "world"
   exit: 0
 - description: named groups
   in: |
@@ -102,12 +102,12 @@ runs:
     tail
   out: |
     Found a match:
-    0: hello world
-    1: w
-    2: orld
-    head: w
+    0: "hello world"
+    1: "w"
+    2: "orld"
+    head: "w"
     or: False
-    tail: orld
+    tail: "orld"
   exit: 0
 - description: no match
   in: |
