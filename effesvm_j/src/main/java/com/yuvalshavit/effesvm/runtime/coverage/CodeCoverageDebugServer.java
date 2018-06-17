@@ -24,10 +24,10 @@ import com.yuvalshavit.effesvm.util.Average;
 
 public class CodeCoverageDebugServer implements DebugServer {
 
-  public static final String HASH_ALGORITHM = "SHA-1";
-  public static final String REPORT_SUFFIX = ".txt";
-  public static final String CUMULATIVE_DATA_SUFFIX = ".data";
-  public static final String OVERALL_LABEL = "<total>";
+  private static final String HASH_ALGORITHM = "SHA-1";
+  private static final String REPORT_SUFFIX = ".txt";
+  private static final String CUMULATIVE_DATA_SUFFIX = ".data";
+  private static final String OVERALL_LABEL = "<total>";
 
   private final String outFileBase;
   private final PreviousFunctionDatas previous;
@@ -35,7 +35,7 @@ public class CodeCoverageDebugServer implements DebugServer {
 
   public CodeCoverageDebugServer(DebugServerContext context, String outFileBase) {
     this.outFileBase = outFileBase;
-    previous = PreviousFunctionDatas.read(outFileBase + CUMULATIVE_DATA_SUFFIX);
+    previous = PreviousFunctionDatas.read(cumulativeFileNme(outFileBase));
     MessageDigest messageDigest;
     try {
       messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
@@ -46,6 +46,10 @@ public class CodeCoverageDebugServer implements DebugServer {
       EffesFunction::id,
       f -> createFunctionData(f, previous, messageDigest)
     ));
+  }
+
+  public static String cumulativeFileNme(String outFileBase) {
+    return outFileBase + CUMULATIVE_DATA_SUFFIX;
   }
 
   private static FunctionData createFunctionData(EffesFunction f, PreviousFunctionDatas previous, MessageDigest digest) {
