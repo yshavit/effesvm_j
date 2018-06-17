@@ -11,6 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import com.yuvalshavit.effesvm.util.StringEscaper;
+
 public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.NativeType> {
 
   private static final EnumMap<EffesNativeType,NativeType> nativeTypes;
@@ -161,43 +163,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
 
     @Override
     public String toString() {
-      StringBuilder sb = new StringBuilder(value.length() + 2);
-      sb.append('"');
-      value.chars().forEach(c -> {
-        switch (c) {
-          case '\t':
-            sb.append("\\t");
-            break;
-          case '\b':
-            sb.append("\\b");
-            break;
-          case '\n':
-            sb.append("\\n");
-            break;
-          case '\r':
-            sb.append("\\r");
-            break;
-          case '\f':
-            sb.append("\\f");
-            break;
-          case '"':
-            sb.append("\\\"");
-            break;
-          case '\\':
-            sb.append("\\\\");
-            break;
-          default:
-            if (Character.isISOControl(c)) {
-              sb.append("\\u{");
-              sb.append(Integer.toHexString(c));
-              sb.append('}');
-            } else {
-              sb.appendCodePoint(c);
-            }
-        }
-      });
-      sb.append('"');
-      return sb.toString();
+      return StringEscaper.escape(value);
     }
   }
 

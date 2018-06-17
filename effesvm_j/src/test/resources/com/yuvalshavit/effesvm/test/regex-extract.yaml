@@ -81,7 +81,7 @@ runs:
   out: |
     Found a match:
     0: "hello world"
-    1: "world"
+    1: world
   exit: 0
 - description: empty numbered group
   in: |
@@ -91,7 +91,7 @@ runs:
     Found a match:
     0: "hello world"
     1: False
-    2: "world"
+    2: world
   exit: 0
 - description: named groups
   in: |
@@ -103,11 +103,11 @@ runs:
   out: |
     Found a match:
     0: "hello world"
-    1: "w"
-    2: "orld"
-    head: "w"
+    1: w
+    2: orld
+    head: w
     or: False
-    tail: "orld"
+    tail: orld
   exit: 0
 - description: no match
   in: |

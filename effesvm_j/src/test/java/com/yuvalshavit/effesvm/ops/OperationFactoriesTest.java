@@ -72,7 +72,7 @@ public class OperationFactoriesTest {
     };
 
     OperationFactories.ReflectiveOperationBuilder builder = getOpBuilder(new Basic(), "with-linking");
-    checkOp("\"the-link-type\"", builder, linkContext);
+    checkOp("the-link-type", builder, linkContext);
   }
 
   @Test(enabled = false, description = "https://trello.com/c/owvHdZCx")

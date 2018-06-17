@@ -9,6 +9,7 @@ import com.yuvalshavit.effesvm.runtime.EffesType;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 
 import lombok.Data;
+import lombok.NonNull;
 
 public class EffesModule {
   private final Map<EffesFunctionId,EffesFunction> functions;
@@ -42,12 +43,18 @@ public class EffesModule {
   }
 
   @Data
-  public static class Id implements Serializable {
+  public static class Id implements Serializable, Comparable<Id> {
+    @NonNull
     private final String name;
 
     @Override
     public String toString() {
       return name;
+    }
+
+    @Override
+    public int compareTo(Id o) {
+      return name.compareTo(o.name);
     }
   }
 }

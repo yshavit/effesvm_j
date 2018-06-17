@@ -7,6 +7,7 @@ import java.util.StringJoiner;
 
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
+import com.yuvalshavit.effesvm.util.StringEscaper;
 
 public class OpInfo {
   private final EffesModule.Id module;
@@ -40,6 +41,9 @@ public class OpInfo {
   @Override
   public String toString() {
     String lineNumAndOpcode = String.format("#%d %s ", lineNumber, opcode);
-    return LambdaHelpers.consumeAndReturn(new StringJoiner(" ", lineNumAndOpcode, ""), j -> arguments.forEach(j::add)).toString();
+    return LambdaHelpers.consumeAndReturn(
+      new StringJoiner(" ", lineNumAndOpcode, ""),
+      j -> arguments.forEach(a -> j.add(StringEscaper.escape(a)))
+    ).toString();
   }
 }

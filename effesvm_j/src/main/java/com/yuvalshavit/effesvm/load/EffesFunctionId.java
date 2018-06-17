@@ -5,7 +5,7 @@ import java.io.Serializable;
 import lombok.Data;
 
 @Data
-public class EffesFunctionId implements Serializable {
+public class EffesFunctionId implements Serializable, Comparable<EffesFunctionId> {
   private final EfctScope scope;
   private final String functionName;
 
@@ -20,6 +20,15 @@ public class EffesFunctionId implements Serializable {
   public EffesFunctionId(EfctScope scope, String functionName) {
     this.scope = scope;
     this.functionName = functionName;
+  }
+
+  @Override
+  public int compareTo(EffesFunctionId o) {
+    int cmp = scope.compareTo(o.scope);
+    if (cmp == 0) {
+      cmp = functionName.compareTo(o.functionName);
+    }
+    return cmp;
   }
 
   @Override

@@ -1,15 +1,18 @@
 package com.yuvalshavit.effesvm.load;
 
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NonNull;
 
 @EqualsAndHashCode
-public class EfctScope implements Serializable {
+public class EfctScope implements Serializable, Comparable<EfctScope> {
+  @NonNull
   @Getter
   private final EffesModule.Id moduleId;
   private final String optionalTypeName;
@@ -33,6 +36,15 @@ public class EfctScope implements Serializable {
       : new EffesModule.Id(descSplit[0]);
     String typeDesc = descSplit[1].isEmpty() ? null : descSplit[1];
     return new EfctScope(module, typeDesc);
+  }
+
+  @Override
+  public int compareTo(EfctScope o) {
+    int cmp = moduleId.compareTo(o.moduleId);
+    if (cmp == 0) {
+      cmp = Comparator.nullsFirst(String::compareTo).compare(optionalTypeName, o.optionalTypeName);
+    }
+    return cmp;
   }
 
   @Override

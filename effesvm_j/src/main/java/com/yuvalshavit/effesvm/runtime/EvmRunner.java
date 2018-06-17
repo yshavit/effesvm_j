@@ -188,10 +188,18 @@ public class EvmRunner {
   }
 
   private static DebugServer getDebugServer(DebugServerContext context) {
-    String debug = System.getProperty("debug");
     MultiDebugServer.Builder builder = new MultiDebugServer.Builder();
-    builder.add(getRemoteDebugger(context, debug));
+    builder.add(getRemoteDebugger(context, System.getProperty("debug")));
+    builder.add(getCodeCoverage(context, System.getProperty("coverage")));
     return builder.build();
+  }
+
+  private static DebugServer getCodeCoverage(DebugServerContext context, String outFile) {
+    if (outFile == null || outFile.isEmpty()) {
+      return null;
+    } else {
+      return new CodeCoverageDebugServer(context, outFile);
+    }
   }
 
   private static DebugServer getRemoteDebugger(DebugServerContext context, String debug) {
