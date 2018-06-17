@@ -6,6 +6,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -71,7 +72,7 @@ public class EvmRunner {
     String classpath = System.getenv().getOrDefault("EFFES_CLASSPATH", ".");
     Path classpathPath = FileSystems.getDefault().getPath(classpath);
 
-    Map<EffesModule.Id,List<String>> inputFiles = new HashMap<>(args.length);
+    Map<EffesModule.Id, List<String>> inputFiles = new HashMap<>(args.length);
     try (DirectoryStream<Path> efctFile = Files.newDirectoryStream(classpathPath, "*.efct")) {
       for (Path path : efctFile) {
         List<String> lines = Files.lines(path).collect(Collectors.toList());
@@ -87,17 +88,17 @@ public class EvmRunner {
     String[] argsToEffes = Arrays.copyOfRange(args, 1, args.length);
 
     EffesIo io = EffesIo.stdio();
-    int exitCode = run(inputFiles, main, argsToEffes, io, null, EvmRunner::getDebugServer);
+    int exitCode = run(inputFiles, main, argsToEffes, io, null, EvmRunner::createDebugServers);
     System.exit(exitCode);
   }
 
   public static int run(
-    Map<EffesModule.Id,List<String>> inputFiles,
+    Map<EffesModule.Id, List<String>> inputFiles,
     EffesModule.Id main,
     String[] argv,
     EffesIo io,
     Integer stackSize,
-    Function<DebugServerContext,DebugServer> debugServerFactory)
+    Function<DebugServerContext, Iterable<DebugServer>> debugServerFactory)
   {
     Map<EffesModule.Id, EffesModule> linkedModules = parseAndLink(io, inputFiles);
 
@@ -117,14 +118,14 @@ public class EvmRunner {
 
   private static Map<EffesModule.Id, EffesModule> parseAndLink(EffesIo io, Map<EffesModule.Id, List<String>> inputFiles) {
     // Parse and link the inputs
-    Map<EffesModule.Id,OutlinedModule> outline = new HashMap<>(inputFiles.size());
-    for (Map.Entry<EffesModule.Id,List<String>> inputFileEntry : inputFiles.entrySet()) {
+    Map<EffesModule.Id, OutlinedModule> outline = new HashMap<>(inputFiles.size());
+    for (Map.Entry<EffesModule.Id, List<String>> inputFileEntry : inputFiles.entrySet()) {
       List<String> inputFileLines = inputFileEntry.getValue();
       EffesModule.Id moduleId = inputFileEntry.getKey();
       OutlinedModule outlinedModule = Parser.parse(moduleId, inputFileLines);
       outline.put(moduleId, outlinedModule);
     }
-    Function<String,OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
+    Function<String, OperationFactories.ReflectiveOperationBuilder> ops = OperationFactories.fromInstance(new EffesOpsImpl(io));
     return EffesFunctionParser.parse(outline, ops);
   }
 
@@ -144,10 +145,14 @@ public class EvmRunner {
     return state;
   }
 
-  private static void runMain(Function<DebugServerContext, DebugServer> debugServerFactory, Map<EffesModule.Id, EffesModule> linkedModules, EffesState state) {
+  private static void runMain(
+    Function<DebugServerContext, Iterable<DebugServer>> debugServerFactory,
+    Map<EffesModule.Id, EffesModule> linkedModules,
+    EffesState state)
+  {
     DebugServerContext debugServerContext = new DebugServerContext(Collections.unmodifiableMap(linkedModules));
     int steps = 1;
-    try (DebugServer debugServer = debugServerFactory.apply(debugServerContext)) {
+    try (DebugServer debugServer = createDebugServer(debugServerContext, debugServerFactory)) {
       while (!state.pc().isAt(ProgramCounter.end())) {
         Operation op = null;
         PcMove next;
@@ -188,11 +193,18 @@ public class EvmRunner {
     }
   }
 
-  private static DebugServer getDebugServer(DebugServerContext context) {
+  private static DebugServer createDebugServer(DebugServerContext context, Function<DebugServerContext, Iterable<DebugServer>> debugServerFactory) {
     MultiDebugServer.Builder builder = new MultiDebugServer.Builder();
-    builder.add(getRemoteDebugger(context, System.getProperty("debug")));
-    builder.add(getCodeCoverage(context, System.getProperty("coverage")));
+    debugServerFactory.apply(context).forEach(builder::add);
     return builder.build();
+  }
+
+
+  private static Iterable<DebugServer> createDebugServers(DebugServerContext context) {
+    List<DebugServer> result = new ArrayList<>();
+    result.add(getRemoteDebugger(context));
+    result.add(getCodeCoverage(context, System.getProperty("coverage")));
+    return result;
   }
 
   private static DebugServer getCodeCoverage(DebugServerContext context, String outFile) {
@@ -201,6 +213,10 @@ public class EvmRunner {
     } else {
       return new CodeCoverageDebugServer(context, outFile);
     }
+  }
+
+  public static DebugServer getRemoteDebugger(DebugServerContext context) {
+    return getRemoteDebugger(context, System.getProperty("debug"));
   }
 
   private static DebugServer getRemoteDebugger(DebugServerContext context, String debug) {
