@@ -189,13 +189,19 @@ public class EvmRunner {
 
   private static DebugServer getDebugServer(DebugServerContext context) {
     String debug = System.getProperty("debug");
+    MultiDebugServer.Builder builder = new MultiDebugServer.Builder();
+    builder.add(getRemoteDebugger(context, debug));
+    return builder.build();
+  }
+
+  private static DebugServer getRemoteDebugger(DebugServerContext context, String debug) {
     if (debug == null || debug.isEmpty()) {
-      return DebugServer.noop;
+      return null;
     } else {
       Matcher debugOptions = Pattern.compile("(\\d+)(:suspend)?").matcher(debug);
       if (!debugOptions.matches()) {
         System.err.println("invalid debug options; not starting debugger");
-        return DebugServer.noop;
+        return null;
       }
       final int port;
       if (debugOptions.group(1).isEmpty()) {
@@ -205,7 +211,7 @@ public class EvmRunner {
           port = Integer.parseInt(debugOptions.group(1));
         } catch (NumberFormatException e) {
           System.err.println("invalid debug options; not starting debugger");
-          return DebugServer.noop;
+          return null;
         }
       }
       SockDebugServer debugServer = new SockDebugServer(context, port, debugOptions.group(2) != null);
@@ -214,7 +220,7 @@ public class EvmRunner {
         return debugServer;
       } catch (Exception e) {
         e.printStackTrace();
-        return DebugServer.noop;
+        return null;
       }
     }
   }
