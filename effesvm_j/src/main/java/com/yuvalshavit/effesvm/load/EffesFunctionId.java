@@ -1,6 +1,8 @@
 package com.yuvalshavit.effesvm.load;
 
 import java.io.Serializable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import lombok.Data;
 
@@ -41,5 +43,19 @@ public class EffesFunctionId implements Serializable, Comparable<EffesFunctionId
       innerText = "";
     }
     return String.format("%s[%s%s]", scope, functionName, innerText);
+  }
+
+  public static EffesFunctionId tryParse(String text) {
+    String[] scopeSplit = text.split(Pattern.quote("["), 2);
+    if (scopeSplit.length != 2) {
+      return null;
+    }
+    EfctScope scope = EfctScope.parse(scopeSplit[0], null);
+    Matcher functionNameMatcher = Pattern.compile("\\w+").matcher(scopeSplit[1]);
+    if (!functionNameMatcher.find()) {
+      return null;
+    }
+    String functionName = functionNameMatcher.group();
+    return new EffesFunctionId(scope, functionName);
   }
 }
