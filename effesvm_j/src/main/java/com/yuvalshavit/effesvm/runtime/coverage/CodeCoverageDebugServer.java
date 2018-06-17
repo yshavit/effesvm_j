@@ -1,4 +1,4 @@
-package com.yuvalshavit.effesvm.runtime;
+package com.yuvalshavit.effesvm.runtime.coverage;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -20,6 +20,10 @@ import java.util.stream.Stream;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.runtime.DebugServer;
+import com.yuvalshavit.effesvm.runtime.DebugServerContext;
+import com.yuvalshavit.effesvm.runtime.EffesState;
+import com.yuvalshavit.effesvm.runtime.ProgramCounter;
 import com.yuvalshavit.effesvm.util.Average;
 
 import lombok.AllArgsConstructor;
