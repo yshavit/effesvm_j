@@ -107,7 +107,6 @@ public class CodeCoverageDebugServer implements DebugServer {
     try (FileWriter fw = new FileWriter(outFile);
          PrintWriter printer = new PrintWriter(fw))
     {
-      System.err.println("Writing code coverage report to " + outFile.getAbsoluteFile());
       printer.format(moduleAvgFormat, OVERALL_LABEL, overall.get() * 100, overall.total(), overall.count());
       modulesAverages.forEach((moduleId, avg) -> printer.format(moduleAvgFormat, moduleId, avg.get() * 100.0, avg.total(), avg.count()));
       printer.println();
