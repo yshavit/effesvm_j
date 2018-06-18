@@ -70,7 +70,7 @@ public abstract class EffesNativeObject extends EffesRef<EffesNativeObject.Nativ
    * @return an EffesMatch, or False
    */
   public static EffesNativeObject tryMatch(String lookIn, String pattern) {
-    Pattern patternObj = Pattern.compile("^" + pattern);
+    Pattern patternObj = Pattern.compile("^(?:" + pattern + ")");
     Matcher matcher = patternObj.matcher(lookIn);
     if (matcher.find() && matcher.start() == 0) {
       String tail = lookIn.substring(matcher.end());
