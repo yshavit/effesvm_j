@@ -6,5 +6,4 @@ import lombok.AllArgsConstructor;
 class FunctionDataSummary {
   public final String hash;
   public final boolean[] seenOps;
-
 }

@@ -84,8 +84,39 @@ public class CodeCoverageDebugServer implements DebugServer {
     previous.write();
   }
 
-
   private void writeReport() throws IOException {
+    Report report = generateReport();
+
+    try (FileWriter fw = new FileWriter(new File(outFileBase + REPORT_SUFFIX));
+         PrintWriter printer = new PrintWriter(fw))
+    {
+      printReport(report, printer);
+    }
+  }
+
+  private void printReport(Report report, PrintWriter printer) {
+    int maxModuleIdLen = report.modulesAverages.keySet().stream().mapToInt(m -> m.toString().length()).max().orElse(0);
+    maxModuleIdLen = Math.max(maxModuleIdLen, OVERALL_LABEL.length());
+    String moduleAvgFormat = "%-" + maxModuleIdLen + "s : %.1f%% (%d / %d)%n";
+
+    printer.format(moduleAvgFormat, OVERALL_LABEL, report.overall.get() * 100, report.overall.total(), report.overall.count());
+    report.modulesAverages.forEach((moduleId, avg) -> printer.format(moduleAvgFormat, moduleId, avg.get() * 100.0, avg.total(), avg.count()));
+    printer.println();
+    report.functionsAverages.forEach((functionId, avg) -> {
+      String functionHeader = String.format("%s: %.1f%%:", functionId, avg.get() * 100.0);
+      printer.println(functionHeader);
+      //noinspection ReplaceAllDot
+      printer.println(functionHeader.replaceAll(".", "-"));
+      FunctionData functionData = functions.get(functionId);
+      for (int i = 0; i < functionData.function.nOps(); ++i) {
+        char seenMarker = functionData.seenOps[i] ? '+' : ' ';
+        printer.append(seenMarker).append(' ').println(functionData.function.opAt(i).info().toString());
+      }
+      printer.println();
+    });
+  }
+
+  private Report generateReport() {
     Average overall = new Average();
     NavigableMap<EffesFunctionId,Average> functionsAverages = new TreeMap<>();
     NavigableMap<EffesModule.Id,Average> modulesAverages = new TreeMap<>();
@@ -98,31 +129,7 @@ public class CodeCoverageDebugServer implements DebugServer {
       modulesAverages.computeIfAbsent(moduleId, x -> new Average()).add(nSeen, nOps);
       overall.add(nSeen, nOps);
     });
-
-    int maxModuleIdLen = modulesAverages.keySet().stream().mapToInt(m -> m.toString().length()).max().orElse(0);
-    maxModuleIdLen = Math.max(maxModuleIdLen, OVERALL_LABEL.length());
-    String moduleAvgFormat = "%-" + maxModuleIdLen + "s : %.1f%% (%d / %d)%n";
-
-    File outFile = new File(outFileBase + REPORT_SUFFIX);
-    try (FileWriter fw = new FileWriter(outFile);
-         PrintWriter printer = new PrintWriter(fw))
-    {
-      printer.format(moduleAvgFormat, OVERALL_LABEL, overall.get() * 100, overall.total(), overall.count());
-      modulesAverages.forEach((moduleId, avg) -> printer.format(moduleAvgFormat, moduleId, avg.get() * 100.0, avg.total(), avg.count()));
-      printer.println();
-      functionsAverages.forEach((functionId, avg) -> {
-        String functionHeader = String.format("%s: %.1f%%:", functionId, avg.get() * 100.0);
-        printer.println(functionHeader);
-        //noinspection ReplaceAllDot
-        printer.println(functionHeader.replaceAll(".", "-"));
-        FunctionData functionData = functions.get(functionId);
-        for (int i = 0; i < functionData.function.nOps(); ++i) {
-          char seenMarker = functionData.seenOps[i] ? '+' : ' ';
-          printer.append(seenMarker).append(' ').println(functionData.function.opAt(i).info().toString());
-        }
-        printer.println();
-      });
-    }
+    return new Report(overall, functionsAverages, modulesAverages);
   }
 
   private int countSeen(boolean[] ops) {
