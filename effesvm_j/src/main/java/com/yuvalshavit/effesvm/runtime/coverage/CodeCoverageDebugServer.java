@@ -30,12 +30,12 @@ public class CodeCoverageDebugServer implements DebugServer {
   private static final String OVERALL_LABEL = "<total>";
 
   private final String outFileBase;
-  private final PreviousFunctionDatas previous;
+  private final FunctionDataSummaries previous;
   private final Map<EffesFunctionId, FunctionData> functions;
 
   public CodeCoverageDebugServer(DebugServerContext context, String outFileBase) {
     this.outFileBase = outFileBase;
-    previous = PreviousFunctionDatas.read(cumulativeFileNme(outFileBase));
+    previous = FunctionDataSummaries.read(cumulativeFileNme(outFileBase));
     MessageDigest messageDigest;
     try {
       messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
@@ -52,14 +52,14 @@ public class CodeCoverageDebugServer implements DebugServer {
     return outFileBase + CUMULATIVE_DATA_SUFFIX;
   }
 
-  private static FunctionData createFunctionData(EffesFunction f, PreviousFunctionDatas previous, MessageDigest digest) {
+  private static FunctionData createFunctionData(EffesFunction f, FunctionDataSummaries previous, MessageDigest digest) {
     digest.reset();
     for (int i = 0; i < f.nOps(); ++i) {
       digest.update(f.opAt(i).info().toString().getBytes(StandardCharsets.UTF_8));
     }
     String hash = digest.getAlgorithm() + '$' + Base64.getEncoder().encodeToString(digest.digest());
 
-    PreviousFunctionData previousData = previous.get(f.id());
+    FunctionDataSummary previousData = previous.get(f.id());
     boolean[] seenOps = previousData != null && previousData.seenOps.length == f.nOps() && previousData.hash.equals(hash)
       ? previousData.seenOps
       : new boolean[f.nOps()];
@@ -135,12 +135,4 @@ public class CodeCoverageDebugServer implements DebugServer {
     return count;
   }
 
-  private static class FunctionData extends PreviousFunctionData {
-    public final EffesFunction function;
-
-    public FunctionData(String hash, boolean[] seenOps, EffesFunction function) {
-      super(hash, seenOps);
-      this.function = function;
-    }
-  }
 }

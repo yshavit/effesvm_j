@@ -17,15 +17,15 @@ import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class PreviousFunctionDatas {
+public class FunctionDataSummaries {
   private static final char SEEN = '+';
   private static final char NOT_SEEN = '0';
 
   private final File file;
-  private final NavigableMap<EffesFunctionId, PreviousFunctionData> functions;
+  private final NavigableMap<EffesFunctionId, FunctionDataSummary> functions;
 
-  public static PreviousFunctionDatas read(String file) {
-    NavigableMap<EffesFunctionId,PreviousFunctionData> previous = new TreeMap<>();
+  public static FunctionDataSummaries read(String file) {
+    NavigableMap<EffesFunctionId,FunctionDataSummary> previous = new TreeMap<>();
     File outFileCumulative = new File(file);
     if (outFileCumulative.exists()) {
       Path path = outFileCumulative.toPath();
@@ -41,7 +41,7 @@ public class PreviousFunctionDatas {
             for (int i = 0; i < oldSeenStr.length(); ++i) {
               oldOpsSeen[i] = oldSeenStr.charAt(i) == SEEN;
             }
-            PreviousFunctionData functionData = new PreviousFunctionData(hashString, oldOpsSeen);
+            FunctionDataSummary functionData = new FunctionDataSummary(hashString, oldOpsSeen);
             previous.put(functionId, functionData);
           }
         });
@@ -49,14 +49,14 @@ public class PreviousFunctionDatas {
         System.err.printf("Couldn't read previous code coverage from %s: %s", outFileCumulative, e.getMessage());
       }
     }
-    return new PreviousFunctionDatas(outFileCumulative, previous);
+    return new FunctionDataSummaries(outFileCumulative, previous);
   }
 
-  public PreviousFunctionData get(EffesFunctionId id) {
+  public FunctionDataSummary get(EffesFunctionId id) {
     return functions.get(id);
   }
 
-  public void update(Map<EffesFunctionId, ? extends PreviousFunctionData> functions) {
+  public void update(Map<EffesFunctionId, ? extends FunctionDataSummary> functions) {
     this.functions.putAll(functions);
   }
 
