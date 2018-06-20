@@ -15,6 +15,7 @@ import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.util.Average;
 
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @AllArgsConstructor
 class Report {
@@ -35,19 +36,30 @@ class Report {
   private void printSummary(PrintWriter printer) {
     BiConsumer<String, Average> formatter = summaryFormatter(printer);
 
-    Map<EffesModule.Id, NavigableSet<EffesFunctionId>> functionsByModule = new HashMap<>();
-    functionsAverages.keySet().forEach(fid -> functionsByModule.computeIfAbsent(fid.getScope().getModuleId(), x -> new TreeSet<>()).add(fid));
-    formatter.accept(OVERALL_LABEL, overall);
-    modulesAverages.forEach((moduleId, moduleAvg) -> {
-      formatter.accept(moduleId.toString(), moduleAvg);
-      functionsByModule.get(moduleId).forEach(fid -> {
-        Average functionAvg = functionsAverages.get(fid);
-        formatter.accept(SUMMARY_FUNCTION_BREAKDOWN_PREFIX + fid.getFunctionName(), functionAvg);
-      });
+    Map<EffesModule.Id, NavigableSet<PrioritizedComparable<EffesFunctionId>>> functionsByModule = new HashMap<>();
+    functionsAverages.keySet().forEach(fid -> {
+      Average functionAvg = functionsAverages.get(fid);
+      int priority = functionAvg.total() - functionAvg.count(); // the more unseen, the higher the priority
+      functionsByModule.computeIfAbsent(fid.getScope().getModuleId(), x -> new TreeSet<>()).add(new PrioritizedComparable<>(fid, priority));
     });
+
+    formatter.accept(OVERALL_LABEL, overall);
+    printer.println();
+    modulesAverages.entrySet().stream().map(entry -> new PrioritizedComparable<>(entry.getKey(), entry.getValue().total() - entry.getValue().count()))
+      .sorted()
+      .map(pc -> pc.comparable)
+      .forEach(moduleId -> {
+        Average moduleAvg = modulesAverages.get(moduleId);
+        formatter.accept(moduleId.toString(), moduleAvg);
+        functionsByModule.get(moduleId).forEach(fid -> {
+          Average functionAvg = functionsAverages.get(fid.comparable);
+          formatter.accept(SUMMARY_FUNCTION_BREAKDOWN_PREFIX + fid.comparable.getFunctionName(), functionAvg);
+        });
+        printer.println();
+      });
   }
 
-  private BiConsumer<String,Average> summaryFormatter(PrintWriter printer) {
+  private BiConsumer<String, Average> summaryFormatter(PrintWriter printer) {
     int longestModule = modulesAverages.keySet().stream().mapToInt(m -> m.toString().length()).max().orElse(0);
     int longestFunction = functionsAverages.keySet().stream().map(EffesFunctionId::getFunctionName).mapToInt(String::length).max().orElse(0)
       + SUMMARY_FUNCTION_BREAKDOWN_PREFIX.length();
@@ -71,5 +83,20 @@ class Report {
       }
       printer.println();
     });
+  }
+
+  @Data
+  private static class PrioritizedComparable<T extends Comparable<T>> implements Comparable<PrioritizedComparable<T>> {
+    private final T comparable;
+    private final int priority;
+
+    @Override
+    public int compareTo(PrioritizedComparable<T> o) {
+      int cmp = Integer.compare(priority, o.priority); // lower number is higher priority
+      if (cmp == 0) {
+        cmp = comparable.compareTo(o.comparable);
+      }
+      return cmp;
+    }
   }
 }
