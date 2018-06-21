@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime.debugger;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -97,7 +98,7 @@ public class DebuggerState {
   private <R> R useBitSet(EffesFunctionId fid, Function<? super BitSet, ? extends R> action) {
     BitSet bitSet = functionIdToOpBreakPoints.get(fid);
     if (bitSet == null) {
-      throw new IllegalArgumentException(String.format("no such function: %s", fid));
+      throw new NoSuchElementException(String.format("no such function: %s", fid));
     }
     //noinspection SynchronizationOnLocalVariableOrMethodParameter
     synchronized (bitSet) {

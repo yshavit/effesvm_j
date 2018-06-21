@@ -3,6 +3,7 @@ package com.yuvalshavit.effesvm.runtime.debugger.msg;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.NoSuchElementException;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
@@ -25,7 +26,11 @@ public class MsgSetBreakpoints extends Msg.NoResponse {
   @Override
   void run(DebuggerState state) throws InterruptedException {
     for (Breakpoint breakpoint : breakpoints) {
-      state.setBreakpoint(breakpoint.fid, breakpoint.opIdx, on);
+      try {
+        state.setBreakpoint(breakpoint.fid, breakpoint.opIdx, on);
+      } catch (NoSuchElementException e) {
+        System.err.printf("%s. Ignoring breakpoint at %d.%n", breakpoint.getFid(), breakpoint.opIdx);
+      }
     }
   }
 

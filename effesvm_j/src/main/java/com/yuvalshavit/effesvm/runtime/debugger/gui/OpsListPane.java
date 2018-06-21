@@ -62,9 +62,10 @@ class OpsListPane {
     debuggerEvents.on(DebuggerEvents.Type.CLOSED, activeOpsModel::clear);
     debuggerEvents.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
       for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
-        opsByFunction.get(breakpoint.getFid())
-          .breakpoints()
-          .set(breakpoint.getOpIdx());
+        MsgGetModules.FunctionInfo fInfo = opsByFunction.get(breakpoint.getFid());
+        if (fInfo != null) {
+          fInfo.breakpoints().set(breakpoint.getOpIdx());
+        }
       }
       callback.run();
       activeOpsList.addMouseListener(new MouseAdapter() {
