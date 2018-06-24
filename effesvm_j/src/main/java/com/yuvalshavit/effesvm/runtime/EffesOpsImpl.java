@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -259,7 +260,12 @@ public class EffesOpsImpl implements EffesOps<Object> {
       } else {
         // non-constructor function
         EffesFunction f = linkCtx.getFunctionInfo(functionId);
-        PcMove pcMove = PcMove.firstCallIn(f);
+        PcMove pcMove;
+        try {
+          pcMove = PcMove.firstCallIn(f);
+        } catch (IllegalArgumentException e) {
+          throw new NoSuchElementException("method " + functionId);
+        }
         EffesType instanceTargetType = functionId.getScope().map(m -> null, linkCtx::type);
         return c -> {
           int nArgs = f.nArgs(); // does not count the "this" reference
