@@ -5,188 +5,188 @@ import com.yuvalshavit.effesvm.ops.OperationFactory;
 public interface EffesOps<T> {
   
   @OperationFactory("arry")
-  T createArray();
+  void createArray(T context);
 
   @OperationFactory("int")
-  T pushInt(String value);
+  void pushInt(T context, String value);
 
   @OperationFactory("pop")
-  T pop();
+  void pop(T context);
 
   @OperationFactory("copy")
-  T copy();
+  void copy(T context);
   
   @OperationFactory("pvar")
-  T pvar(String n);
+  void pvar(T context, String n);
 
   @OperationFactory("svar")
-  T svar(String n);
+  void svar(T context, String n);
   
   @OperationFactory("Svar")
-  T Svar(String n);
+  void Svar(T context, String n);
 
   @OperationFactory("goto")
-  T gotoAbs(String n);
+  void gotoAbs(T context, String n);
 
   @OperationFactory("goif")
-  T gotoIf(String n);
+  void gotoIf(T context, String n);
 
   @OperationFactory("gofi")
-  T gotoIfNot(String n);
+  void gotoIfNot(T context, String n);
 
   @OperationFactory("rtrn")
-  T rtrn();
+  void rtrn(T context);
 
   @OperationFactory("type")
-  T type(String typeName);
+  void type(T context, String typeName);
 
   @OperationFactory("typp")
-  T typp(String typeName);
+  void typp(T context, String typeName);
 
   @OperationFactory("typf")
-  T typf(String typeName);
+  void typf(T context, String typeName);
 
   @OperationFactory("pfld")
-  T pushField(String typeName, String fieldName);
+  void pushField(T context, String typeName, String fieldName);
 
   @OperationFactory("Pfld")
-  T PushField(String typeName, String fieldName);
+  void PushField(T context, String typeName, String fieldName);
   
   @OperationFactory("sfld")
-  T storeField(String typeName, String fieldName);
+  void storeField(T context, String typeName, String fieldName);
 
   @OperationFactory("call_Array:store")
-  T arrayStore();
+  void arrayStore(T context);
 
   @OperationFactory("call_Array:get")
-  T arrayGet();
+  void arrayGet(T context);
 
   @OperationFactory("call_Array:len")
-  T arrayLen();
+  void arrayLen(T context);
 
   @OperationFactory("call_native:toString")
-  T nativeToString();
+  void nativeToString(T context);
 
   @OperationFactory("call_native:toStringPretty")
-  T nativeToStringPretty();
+  void nativeToStringPretty(T context);
 
   @OperationFactory("call_Integer:parse")
-  T parseInt();
+  void parseInt(T context);
 
   @OperationFactory("call_Integer:lt")
-  T lt();
+  void lt(T context);
 
   @OperationFactory("call_Integer:le")
-  T le();
+  void le(T context);
 
   @OperationFactory("call_Integer:eq")
-  T eq();
+  void eq(T context);
 
   @OperationFactory("call_Integer:ne")
-  T ne();
+  void ne(T context);
 
   @OperationFactory("call_Integer:ge")
-  T ge();
+  void ge(T context);
 
   @OperationFactory("call_Integer:gt")
-  T gt();
+  void gt(T context);
 
   @OperationFactory("call")
-  T call(String scopeSpecifier, String functionName);
+  void call(T context, String scopeSpecifier, String functionName);
 
   @OperationFactory("call_Integer:add")
-  T iAdd();
+  void iAdd(T context);
 
   @OperationFactory("call_Integer:sub")
-  T iSub();
+  void iSub(T context);
 
   @OperationFactory("call_Integer:mult")
-  T iMul();
+  void iMul(T context);
 
   @OperationFactory("call_Integer:div")
-  T iDiv();
+  void iDiv(T context);
 
   @OperationFactory("debug-print")
-  T debugPrint();
+  void debugPrint(T context);
 
   @OperationFactory("debug-print-pretty")
-  T debugPrintPretty();
+  void debugPrintPretty(T context);
 
   @OperationFactory("bool")
-  T bool(String sValue);
+  void bool(T context, String sValue);
 
   @OperationFactory("call_Boolean:negate")
-  T negate();
+  void negate(T context);
 
   @OperationFactory("call_Boolean:and")
-  T and();
+  void and(T context);
 
   @OperationFactory("call_Boolean:or")
-  T or();
+  void or(T context);
   
   @OperationFactory("call_Boolean:xor")
-  T xor();
+  void xor(T context);
 
   @OperationFactory("call_Match:igroup")
-  T matchIndexedGroup();
+  void matchIndexedGroup(T context);
 
   @OperationFactory("call_Match:ngroup")
-  T matchNamedGroup();
+  void matchNamedGroup(T context);
 
   @OperationFactory("call_Match:groupCount")
-  T matchGroupCount();
+  void matchGroupCount(T context);
 
   @OperationFactory("call_Match:tail")
-  T matchTail();
+  void matchTail(T context);
 
   @OperationFactory("str")
-  T strPush(String value);
+  void strPush(T context, String value);
 
   @OperationFactory("call_String:len")
-  T stringLen();
+  void stringLen(T context);
 
   @OperationFactory("call_String:regex")
-  T stringRegex();
+  void stringRegex(T context);
 
   @OperationFactory("call_String:sout")
-  T sout();
+  void sout(T context);
 
   @OperationFactory("call_String:concat")
-  T concat();
+  void concat(T context);
 
   @OperationFactory("call_Stream:stdout")
-  T stdout();
+  void stdout(T context);
 
   @OperationFactory("call_Stream:stdin")
-  T stdin();
+  void stdin(T context);
 
   @OperationFactory("call_Stream:writeFile")
-  T writeFile();
+  void writeFile(T context);
 
   @OperationFactory(("call_Stream:writeText"))
-  T writeText();
+  void writeText(T context);
 
   @OperationFactory("call_Stream:readFile")
-  T readFile();
+  void readFile(T context);
 
   @OperationFactory("call_Stream:readLine")
-  T readLine();
+  void readLine(T context);
 
   @OperationFactory("call_Stream:stdinLine")
-  T stdinLine();
+  void stdinLine(T context);
 
   @OperationFactory("call_StringBuilder:add")
-  T stringBuilderAdd();
+  void stringBuilderAdd(T context);
 
   @OperationFactory("call_StringBuilder:get")
-  T stringBuilderGet();
+  void stringBuilderGet(T context);
 
   @OperationFactory("labl")
-  T label(String name);
+  void label(T context, String name);
 
   @OperationFactory("sbld")
-  T sbld();
+  void sbld(T context);
 
   @OperationFactory("fail")
-  T fail(String message);
+  void fail(T context, String message);
 }

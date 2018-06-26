@@ -4,7 +4,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.load.LinkContext;
@@ -13,12 +12,6 @@ import com.yuvalshavit.effesvm.runtime.PcMove;
 import com.yuvalshavit.effesvm.util.AtMostOne;
 
 public class OperationFactories {
-  private static final List<Class<?>> allowedReturnTypes = Arrays.asList(
-    Operation.Body.class,
-    UnlinkedOperation.Body.class,
-    // special types
-    LabelUnlinkedOperation.Body.class,
-    VarUnlinkedOperation.Body.class);
 
   private OperationFactories() {}
 
@@ -31,17 +24,18 @@ public class OperationFactories {
   private static void buildInto(Map<String,ReflectiveOperationBuilder> map, Object suiteInstance) {
     Class<?> enclosingClass_ = suiteInstance.getClass();
     for (Method method : enclosingClass_.getMethods()) {
-      if (method.isBridge()) {
-        continue; // generated bridge function for generics
-      }
       OperationFactory factoryAnnotation = findAnnotation(method, OperationFactory.class);
       if (factoryAnnotation != null) {
         Class<?> retType = method.getReturnType();
-        if (allowedReturnTypes.stream().noneMatch(t -> t.isAssignableFrom(retType))) {
+        if (retType != Void.TYPE) {
           throw notAValidFactoryMethod(enclosingClass_, method);
         }
         Class<?>[] parameterTypes = method.getParameterTypes();
-        for (Class<?> parameterType : parameterTypes) {
+        if (parameterTypes.length == 0 || ! parameterTypes[0].isAssignableFrom(OpBuilder.class)) {
+          throw notAValidFactoryMethod(enclosingClass_, method);
+        }
+        for (int i = 1; i < parameterTypes.length; i++) {
+          Class<?> parameterType = parameterTypes[i];
           if (!(String.class.equals(parameterType))) {
             throw notAValidFactoryMethod(enclosingClass_, method);
           }
@@ -76,10 +70,9 @@ public class OperationFactories {
 
   private static IllegalArgumentException notAValidFactoryMethod(Class<?> enclosingClass, Method method) {
     return new IllegalArgumentException(String.format(
-      "%s::%s must be public, take only Strings (or a Strings vararg) and return one of %s",
+      "%s::%s must be public, take an OpBuilder and then only Strings (or a Strings vararg) and return void",
       enclosingClass.getName(),
-      method.getName(),
-      allowedReturnTypes.stream().map(Class::getName).collect(Collectors.joining(", "))));
+      method.getName()));
   }
 
   public static class ReflectiveOperationBuilder {
@@ -92,7 +85,7 @@ public class OperationFactories {
       this.opName = opName;
       this.suiteInstance = suiteInstance;
       this.method = method;
-      nStringArgs = method.getParameterCount();
+      nStringArgs = method.getParameterCount() - 1;
     }
 
     public UnlinkedOperation build(EffesModule.Id module, int lineNumber, String... strings) {
@@ -107,40 +100,71 @@ public class OperationFactories {
       if (nIncomingStrings > nStringArgs) {
         throw new IllegalArgumentException(String.format("%s requires exactly %d string%s", opName, nStringArgs, nStringArgs == 1 ? "" : "s"));
       }
-      Object[] reflectionArgs = new Object[nStringArgs];
+
+      Object[] reflectionArgs = new Object[nStringArgs + 1];
       Iterator<String> stringsIter = strings.iterator();
+      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber + 1); // lineNumber is 0-indexed, we want 1-indexed for easier reading
+      UnlikedOperationOpBuilder opBuilder = new UnlikedOperationOpBuilder(opInfo);
+      reflectionArgs[0] = opBuilder;
       for (int i = 0; i < nStringArgs; ++i) {
-        reflectionArgs[i] = stringsIter.next();
+        reflectionArgs[i+1] = stringsIter.next();
       }
-      Object opRaw;
       try {
-        opRaw = method.invoke(suiteInstance, reflectionArgs);
+        method.invoke(suiteInstance, reflectionArgs);
       } catch (Exception e) {
         throw new IllegalArgumentException("couldn't invoke " + method, e);
       }
-      UnlinkedOperation result;
-      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber + 1); // lineNumber is 0-indexed, we want 1-indexed for easier reading
-      if (opRaw instanceof Operation.Body) {
-        Op opWithDesc = new Op(((Operation.Body) opRaw), opInfo);
-        result = ctx -> opWithDesc;
-      } else if (opRaw instanceof LabelUnlinkedOperation.Body) {
-        String label = ((LabelUnlinkedOperation.Body) opRaw).get();
-        result = new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), opInfo));
-      } else if (opRaw instanceof UnlinkedOperation.Body) {
-        result = new UnlinkedOp((UnlinkedOperation.Body) opRaw, opInfo);
-      } else if (opRaw instanceof VarUnlinkedOperation.Body) {
-        VarUnlinkedOperation.Body varOpBody = (VarUnlinkedOperation.Body) opRaw;
-        result = new VarUnlinkedOperation(varOpBody.varIndex(), () -> new Op(Operation.withIncementingPc(varOpBody.handler()), opInfo));
-      }
-      else {
-        throw new RuntimeException("unexpected result: " + opRaw);
-      }
-      return result;
+      return opBuilder.get();
     }
 
     @Override
     public String toString() {
       return String.format("%s from %s::%s", opName, method.getDeclaringClass().getName(), method.getName());
+    }
+  }
+
+  private static class UnlikedOperationOpBuilder implements OpBuilder {
+    private final OpInfo opInfo;
+    UnlinkedOperation result;
+
+    public UnlikedOperationOpBuilder(OpInfo opInfo) {
+      this.opInfo = opInfo;
+    }
+
+    void set(UnlinkedOperation result) {
+      if (this.result != null) {
+        throw new IllegalStateException("already created: " + result);
+      }
+      this.result = result;
+    }
+
+    UnlinkedOperation get() {
+      if (result == null) {
+        throw new IllegalStateException("hasn't been created");
+      }
+      return result;
+    }
+
+    @Override
+    public void build(Operation.Body body) {
+      Op opWithDesc = new Op(body, opInfo);
+      set(ctx -> opWithDesc);
+    }
+
+    @Override
+    public void build(UnlinkedOperation.Body body) {
+      set(new UnlinkedOp(body, opInfo));
+    }
+
+    @Override
+    public void build(LabelUnlinkedOperation.Body body) {
+      String label = body.get();
+      set(new LabelUnlinkedOperation(label, () -> new Op(Operation.withIncementingPc(s -> s.seeLabel(label)), opInfo)));
+    }
+
+    @Override
+    public void build(VarUnlinkedOperation.Body body) {
+      set(new VarUnlinkedOperation(body.varIndex(), () -> new Op(Operation.withIncementingPc(body.handler()), opInfo)));
     }
   }
 

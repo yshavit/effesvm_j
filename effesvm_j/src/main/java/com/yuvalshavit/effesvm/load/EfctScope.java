@@ -3,7 +3,9 @@ package com.yuvalshavit.effesvm.load;
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import lombok.EqualsAndHashCode;
@@ -60,6 +62,20 @@ public class EfctScope implements Serializable, Comparable<EfctScope> {
 
   public <R> R mapRequiringInstanceType(BiFunction<EffesModule.Id,String,R> f) {
     return map(
+      m -> { throw new IllegalArgumentException("scope specifier " + m.getName() + ": needs a type"); },
+      f);
+  }
+
+  public void listen(Consumer<EffesModule.Id> ifNoType, BiConsumer<EffesModule.Id,String> ifHasType) {
+    if (optionalTypeName == null) {
+      ifNoType.accept(moduleId);
+    } else {
+      ifHasType.accept(moduleId, optionalTypeName);
+    }
+  }
+
+  public void listenRequiringInstanceType(BiConsumer<EffesModule.Id,String> f) {
+    listen(
       m -> { throw new IllegalArgumentException("scope specifier " + m.getName() + ": needs a type"); },
       f);
   }

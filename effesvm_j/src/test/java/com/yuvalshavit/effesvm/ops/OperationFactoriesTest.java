@@ -97,23 +97,24 @@ public class OperationFactoriesTest {
 
   public static class Basic {
     @OperationFactory("zero-args")
-    public Operation.Body build0() {
-      return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString("zero-args result")));
+    public void build0(OpBuilder builder) {
+      builder.withIncementingPc(s -> s.push(EffesNativeObject.forString("zero-args result")));
     }
 
     @OperationFactory("two-args")
-    public static Operation.Body build2(String first, String second) {
-      return Operation.withIncementingPc(s -> s.push(EffesNativeObject.forString(String.format("two-args result: %s, %s", first, second))));
+    public static void build2(OpBuilder builder, String first, String second) {
+      builder.withIncementingPc(s -> s.push(EffesNativeObject.forString(String.format("two-args result: %s, %s", first, second))));
     }
 
     @OperationFactory("with-linking")
-    public static UnlinkedOperation.Body build3() {
-      return (LinkContext linkCtx) -> {
+    public static void build3(OpBuilder builder) {
+      UnlinkedOperation.Body unlinked = linkCtx -> {
         EfctScope scope = EfctScope.parse(":link-type-name", linkCtx.currentModule());
         EffesType type = scope.mapRequiringInstanceType(linkCtx::type);
         EffesNativeObject.EffesString str = EffesNativeObject.forString(type.name());
         return Operation.withIncementingPc(s -> s.push(str));
       };
+      builder.build(unlinked);
     }
   }
 
@@ -121,7 +122,7 @@ public class OperationFactoriesTest {
     @SuppressWarnings("unused")
     public static class Nested {
       @OperationFactory("nested")
-      public static Operation.Body build() {
+      public static void build(OpBuilder builder) {
         throw new UnsupportedOperationException();
       }
     }
@@ -129,21 +130,21 @@ public class OperationFactoriesTest {
 
   public static class Super {
     @OperationFactory("in-super")
-    public static Operation.Body build() {
+    public static void build(OpBuilder builder) {
       throw new UnsupportedOperationException();
     }
   }
 
   static class NotPublic {
     @OperationFactory("in-super")
-    public static Operation.Body build() {
+    public static void build(OpBuilder builder) {
       throw new UnsupportedOperationException();
     }
   }
 
   public class NotStatic {
     @OperationFactory("in-super")
-    public Operation.Body build() {
+    public void build(OpBuilder builder) {
       throw new UnsupportedOperationException();
     }
   }
