@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -9,6 +10,7 @@ import java.awt.event.MouseEvent;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -45,10 +47,8 @@ abstract class AbstractDebugLinePane<T> {
     scrollPane = new JScrollPane(activeOpsList);
     scrollPane.setPreferredSize(new Dimension(600, 700));
     activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-  }
 
-  protected void setCellRenderer(DefaultListCellRenderer cellRenderer) {
-    activeOpsList.setCellRenderer(cellRenderer);
+    activeOpsList.setCellRenderer(new OpsListCellRenderer(activeFunction));
   }
 
   protected MsgGetModules.FunctionInfo getFunctionInfo(EffesFunctionId functionId) {
@@ -127,7 +127,26 @@ abstract class AbstractDebugLinePane<T> {
     });
   }
 
+  private class OpsListCellRenderer extends DefaultListCellRenderer {
+    private final Supplier<EffesFunctionId> currentFunctionId;
 
+    public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId) {
+      this.currentFunctionId = currentFunctionId;
+    }
 
+    @Override
+    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+      Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
+      EffesFunctionId functionId = currentFunctionId.get();
+      if (Objects.equals(functionId, currentFunctionId.get()) && isSelected) {
+        fromSuper.setBackground(Color.LIGHT_GRAY);
+      }
+      MsgGetModules.FunctionInfo functionInfo = getFunctionInfo(functionId);
+      if (functionInfo != null && functionInfo.breakpoints().get(index)) {
+        fromSuper.setForeground(Color.RED);
+      }
+      return fromSuper;
+    }
+  }
 
 }

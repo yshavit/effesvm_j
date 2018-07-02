@@ -1,15 +1,9 @@
 package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
-import java.awt.Color;
-import java.awt.Component;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.JList;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
@@ -24,7 +18,6 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
 
   OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
     super(opsByFunction, activeFunction);
-    setCellRenderer(new OpsListCellRenderer(activeFunction));
   }
 
   @Override
@@ -46,25 +39,4 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
     return opIdxWithinFunction;
   }
 
-  private class OpsListCellRenderer extends DefaultListCellRenderer {
-    private final Supplier<EffesFunctionId> currentFunctionId;
-
-    public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId) {
-      this.currentFunctionId = currentFunctionId;
-    }
-
-    @Override
-    public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-      Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-      EffesFunctionId functionId = currentFunctionId.get();
-      if (Objects.equals(functionId, currentFunctionId.get()) && isSelected) {
-        fromSuper.setBackground(Color.LIGHT_GRAY);
-      }
-      MsgGetModules.FunctionInfo functionInfo = getFunctionInfo(functionId);
-      if (functionInfo != null && functionInfo.breakpoints().get(index)) {
-        fromSuper.setForeground(Color.RED);
-      }
-      return fromSuper;
-    }
-  }
 }

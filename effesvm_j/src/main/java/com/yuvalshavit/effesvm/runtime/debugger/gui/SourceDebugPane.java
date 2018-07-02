@@ -12,8 +12,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import javax.swing.DefaultListCellRenderer;
-
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.ops.OpInfo;
@@ -61,7 +59,6 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
         });
       }
     }
-    setCellRenderer(new DefaultListCellRenderer());
   }
 
   @Override
