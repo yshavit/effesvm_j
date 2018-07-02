@@ -13,13 +13,13 @@ public class OpInfo {
   private final EffesModule.Id module;
   private final String opcode;
   private final List<String> arguments;
-  private final int lineNumber;
+  private final int efctLineNumber;
 
-  public OpInfo(EffesModule.Id module, String opcode, List<String> arguments, int lineNumber) {
+  public OpInfo(EffesModule.Id module, String opcode, List<String> arguments, int efctLineNumber) {
     this.module = module;
     this.opcode = opcode;
     this.arguments = Collections.unmodifiableList(new ArrayList<>(arguments));
-    this.lineNumber = lineNumber;
+    this.efctLineNumber = efctLineNumber;
   }
 
   public EffesModule.Id module() {
@@ -35,12 +35,12 @@ public class OpInfo {
   }
 
   public int lineNumber() {
-    return lineNumber;
+    return efctLineNumber;
   }
 
   @Override
   public String toString() {
-    String lineNumAndOpcode = String.format("#%d %s ", lineNumber, opcode);
+    String lineNumAndOpcode = String.format("#%d %s ", efctLineNumber, opcode);
     return LambdaHelpers.consumeAndReturn(
       new StringJoiner(" ", lineNumAndOpcode, ""),
       j -> arguments.forEach(a -> j.add(StringEscaper.escape(a)))
