@@ -1,5 +1,6 @@
 package com.yuvalshavit.effesvm.ops;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,7 +10,7 @@ import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.StringEscaper;
 
-public class OpInfo {
+public class OpInfo implements Serializable {
   private final EffesModule.Id module;
   private final String opcode;
   private final List<String> arguments;

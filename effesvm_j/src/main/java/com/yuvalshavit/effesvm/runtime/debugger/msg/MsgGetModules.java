@@ -11,6 +11,7 @@ import java.util.Map;
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
 
@@ -31,9 +32,9 @@ public class MsgGetModules extends Msg<MsgGetModules.Response> {
       Collection<EffesFunction> functions = module.functions();
       Map<EffesFunctionId,FunctionInfo> functionsPlaintext = new HashMap<>(functions.size());
       for (EffesFunction function : functions) {
-        List<String> ops = new ArrayList<>(function.nOps());
+        List<OpInfo> ops = new ArrayList<>(function.nOps());
         for (int i = 0; i < function.nOps(); ++i) {
-          ops.add(function.opAt(i).toString());
+          ops.add(function.opAt(i).info());
         }
         BitSet breakpoints = state.getDebugPoints(function.id());
         functionsPlaintext.put(function.id(), new FunctionInfo(ops, breakpoints));
@@ -49,16 +50,16 @@ public class MsgGetModules extends Msg<MsgGetModules.Response> {
   }
 
   public static class FunctionInfo implements Serializable {
-    private final List<String> opDescriptions;
+    private final List<OpInfo> ops;
     private final BitSet breakpoints;
 
-    public FunctionInfo(List<String> opDescriptions, BitSet breakpoints) {
-      this.opDescriptions = opDescriptions;
+    public FunctionInfo(List<OpInfo> ops, BitSet breakpoints) {
+      this.ops = ops;
       this.breakpoints = breakpoints;
     }
 
-    public List<String> opDescriptions() {
-      return opDescriptions;
+    public List<OpInfo> ops() {
+      return ops;
     }
 
     public BitSet breakpoints() {

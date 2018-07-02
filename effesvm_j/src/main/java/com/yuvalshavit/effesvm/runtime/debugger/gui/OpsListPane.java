@@ -22,6 +22,8 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesModule;
+import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
@@ -29,11 +31,14 @@ import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
 class OpsListPane {
   private static final int SCROLLTO_CONTEXT_BUFFER = 5;
+  private static final MsgGetModules.FunctionInfo unknownFunction = new MsgGetModules.FunctionInfo(
+    Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
+    null);
 
   private final DebuggerGuiState saveState;
-  private final JList<String> activeOpsList;
+  private final JList<OpInfo> activeOpsList;
   private final Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction;
-  private final DefaultListModel<String> activeOpsModel;
+  private final DefaultListModel<OpInfo> activeOpsModel;
   private final JScrollPane opsScrollPane;
   private final Supplier<EffesFunctionId> activeFunction;
 
@@ -101,8 +106,8 @@ class OpsListPane {
       return;
     }
     opsByFunction
-      .getOrDefault(functionId, new MsgGetModules.FunctionInfo(Collections.singletonList("ERROR: no function " + functionId), null))
-      .opDescriptions()
+      .getOrDefault(functionId, unknownFunction)
+      .ops()
       .forEach(activeOpsModel::addElement);
     if (functionId.equals(currentFunctionId)) {
       activeOpsList.setSelectedIndex(currentOpIdx);
