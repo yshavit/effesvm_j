@@ -74,7 +74,7 @@ Functions start with a declaration:
 - hasRv must be 0 or 1. 0 means there is no return value, and 1 means there is one
 - The `0` is a placeholder for generics.
 
-After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line.
+After the FUNC line, each non-empty line represents an opcode in that function. The function's body ends at the first empty line. Opcodes in a function's block may (but do not have to) start with a number, colon, and second number, followed by a space (`<num>:<num> `). If they do, the numbers represents the line number and position within the line (both 0-indexed) of the original source code that this op corresponds to.
 
 The functionscope is of the form _module:Type_:
 

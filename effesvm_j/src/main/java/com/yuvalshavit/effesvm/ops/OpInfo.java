@@ -14,12 +14,16 @@ public class OpInfo {
   private final String opcode;
   private final List<String> arguments;
   private final int efctLineNumber;
+  private final int sourceLineNumber;
+  private final int sourcePositionInLine;
 
-  public OpInfo(EffesModule.Id module, String opcode, List<String> arguments, int efctLineNumber) {
+  public OpInfo(EffesModule.Id module, String opcode, List<String> arguments, int efctLineNumber, int sourceLineNumber, int sourcePositionInLine) {
     this.module = module;
     this.opcode = opcode;
     this.arguments = Collections.unmodifiableList(new ArrayList<>(arguments));
     this.efctLineNumber = efctLineNumber;
+    this.sourceLineNumber = sourceLineNumber;
+    this.sourcePositionInLine = sourcePositionInLine;
   }
 
   public EffesModule.Id module() {
@@ -36,6 +40,14 @@ public class OpInfo {
 
   public int lineNumber() {
     return efctLineNumber;
+  }
+
+  public int sourceLineNumber() {
+    return sourceLineNumber;
+  }
+
+  public int sourcePositionInLine() {
+    return sourcePositionInLine;
   }
 
   @Override

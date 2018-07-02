@@ -88,11 +88,11 @@ public class OperationFactories {
       nStringArgs = method.getParameterCount() - 1;
     }
 
-    public UnlinkedOperation build(EffesModule.Id module, int lineNumber, String... strings) {
-      return apply(module, lineNumber, Arrays.asList(strings));
+    public UnlinkedOperation build(EffesModule.Id module, int efctLine, int sourceLine, int sourcePosInLine, String... strings) {
+      return apply(module, efctLine, sourceLine, sourcePosInLine, Arrays.asList(strings));
     }
 
-    public UnlinkedOperation apply(EffesModule.Id module, int lineNumber, List<String> strings) {
+    public UnlinkedOperation apply(EffesModule.Id module, int efctLine, int sourceLine, int sourcePosInLIne, List<String> strings) {
       int nIncomingStrings = strings.size();
       if (nIncomingStrings < nStringArgs) {
         throw new IllegalArgumentException(String.format("%s requires at least %d string%s", opName, nStringArgs, nStringArgs == 1 ? "" : "s"));
@@ -103,7 +103,8 @@ public class OperationFactories {
 
       Object[] reflectionArgs = new Object[nStringArgs + 1];
       Iterator<String> stringsIter = strings.iterator();
-      OpInfo opInfo = new OpInfo(module, opName, strings, lineNumber + 1); // lineNumber is 0-indexed, we want 1-indexed for easier reading
+      // line numbers are 0-indexed, we want 1-indexed for easier reading
+      OpInfo opInfo = new OpInfo(module, opName, strings, efctLine + 1, sourceLine + 1, sourcePosInLIne);
       UnlikedOperationOpBuilder opBuilder = new UnlikedOperationOpBuilder(opInfo);
       reflectionArgs[0] = opBuilder;
       for (int i = 0; i < nStringArgs; ++i) {

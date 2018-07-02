@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.ops.LabelUnlinkedOperation;
@@ -18,6 +20,7 @@ import com.yuvalshavit.effesvm.ops.VarUnlinkedOperation;
 import com.yuvalshavit.effesvm.runtime.EffesType;
 
 public class EffesFunctionParser {
+  private static final Pattern sourceDebugInfoPattern = Pattern.compile("^(\\d+):(\\d+)");
 
   private EffesFunctionParser() {
   }
@@ -45,13 +48,34 @@ public class EffesFunctionParser {
       List<UnlinkedOperation> unlinkedOps = new ArrayList<>(lines.size());
       Map<String, Integer> labelsMap = new HashMap<>();
       int totalNVars = allocation.parse.getNArgs();
+      Matcher sourceDebugInfoMatcher = sourceDebugInfoPattern.matcher("");
       for (EfctLine line : lines) {
-        String opcode = line.get(0, "opcode");
+        String firstWord = line.get(0, "first word");
+        final int sourceLine;
+        final int sourcePosInLine;
+        final int opArgsIndex;
+        final String opcode;
+        if (sourceDebugInfoMatcher.reset(firstWord).matches()) {
+          sourceLine = Integer.parseInt(sourceDebugInfoMatcher.group(1));
+          sourcePosInLine = Integer.parseInt(sourceDebugInfoMatcher.group(2));
+          opcode = line.get(1, "opcode");
+          opArgsIndex = 2;
+        } else {
+          sourceLine = -1;
+          sourcePosInLine = -1;
+          opcode = firstWord;
+          opArgsIndex = 1;
+        }
         OperationFactories.ReflectiveOperationBuilder opBuilder = ops.apply(opcode);
         if (opBuilder == null) {
           throw new EffesLoadException("no such op: " + opcode);
         }
-        UnlinkedOperation unlinked = opBuilder.build(functionId.getScope().getModuleId(), line.getLineNum(), line.tailTokens(1));
+        UnlinkedOperation unlinked = opBuilder.build(
+          functionId.getScope().getModuleId(),
+          line.getLineNum(),
+          sourceLine,
+          sourcePosInLine,
+          line.tailTokens(opArgsIndex));
         if (unlinked instanceof LabelUnlinkedOperation) {
           String label = ((LabelUnlinkedOperation) unlinked).label();
           labelsMap.put(label, unlinkedOps.size());

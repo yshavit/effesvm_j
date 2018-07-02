@@ -21,7 +21,7 @@ public class ProgramCounter {
     EffesModule.Id bootstrapModule = new EffesModule.Id("$bootstrap");
     EffesFunction function = new EffesFunction(new EffesFunctionId(EfctScope.ofStatic(bootstrapModule), "$"), true, 1);
     function.setOps(Collections.singletonList(new Operation() {
-      private OpInfo info = new OpInfo(bootstrapModule, "<end>", Collections.emptyList(), -1);
+      private OpInfo info = new OpInfo(bootstrapModule, "<end>", Collections.emptyList(), -1, -1, -1);
 
       @Override
       public OpInfo info() {
