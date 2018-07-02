@@ -2,117 +2,41 @@ package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Rectangle;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
 import javax.swing.JList;
-import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
-import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.ops.OpInfo;
-import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
-import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
-class OpsListPane {
-  private static final int SCROLLTO_CONTEXT_BUFFER = 5;
-  private static final MsgGetModules.FunctionInfo unknownFunction = new MsgGetModules.FunctionInfo(
-    Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
-    null);
-
-  private final JList<OpInfo> activeOpsList;
-  private final Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction;
-  private final DefaultListModel<OpInfo> activeOpsModel;
-  private final JScrollPane opsScrollPane;
-  private final Supplier<EffesFunctionId> activeFunction;
-
-  private EffesFunctionId currentFunctionId; // that is, the one that's actually running on the evm
-  private int currentOpIdx;
+class OpsListPane extends AbstractDebugLinePane<OpInfo> {
 
   OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
-    this.opsByFunction = opsByFunction;
-    this.activeFunction = activeFunction;
-    activeOpsModel = new DefaultListModel<>();
-    activeOpsList = new JList<>(activeOpsModel);
-
-    opsScrollPane = new JScrollPane(activeOpsList);
-    opsScrollPane.setPreferredSize(new Dimension(600, 700));
-    activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-    activeOpsList.setCellRenderer(new OpsListCellRenderer(activeFunction));
+    super(opsByFunction, activeFunction);
+    setCellRenderer(new OpsListCellRenderer(activeFunction));
   }
 
-  Component getScrollPane() {
-    return opsScrollPane;
+  @Override
+  protected MsgSetBreakpoints.Breakpoint getBreakpoint(EffesFunctionId visibleFunction, int clickedItemInList) {
+    return new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItemInList);
   }
 
-  void onConnect(DebuggerEvents debuggerEvents, Set<MsgSetBreakpoints.Breakpoint> breakpoints, BiConsumer<MsgSetBreakpoints.Breakpoint,Boolean> save) {
-    debuggerEvents.on(DebuggerEvents.Type.CLOSED, activeOpsModel::clear);
-    for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
-      MsgGetModules.FunctionInfo fInfo = opsByFunction.get(breakpoint.getFid());
-      if (fInfo != null) {
-        fInfo.breakpoints().set(breakpoint.getOpIdx());
-      }
-    }
-    activeOpsList.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseClicked(MouseEvent e) {
-        if (e.getClickCount() == 2) {
-          EffesFunctionId visibleFunction = activeFunction.get();
-          int clickedItem = activeOpsList.locationToIndex(e.getPoint());
-          BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-          MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItem);
-          boolean on = !breakpoints.get(clickedItem);
-          save.accept(breakpoint, on);
-          MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
-          debuggerEvents.communicate(toggleMsg, ok -> {
-            breakpoints.flip(clickedItem);
-            activeOpsList.repaint();
-          });
-        }
-      }
-    });
+  @Override
+  public void showFunction(MsgGetModules.FunctionInfo info, Consumer<OpInfo> addToModel) {
+    info.ops().forEach(addToModel);
   }
 
-  void setActiveFunction(EffesFunctionId functionId, int opIdx) {
-    currentFunctionId = functionId;
-    currentOpIdx = opIdx;
-    showFunction(functionId);
-  }
-
-  public void showFunction(EffesFunctionId functionId) {
-    activeOpsModel.clear();
-    if (functionId == null) {
-      return;
-    }
-    opsByFunction
-      .getOrDefault(functionId, unknownFunction)
-      .ops()
-      .forEach(activeOpsModel::addElement);
-    if (functionId.equals(currentFunctionId)) {
-      activeOpsList.setSelectedIndex(currentOpIdx);
-      Rectangle cellBounds = activeOpsList.getCellBounds(
-        Math.max(currentOpIdx - SCROLLTO_CONTEXT_BUFFER, 0),
-        Math.min(currentOpIdx + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
-      if (cellBounds != null) {
-        activeOpsList.scrollRectToVisible(cellBounds);
-      }
-    }
+  @Override
+  protected int getLineForOp(int currentOpIdx) {
+    return currentOpIdx;
   }
 
   private class OpsListCellRenderer extends DefaultListCellRenderer {
@@ -138,10 +62,10 @@ class OpsListPane {
       }
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
       EffesFunctionId functionId = currentFunctionId.get();
-      if (Objects.equals(functionId, currentFunctionId.get()) && activeOpsList.getSelectedIndex() == index) {
+      if (Objects.equals(functionId, currentFunctionId.get()) && isSelected) {
         fromSuper.setBackground(Color.LIGHT_GRAY);
       }
-      MsgGetModules.FunctionInfo functionInfo = opsByFunction.get(functionId);
+      MsgGetModules.FunctionInfo functionInfo = getFunctionInfo(functionId);
       if (functionInfo != null && functionInfo.breakpoints().get(index)) {
         fromSuper.setForeground(Color.RED);
       }
