@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Container;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -16,6 +17,7 @@ import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerGuiState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
 class FunctionsView {
 
@@ -31,7 +33,6 @@ class FunctionsView {
   {
     functionPicker = new FunctionPicker(functionsByModules, debuggerEvents);
     opsListPane = new OpsListPane(
-      saveState,
       functionsByModules
         .values()
         .stream()
@@ -66,7 +67,14 @@ class FunctionsView {
       }
     });
 
-    opsListPane.openConnection(debuggerEvents, rootContent::repaint);
+    openConnection(debuggerEvents, saveState);
+  }
+
+  private void openConnection(DebuggerEvents debuggerEvents, DebuggerGuiState saveState) {
+    Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
+    debuggerEvents.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
+      opsListPane.onConnect(debuggerEvents, breakpoints, saveState::setBreakpoint);
+    });
   }
 
   Container getRootContent() {

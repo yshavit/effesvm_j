@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +36,6 @@ class OpsListPane {
     Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
     null);
 
-  private final DebuggerGuiState saveState;
   private final JList<OpInfo> activeOpsList;
   private final Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction;
   private final DefaultListModel<OpInfo> activeOpsModel;
@@ -45,8 +45,7 @@ class OpsListPane {
   private EffesFunctionId currentFunctionId; // that is, the one that's actually running on the evm
   private int currentOpIdx;
 
-  OpsListPane(DebuggerGuiState saveState, Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
-    this.saveState = saveState;
+  OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
     this.opsByFunction = opsByFunction;
     this.activeFunction = activeFunction;
     activeOpsModel = new DefaultListModel<>();
@@ -62,35 +61,31 @@ class OpsListPane {
     return opsScrollPane;
   }
 
-  void openConnection(DebuggerEvents debuggerEvents, Runnable callback) {
-    Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
+  void onConnect(DebuggerEvents debuggerEvents, Set<MsgSetBreakpoints.Breakpoint> breakpoints, BiConsumer<MsgSetBreakpoints.Breakpoint,Boolean> save) {
     debuggerEvents.on(DebuggerEvents.Type.CLOSED, activeOpsModel::clear);
-    debuggerEvents.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
-      for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
-        MsgGetModules.FunctionInfo fInfo = opsByFunction.get(breakpoint.getFid());
-        if (fInfo != null) {
-          fInfo.breakpoints().set(breakpoint.getOpIdx());
+    for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
+      MsgGetModules.FunctionInfo fInfo = opsByFunction.get(breakpoint.getFid());
+      if (fInfo != null) {
+        fInfo.breakpoints().set(breakpoint.getOpIdx());
+      }
+    }
+    activeOpsList.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        if (e.getClickCount() == 2) {
+          EffesFunctionId visibleFunction = activeFunction.get();
+          int clickedItem = activeOpsList.locationToIndex(e.getPoint());
+          BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
+          MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItem);
+          boolean on = !breakpoints.get(clickedItem);
+          save.accept(breakpoint, on);
+          MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
+          debuggerEvents.communicate(toggleMsg, ok -> {
+            breakpoints.flip(clickedItem);
+            activeOpsList.repaint();
+          });
         }
       }
-      callback.run();
-      activeOpsList.addMouseListener(new MouseAdapter() {
-        @Override
-        public void mouseClicked(MouseEvent e) {
-          if (e.getClickCount() == 2) {
-            EffesFunctionId visibleFunction = activeFunction.get();
-            int clickedItem = activeOpsList.locationToIndex(e.getPoint());
-            BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-            MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(visibleFunction, clickedItem);
-            boolean on = !breakpoints.get(clickedItem);
-            saveState.setBreakpoint(breakpoint, on);
-            MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
-            debuggerEvents.communicate(toggleMsg, ok -> {
-              breakpoints.flip(clickedItem);
-              activeOpsList.repaint();
-            });
-          }
-        }
-      });
     });
   }
 
