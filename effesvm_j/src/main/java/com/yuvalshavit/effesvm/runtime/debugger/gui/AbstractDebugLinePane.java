@@ -20,17 +20,12 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
-import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
 abstract class AbstractDebugLinePane<T> {
   private static final int SCROLLTO_CONTEXT_BUFFER = 5;
-  private static final MsgGetModules.FunctionInfo unknownFunction = new MsgGetModules.FunctionInfo(
-    Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
-    null);
 
   private final Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction;
   private final JScrollPane scrollPane;
@@ -72,8 +67,12 @@ abstract class AbstractDebugLinePane<T> {
     showFunction(functionId);
   }
 
-  protected abstract void showFunction(MsgGetModules.FunctionInfo info, Consumer<T> addToModel);
-  protected abstract int getLineForOp(int currentOpIdx);
+  protected abstract void showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
+  protected abstract int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction);
+
+  protected MsgGetModules.FunctionInfo getInfoFor(EffesFunctionId functionId) {
+    return opsByFunction.get(functionId);
+  }
 
   public void showFunction(EffesFunctionId functionId) {
     activeOpsModel.clear();
@@ -81,10 +80,14 @@ abstract class AbstractDebugLinePane<T> {
       return;
     }
 
-    showFunction(opsByFunction.getOrDefault(functionId, unknownFunction), activeOpsModel::addElement);
+    showFunction(functionId, activeOpsModel::addElement);
     if (functionId.equals(currentFunctionId)) {
-      int modelIndex = getLineForOp(currentOpIdx);
-      activeOpsList.setSelectedIndex(modelIndex);
+      int modelIndex = getLineForOp(currentFunctionId, currentOpIdx);
+      if (modelIndex >= 0) {
+        activeOpsList.setSelectedIndex(modelIndex);
+      } else {
+        System.err.printf("Couldn't find display index for %s #%d%n", currentFunctionId, currentOpIdx);
+      }
       Rectangle cellBounds = activeOpsList.getCellBounds(
         Math.max(modelIndex - SCROLLTO_CONTEXT_BUFFER, 0),
         Math.min(modelIndex + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
@@ -109,14 +112,16 @@ abstract class AbstractDebugLinePane<T> {
           EffesFunctionId visibleFunction = activeFunction.get();
           int clickedItem = activeOpsList.locationToIndex(e.getPoint());
           MsgSetBreakpoints.Breakpoint breakpoint = getBreakpoint(visibleFunction, clickedItem);
-          BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-          boolean on = !breakpoints.get(clickedItem);
-          save.accept(breakpoint, on);
-          MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
-          debuggerEvents.communicate(toggleMsg, ok -> {
-            breakpoints.flip(clickedItem);
-            activeOpsList.repaint();
-          });
+          if (breakpoint != null) {
+            BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
+            boolean on = !breakpoints.get(clickedItem);
+            save.accept(breakpoint, on);
+            MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
+            debuggerEvents.communicate(toggleMsg, ok -> {
+              breakpoints.flip(clickedItem);
+              activeOpsList.repaint();
+            });
+          }
         }
       }
     });

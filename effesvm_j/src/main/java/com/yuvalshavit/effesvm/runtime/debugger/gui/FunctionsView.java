@@ -32,14 +32,13 @@ class FunctionsView {
     DebuggerEvents debuggerEvents)
   {
     functionPicker = new FunctionPicker(functionsByModules, debuggerEvents);
-    opsListPane = new OpsListPane(
-      functionsByModules
-        .values()
-        .stream()
-        .flatMap(m -> m.entrySet().stream())
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
-      functionPicker::getActiveFunction);
-    sourceDebugPane = new SourceDebugPane();
+    Map<EffesFunctionId, MsgGetModules.FunctionInfo> functionIdsToInfos = functionsByModules
+      .values()
+      .stream()
+      .flatMap(m -> m.entrySet().stream())
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    opsListPane = new OpsListPane(functionIdsToInfos, functionPicker::getActiveFunction);
+    sourceDebugPane = new SourceDebugPane(functionIdsToInfos, functionPicker::getActiveFunction);
     functionPicker.addListener(opsListPane::showFunction);
     functionPicker.addListener(sourceDebugPane::showFunction);
 
@@ -64,6 +63,7 @@ class FunctionsView {
         rootContent.remove(active);
         rootContent.add(show, BorderLayout.CENTER);
         rootContent.repaint();
+        rootContent.validate();
       }
     });
 

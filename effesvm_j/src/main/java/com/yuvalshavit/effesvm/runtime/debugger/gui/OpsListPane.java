@@ -2,6 +2,7 @@ package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -13,11 +14,15 @@ import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.load.EffesModule;
 import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 
 class OpsListPane extends AbstractDebugLinePane<OpInfo> {
+  private static final MsgGetModules.FunctionInfo unknownFunction = new MsgGetModules.FunctionInfo(
+    Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
+    null);
 
   OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
     super(opsByFunction, activeFunction);
@@ -30,13 +35,17 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
   }
 
   @Override
-  public void showFunction(MsgGetModules.FunctionInfo info, Consumer<OpInfo> addToModel) {
+  public void showFunction(EffesFunctionId functionId, Consumer<OpInfo> addToModel) {
+    MsgGetModules.FunctionInfo info = getInfoFor(functionId);
+    if (info == null) {
+      info = unknownFunction;
+    }
     info.ops().forEach(addToModel);
   }
 
   @Override
-  protected int getLineForOp(int currentOpIdx) {
-    return currentOpIdx;
+  protected int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction) {
+    return opIdxWithinFunction;
   }
 
   private class OpsListCellRenderer extends DefaultListCellRenderer {
