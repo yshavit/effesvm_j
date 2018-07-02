@@ -7,8 +7,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
@@ -50,25 +48,13 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
 
   private class OpsListCellRenderer extends DefaultListCellRenderer {
     private final Supplier<EffesFunctionId> currentFunctionId;
-    Pattern lineNumberFinder;
 
     public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId) {
       this.currentFunctionId = currentFunctionId;
-      lineNumberFinder = Pattern.compile("^#(\\d+) *");
     }
 
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-      if (value instanceof String) {
-        String valueStr = (String) value;
-        Matcher lineNumberMatcher = lineNumberFinder.matcher(valueStr);
-        if (lineNumberMatcher.find()) {
-          StringBuilder sb = new StringBuilder(valueStr.length() + 10); // +10 is more than enough
-          sb.append(index).append('(').append(lineNumberMatcher.group(1)).append(") ");
-          sb.append(valueStr, lineNumberMatcher.end(), valueStr.length());
-          value = sb.toString();
-        }
-      }
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
       EffesFunctionId functionId = currentFunctionId.get();
       if (Objects.equals(functionId, currentFunctionId.get()) && isSelected) {
