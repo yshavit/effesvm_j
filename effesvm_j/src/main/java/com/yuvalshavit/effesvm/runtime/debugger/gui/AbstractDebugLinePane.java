@@ -68,7 +68,7 @@ abstract class AbstractDebugLinePane<T> {
     showFunction(functionId);
   }
 
-  protected abstract void showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
+  protected abstract int showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
   protected abstract int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction);
   protected abstract IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel);
 
@@ -82,17 +82,20 @@ abstract class AbstractDebugLinePane<T> {
       return;
     }
 
-    showFunction(functionId, activeOpsModel::addElement);
+    int scrollToLine = showFunction(functionId, activeOpsModel::addElement);
     if (functionId.equals(currentFunctionId)) {
       int modelIndex = getLineForOp(currentFunctionId, currentOpIdx);
       if (modelIndex >= 0) {
         activeOpsList.setSelectedIndex(modelIndex);
+        scrollToLine = modelIndex;
       } else {
         System.err.printf("Couldn't find display index for %s #%d%n", currentFunctionId, currentOpIdx);
       }
+    }
+    if (scrollToLine >= 0) {
       Rectangle cellBounds = activeOpsList.getCellBounds(
-        Math.max(modelIndex - SCROLLTO_CONTEXT_BUFFER, 0),
-        Math.min(modelIndex + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
+        Math.max(scrollToLine - SCROLLTO_CONTEXT_BUFFER, 0),
+        Math.min(scrollToLine + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
       if (cellBounds != null) {
         activeOpsList.scrollRectToVisible(cellBounds);
       }

@@ -27,12 +27,13 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
   }
 
   @Override
-  public void showFunction(EffesFunctionId functionId, Consumer<OpInfo> addToModel) {
+  public int showFunction(EffesFunctionId functionId, Consumer<OpInfo> addToModel) {
     MsgGetModules.FunctionInfo info = getInfoFor(functionId);
     if (info == null) {
       info = unknownFunction;
     }
     info.ops().forEach(addToModel);
+    return -1;
   }
 
   @Override

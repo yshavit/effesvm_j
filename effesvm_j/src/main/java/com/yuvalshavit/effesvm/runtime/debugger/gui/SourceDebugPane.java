@@ -24,6 +24,7 @@ import lombok.Data;
 public class SourceDebugPane extends AbstractDebugLinePane<String> {
   private final Map<ModuleLine,MsgSetBreakpoints.Breakpoint> breakpointsPerLine;
   private final Map<EffesModule.Id,List<String>> moduleLines;
+  private final Map<EffesFunctionId,Integer> firstLinePerFunction;
 
   protected SourceDebugPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
     super(opsByFunction, activeFunction);
@@ -32,6 +33,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
     if (sourcePath == null) {
       moduleLines = Collections.emptyMap();
       breakpointsPerLine = Collections.emptyMap();
+      firstLinePerFunction = Collections.emptyMap();
     } else {
       File sourceDir = new File(sourcePath);
       File[] files = sourceDir.listFiles(file -> file.isFile() && file.getName().endsWith(".ef"));
@@ -39,14 +41,15 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
         System.err.printf("not a directory: %s%n", sourceDir.getAbsolutePath());
         moduleLines = Collections.emptyMap();
         breakpointsPerLine = Collections.emptyMap();
+        firstLinePerFunction = Collections.emptyMap();
       } else {
         moduleLines = new HashMap<>(files.length);
         for (File file : files) {
           try {
             List<String> lines = Files.lines(file.toPath()).collect(Collectors.toCollection(ArrayList::new));
-            String format = "%" + (Integer.toString(lines.size()).length()) + "d %s";
+            String format = "%" + (Integer.toString(lines.size() + 1).length()) + "d %s";
             for (int i = 0; i < lines.size(); ++i) {
-              lines.set(i, String.format(format, i, lines.get(i)));
+              lines.set(i, String.format(format, i + 1, lines.get(i)));
             }
             String moduleName = file.getName().replaceAll("\\.ef$", "");
             moduleLines.put(new EffesModule.Id(moduleName), lines);
@@ -58,6 +61,11 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
         opsByFunction.forEach((functionId, functionInfo) -> {
           // TODO!
         });
+        firstLinePerFunction = new HashMap<>(opsByFunction.size());
+        opsByFunction.forEach((functionId, info) -> info.ops().stream()
+          .mapToInt(OpInfo::sourceLineNumber)
+          .min()
+          .ifPresent(line -> firstLinePerFunction.put(functionId, line)));
       }
     }
   }
@@ -68,13 +76,14 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
   }
 
   @Override
-  protected void showFunction(EffesFunctionId functionId, Consumer<String> addToModel) {
+  protected int showFunction(EffesFunctionId functionId, Consumer<String> addToModel) {
     List<String> lines = moduleLines.get(functionId.getScope().getModuleId());
     if (lines == null) {
       System.err.printf("couldn't find module source for %s%n", functionId);
     } else {
       lines.forEach(addToModel);
     }
+    return firstLinePerFunction.getOrDefault(functionId, -1);
   }
 
   @Override
@@ -85,7 +94,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
     }
 
     OpInfo opInfo = info.ops().get(opIdxWithinFunction);
-    return opInfo.sourceLineNumber();
+    return opInfo.sourceLineNumber() - 1; // -1 because the debug symbols are written as 1-indexed
   }
 
   @Override

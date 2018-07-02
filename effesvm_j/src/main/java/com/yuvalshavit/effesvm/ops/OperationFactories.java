@@ -103,8 +103,8 @@ public class OperationFactories {
 
       Object[] reflectionArgs = new Object[nStringArgs + 1];
       Iterator<String> stringsIter = strings.iterator();
-      // line numbers are 0-indexed, we want 1-indexed for easier reading
-      OpInfo opInfo = new OpInfo(module, opName, strings, efctLine + 1, sourceLine + 1, sourcePosInLIne);
+      // efctLine is 0-indexed, we want 1-indexed for easier reading
+      OpInfo opInfo = new OpInfo(module, opName, strings, efctLine + 1, sourceLine, sourcePosInLIne);
       UnlikedOperationOpBuilder opBuilder = new UnlikedOperationOpBuilder(opInfo);
       reflectionArgs[0] = opBuilder;
       for (int i = 0; i < nStringArgs; ++i) {
