@@ -51,7 +51,7 @@ class FunctionsView {
     selectorGroup.add(functionPicker.getFunctionsChooserBox());
     selectorGroup.add(functionPicker.getOpcodesSwitchBox());
     rootContent.add(selectorGroup, BorderLayout.NORTH);
-    rootContent.add(opsListPane.getScrollPane(), BorderLayout.CENTER);
+    rootContent.add(new JLabel("Loading..."), BorderLayout.CENTER);
 
     EnumMap<FunctionPicker.SourceType,Supplier<Component>> viewsPerType = new EnumMap<>(FunctionPicker.SourceType.class);
     viewsPerType.put(FunctionPicker.SourceType.EFCT, opsListPane::getScrollPane);

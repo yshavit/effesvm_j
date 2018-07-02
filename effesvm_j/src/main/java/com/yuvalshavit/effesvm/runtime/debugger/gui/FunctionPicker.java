@@ -40,7 +40,7 @@ class FunctionPicker {
     functionChooserModel = new DefaultComboBoxModel<>();
     modulesChooserBox = createModuleChooser(functionChooserModel, functionsByModules.keySet().toArray(new EffesModule.Id[0]));
     functionsChooserBox = new JComboBox<>(functionChooserModel);
-    showOpsCheckbox = new JCheckBox("opcodes", true);
+    showOpsCheckbox = new JCheckBox("opcodes", false);
     addListener(this::setActiveFunctionForModule);
     events.on(DebuggerEvents.Type.CLOSED, () -> {
       functionsChooserBox.setEnabled(false);
@@ -70,10 +70,8 @@ class FunctionPicker {
   }
 
   void addSourceViewListener(Consumer<SourceType> callback) {
-    showOpsCheckbox.addActionListener(action -> {
-      SourceType sourceType = showOpsCheckbox.isSelected() ? SourceType.EFCT : SourceType.SOURCE;
-      callback.accept(sourceType);
-    });
+    showOpsCheckbox.addActionListener(action -> notifySourceViewListner(callback));
+    notifySourceViewListner(callback);
   }
 
   void setActiveFunctionForModule(EffesFunctionId functionId) {
@@ -100,6 +98,11 @@ class FunctionPicker {
       functionChooserModel.setSelectedItem(activeFunction);
     });
     return modulesChooserBox;
+  }
+
+  private void notifySourceViewListner(Consumer<SourceType> callback) {
+    SourceType sourceType = showOpsCheckbox.isSelected() ? SourceType.EFCT : SourceType.SOURCE;
+    callback.accept(sourceType);
   }
 
   public enum SourceType {
