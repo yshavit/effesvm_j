@@ -81,6 +81,13 @@ public class DebuggerState {
     });
   }
 
+  public void stepTo(int opIndex) throws InterruptedException {
+    stepInternal(current -> {
+      int currentDepth = current.frameDepth();
+      return state -> state.frameDepth() == currentDepth && state.pc().getOpIdx() == opIndex;
+    });
+  }
+
   public void setBreakpoint(EffesFunctionId fid, int opIdx, boolean on) {
     useBitSet(fid, bs -> {
       if (opIdx < 0 || opIdx >= bs.length()) {

@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
@@ -22,6 +23,7 @@ class FunctionPicker {
   private final JComboBox<EffesFunctionId> functionsChooserBox;
   private final DefaultComboBoxModel<EffesFunctionId> functionChooserModel;
   private final JComboBox<EffesModule.Id> modulesChooserBox;
+  private final JCheckBox showOpsCheckbox;
 
   FunctionPicker(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules, DebuggerEvents events) {
     functionNamesByModule = new HashMap<>();
@@ -38,6 +40,7 @@ class FunctionPicker {
     functionChooserModel = new DefaultComboBoxModel<>();
     modulesChooserBox = createModuleChooser(functionChooserModel, functionsByModules.keySet().toArray(new EffesModule.Id[0]));
     functionsChooserBox = new JComboBox<>(functionChooserModel);
+    showOpsCheckbox = new JCheckBox("opcodes", true);
     addListener(this::setActiveFunctionForModule);
     events.on(DebuggerEvents.Type.CLOSED, () -> {
       functionsChooserBox.setEnabled(false);
@@ -55,10 +58,21 @@ class FunctionPicker {
     return functionsChooserBox;
   }
 
+  Component getOpcodesSwitchBox() {
+    return showOpsCheckbox;
+  }
+
   void addListener(Consumer<EffesFunctionId> callback) {
     functionsChooserBox.addActionListener(action -> {
       EffesFunctionId functionId = (EffesFunctionId) functionChooserModel.getSelectedItem();
       callback.accept(functionId);
+    });
+  }
+
+  void addSourceViewListener(Consumer<SourceType> callback) {
+    showOpsCheckbox.addActionListener(action -> {
+      SourceType sourceType = showOpsCheckbox.isSelected() ? SourceType.EFCT : SourceType.SOURCE;
+      callback.accept(sourceType);
     });
   }
 
@@ -88,4 +102,9 @@ class FunctionPicker {
     return modulesChooserBox;
   }
 
+  public enum SourceType {
+    EFCT,
+    SOURCE,
+    ;
+  }
 }
