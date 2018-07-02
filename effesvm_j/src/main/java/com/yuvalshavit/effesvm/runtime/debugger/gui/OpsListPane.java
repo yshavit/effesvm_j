@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
@@ -39,4 +40,8 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
     return opIdxWithinFunction;
   }
 
+  @Override
+  protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
+    return IntStream.of(lineWithinModel);
+  }
 }

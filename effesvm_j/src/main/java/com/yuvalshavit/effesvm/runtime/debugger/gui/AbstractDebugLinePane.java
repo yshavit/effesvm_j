@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
@@ -69,6 +70,7 @@ abstract class AbstractDebugLinePane<T> {
 
   protected abstract void showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
   protected abstract int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction);
+  protected abstract IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel);
 
   protected MsgGetModules.FunctionInfo getInfoFor(EffesFunctionId functionId) {
     return opsByFunction.get(functionId);
@@ -138,11 +140,13 @@ abstract class AbstractDebugLinePane<T> {
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
       EffesFunctionId functionId = currentFunctionId.get();
-      if (Objects.equals(functionId, currentFunctionId.get()) && isSelected) {
+      int currentOpLine = getLineForOp(functionId, currentOpIdx);
+      if (Objects.equals(functionId, currentFunctionId.get()) && index == currentOpLine) {
         fromSuper.setBackground(Color.LIGHT_GRAY);
       }
+      IntStream ops = getOpsForLine(functionId, index);
       MsgGetModules.FunctionInfo functionInfo = getFunctionInfo(functionId);
-      if (functionInfo != null && functionInfo.breakpoints().get(index)) {
+      if (functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue)) {
         fromSuper.setForeground(Color.RED);
       }
       return fromSuper;

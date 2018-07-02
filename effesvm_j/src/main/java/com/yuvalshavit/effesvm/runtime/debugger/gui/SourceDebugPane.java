@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
 import com.yuvalshavit.effesvm.load.EffesModule;
@@ -85,6 +86,11 @@ public class SourceDebugPane extends AbstractDebugLinePane<String> {
 
     OpInfo opInfo = info.ops().get(opIdxWithinFunction);
     return opInfo.sourceLineNumber();
+  }
+
+  @Override
+  protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
+    return IntStream.empty(); // TODO!
   }
 
   @Data
