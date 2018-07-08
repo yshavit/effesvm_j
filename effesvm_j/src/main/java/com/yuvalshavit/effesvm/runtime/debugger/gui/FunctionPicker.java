@@ -18,14 +18,18 @@ import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 
 class FunctionPicker {
-  private final Map<EffesModule.Id,List<EffesFunctionId>> functionNamesByModule;
-  private final Map<EffesModule.Id,EffesFunctionId> activeFunctionPerModule;
+  private final Map<EffesModule.Id, List<EffesFunctionId>> functionNamesByModule;
+  private final Map<EffesModule.Id, EffesFunctionId> activeFunctionPerModule;
   private final JComboBox<EffesFunctionId> functionsChooserBox;
   private final DefaultComboBoxModel<EffesFunctionId> functionChooserModel;
   private final JComboBox<EffesModule.Id> modulesChooserBox;
   private final JCheckBox showOpsCheckbox;
 
-  FunctionPicker(Map<EffesModule.Id,Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules, DebuggerEvents events) {
+  FunctionPicker(
+    SourceModeCoordinator sourceModeCoordinator,
+    Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules,
+    DebuggerEvents events)
+  {
     functionNamesByModule = new HashMap<>();
     activeFunctionPerModule = new HashMap<>();
 
@@ -41,6 +45,13 @@ class FunctionPicker {
     modulesChooserBox = createModuleChooser(functionChooserModel, functionsByModules.keySet().toArray(new EffesModule.Id[0]));
     functionsChooserBox = new JComboBox<>(functionChooserModel);
     showOpsCheckbox = new JCheckBox("opcodes", false);
+    showOpsCheckbox.setSelected(sourceModeCoordinator.getMode() == SourceModeCoordinator.Mode.EFCT);
+    showOpsCheckbox.addActionListener(action -> {
+      SourceModeCoordinator.Mode mode = showOpsCheckbox.isSelected()
+        ? SourceModeCoordinator.Mode.EFCT
+        : SourceModeCoordinator.Mode.SOURCE;
+      sourceModeCoordinator.setMode(mode);
+    });
     addListener(this::setActiveFunctionForModule);
     events.on(DebuggerEvents.Type.CLOSED, () -> {
       functionsChooserBox.setEnabled(false);
@@ -69,11 +80,6 @@ class FunctionPicker {
     });
   }
 
-  void addSourceViewListener(Consumer<SourceType> callback) {
-    showOpsCheckbox.addActionListener(action -> notifySourceViewListner(callback));
-    notifySourceViewListner(callback);
-  }
-
   void setActiveFunctionForModule(EffesFunctionId functionId) {
     if (functionId != null) {
       activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
@@ -98,16 +104,5 @@ class FunctionPicker {
       functionChooserModel.setSelectedItem(activeFunction);
     });
     return modulesChooserBox;
-  }
-
-  private void notifySourceViewListner(Consumer<SourceType> callback) {
-    SourceType sourceType = showOpsCheckbox.isSelected() ? SourceType.EFCT : SourceType.SOURCE;
-    callback.accept(sourceType);
-  }
-
-  public enum SourceType {
-    EFCT,
-    SOURCE,
-    ;
   }
 }

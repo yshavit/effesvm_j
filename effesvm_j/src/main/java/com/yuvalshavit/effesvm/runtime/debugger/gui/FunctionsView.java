@@ -27,11 +27,12 @@ class FunctionsView {
   private final Container rootContent;
 
   public FunctionsView(
+    SourceModeCoordinator sourceModeCoordinator,
     DebuggerGuiState saveState,
     Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModules,
     DebuggerEvents debuggerEvents)
   {
-    functionPicker = new FunctionPicker(functionsByModules, debuggerEvents);
+    functionPicker = new FunctionPicker(sourceModeCoordinator, functionsByModules, debuggerEvents);
     Map<EffesFunctionId, MsgGetModules.FunctionInfo> functionIdsToInfos = functionsByModules
       .values()
       .stream()
@@ -53,11 +54,11 @@ class FunctionsView {
     rootContent.add(selectorGroup, BorderLayout.NORTH);
     rootContent.add(new JLabel("Loading..."), BorderLayout.CENTER);
 
-    EnumMap<FunctionPicker.SourceType,Supplier<Component>> viewsPerType = new EnumMap<>(FunctionPicker.SourceType.class);
-    viewsPerType.put(FunctionPicker.SourceType.EFCT, opsListPane::getScrollPane);
-    viewsPerType.put(FunctionPicker.SourceType.SOURCE, sourceDebugPane::getScrollPane);
-    functionPicker.addSourceViewListener(sourceType -> {
-      Component show = viewsPerType.getOrDefault(sourceType, () -> new JLabel("Unknown view type: " + sourceType)).get();
+    EnumMap<SourceModeCoordinator.Mode,Supplier<Component>> viewsPerType = new EnumMap<>(SourceModeCoordinator.Mode.class);
+    viewsPerType.put(SourceModeCoordinator.Mode.EFCT, opsListPane::getScrollPane);
+    viewsPerType.put(SourceModeCoordinator.Mode.SOURCE, sourceDebugPane::getScrollPane);
+    sourceModeCoordinator.addSourceViewListener(mode -> {
+      Component show = viewsPerType.getOrDefault(mode, () -> new JLabel("Unknown view type: " + mode)).get();
       Component active = borderLayout.getLayoutComponent(BorderLayout.CENTER);
       if (show != active) {
         rootContent.remove(active);

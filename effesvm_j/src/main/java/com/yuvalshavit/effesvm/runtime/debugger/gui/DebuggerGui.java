@@ -58,6 +58,7 @@ public class DebuggerGui {
 
     public void create() {
       FramesView framesView = new FramesView(debuggerEvents);
+      SourceModeCoordinator sourceModeCoordinator = new SourceModeCoordinator();
       ControlsView controlsView = new ControlsView(debuggerEvents);
       Component stepButtons = controlsView.getStepButtons();
 
@@ -65,7 +66,7 @@ public class DebuggerGui {
 
       debuggerEvents.communicate(new MsgGetModules(), resp -> {
         Map<EffesModule.Id, Map<EffesFunctionId, MsgGetModules.FunctionInfo>> functionsByModule = resp.getFunctions();
-        functionsView = new FunctionsView(saveState, functionsByModule, debuggerEvents);
+        functionsView = new FunctionsView(sourceModeCoordinator, saveState, functionsByModule, debuggerEvents);
         framesView.setUpdateListener(functionsView::activate);
         Container pane = functionsView.getRootContent();
         mainSplit.setLeftComponent(pane);
