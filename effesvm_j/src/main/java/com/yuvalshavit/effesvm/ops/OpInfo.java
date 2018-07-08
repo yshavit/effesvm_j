@@ -4,10 +4,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import com.yuvalshavit.effesvm.load.EffesModule;
-import com.yuvalshavit.effesvm.util.LambdaHelpers;
 import com.yuvalshavit.effesvm.util.StringEscaper;
 
 public class OpInfo implements Serializable {
@@ -53,10 +52,12 @@ public class OpInfo implements Serializable {
 
   @Override
   public String toString() {
-    String lineNumAndOpcode = String.format("#%d %s ", efctLineNumber, opcode);
-    return LambdaHelpers.consumeAndReturn(
-      new StringJoiner(" ", lineNumAndOpcode, ""),
-      j -> arguments.forEach(a -> j.add(StringEscaper.escape(a)))
-    ).toString();
+    StringBuilder sb = new StringBuilder();
+    sb.append('#').append(efctLineNumber).append(' ');
+    if (sourceLineNumber >= 0) {
+      sb.append('(').append(sourceLineNumber).append(':').append(sourcePositionInLine).append(") ");
+    }
+    sb.append(opcode);
+    return arguments.stream().map(StringEscaper::escape).collect(Collectors.joining(" ", sb, ""));
   }
 }
