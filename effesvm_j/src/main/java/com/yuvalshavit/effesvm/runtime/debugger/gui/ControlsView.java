@@ -1,18 +1,20 @@
 package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
 import java.awt.Component;
+import java.util.EnumMap;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
-import com.yuvalshavit.effesvm.runtime.debugger.msg.Msg;
+import com.yuvalshavit.effesvm.runtime.debugger.DebuggerState;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResume;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgResumeBase;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepIn;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOut;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepOver;
+import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgStepPast;
 
 public class ControlsView {
   private static final String RUNNING_MESSAGE = "Running";
@@ -24,8 +26,10 @@ public class ControlsView {
 
   private final JPanel stepButtons;
   private final JPanel resumePane;
+  private final SourceModeCoordinator sourceModeCoordinator;
 
-  public ControlsView(DebuggerEvents debuggerEvents) {
+  public ControlsView(SourceModeCoordinator sourceModeCoordinator, DebuggerEvents debuggerEvents) {
+    this.sourceModeCoordinator = sourceModeCoordinator;
     JLabel stateLabel = new JLabel("Remote state pending");
 
     JButton resumeOrSuspendButton = createResumeButton(debuggerEvents);
@@ -70,17 +74,27 @@ public class ControlsView {
 
   private JPanel createStepButtons(DebuggerEvents debuggerEvents) {
     JPanel stepButtons = new JPanel();
-    stepButtons.add(stepButton(debuggerEvents, "In ⇲", new MsgStepIn()));
-    stepButtons.add(stepButton(debuggerEvents, "Over ↷", new MsgStepOver()));
-    stepButtons.add(stepButton(debuggerEvents, "Out ⇱", new MsgStepOut()));
+    stepButtons.add(stepButton(debuggerEvents, "In ⇲", new MsgStepIn(), new MsgStepPast(DebuggerState.StepPast.SOURCE_COLUMN)));
+    stepButtons.add(stepButton(debuggerEvents, "Over ↷", new MsgStepOver(), new MsgStepPast(DebuggerState.StepPast.SOURCE_LINE)));
+    stepButtons.add(stepButton(debuggerEvents, "Out ⇱", new MsgStepOut(), new MsgStepOut()));
     return stepButtons;
   }
 
-  private JButton stepButton(DebuggerEvents debuggerEvents, String label, MsgResumeBase message) {
+  private JButton stepButton(DebuggerEvents debuggerEvents, String label, MsgResumeBase ifEfct, MsgResumeBase ifSource) {
     JButton stepOverButton = new JButton(label);
     debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> stepOverButton.setEnabled(false));
     debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> stepOverButton.setEnabled(true));
-    stepOverButton.addActionListener(l -> debuggerEvents.requestResume(message));
+    EnumMap<SourceModeCoordinator.Mode,MsgResumeBase> messages = new EnumMap<>(SourceModeCoordinator.Mode.class);
+    messages.put(SourceModeCoordinator.Mode.EFCT, ifEfct);
+    messages.put(SourceModeCoordinator.Mode.SOURCE, ifSource);
+    stepOverButton.addActionListener(l -> {
+      MsgResumeBase message = messages.get(sourceModeCoordinator.getMode());
+      if (message == null) {
+        System.err.printf("Ignoring step %s in unknown mode \"%s\"n", label.replaceAll(" .*", "").toLowerCase(), sourceModeCoordinator.getMode());
+        return;
+      }
+      debuggerEvents.requestResume(message);
+    });
     return stepOverButton;
   }
 

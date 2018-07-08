@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
@@ -81,10 +83,14 @@ public class DebuggerState {
     });
   }
 
-  public void stepTo(int opIndex) throws InterruptedException {
+  public void stepPastLine(StepPast which) throws InterruptedException {
     stepInternal(current -> {
+      Predicate<OpInfo> predicate = which.predcateFactory.apply(current.pc().getOp().info());
+      if (predicate == null) {
+        return always;
+      }
       int currentDepth = current.frameDepth();
-      return state -> state.frameDepth() == currentDepth && state.pc().getOpIdx() == opIndex;
+      return state -> state.frameDepth() == currentDepth && predicate.test(state.pc().getOp().info());
     });
   }
 
@@ -173,5 +179,32 @@ public class DebuggerState {
       }
     }
     return ! initial;
+  }
+
+  public enum StepPast {
+    SOURCE_LINE(orig -> {
+      int origLineNumber = orig.sourceLineNumber();
+      return origLineNumber < 0 ? null : (current -> sameLine(current, origLineNumber));
+    }),
+    SOURCE_COLUMN(orig -> {
+      int origLineNumber = orig.sourceLineNumber();
+      int origColumn = orig.sourcePositionInLine();
+      return origLineNumber < 0 ? null : (current -> sameLine(current, origLineNumber) && samePositionInLine(current, origColumn));
+    }),
+    ;
+
+    private static boolean sameLine(OpInfo current, int origLineNumber) {
+      return current.sourceLineNumber() == origLineNumber;
+    }
+
+    private static boolean samePositionInLine(OpInfo current, int origPositionInLine) {
+      return current.sourcePositionInLine() == origPositionInLine;
+    }
+
+    private final Function<OpInfo,Predicate<OpInfo>> predcateFactory;
+
+    StepPast(Function<OpInfo, Predicate<OpInfo>> predcateFactory) {
+      this.predcateFactory = predcateFactory;
+    }
   }
 }

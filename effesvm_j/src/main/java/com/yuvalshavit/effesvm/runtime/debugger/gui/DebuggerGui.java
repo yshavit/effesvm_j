@@ -59,7 +59,7 @@ public class DebuggerGui {
     public void create() {
       FramesView framesView = new FramesView(debuggerEvents);
       SourceModeCoordinator sourceModeCoordinator = new SourceModeCoordinator();
-      ControlsView controlsView = new ControlsView(debuggerEvents);
+      ControlsView controlsView = new ControlsView(sourceModeCoordinator, debuggerEvents);
       Component stepButtons = controlsView.getStepButtons();
 
       JSplitPane mainSplit = showMainWindow(framesView, controlsView, stepButtons);
