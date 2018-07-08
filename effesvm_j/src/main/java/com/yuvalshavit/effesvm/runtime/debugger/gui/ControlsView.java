@@ -82,7 +82,10 @@ public class ControlsView {
 
   private JButton stepButton(DebuggerEvents debuggerEvents, String label, MsgResumeBase ifEfct, MsgResumeBase ifSource) {
     JButton stepOverButton = new JButton(label);
-    debuggerEvents.on(DebuggerEvents.Type.RESUMED, () -> stepOverButton.setEnabled(false));
+    Runnable disable = () -> stepOverButton.setEnabled(false);
+    debuggerEvents.on(DebuggerEvents.Type.RESUMED, disable);
+    debuggerEvents.on(DebuggerEvents.Type.RESUME_REQUESTED, disable);
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, disable);
     debuggerEvents.on(DebuggerEvents.Type.SUSPENDED, () -> stepOverButton.setEnabled(true));
     EnumMap<SourceModeCoordinator.Mode,MsgResumeBase> messages = new EnumMap<>(SourceModeCoordinator.Mode.class);
     messages.put(SourceModeCoordinator.Mode.EFCT, ifEfct);
