@@ -102,8 +102,8 @@ public class DebuggerGui {
       framesAndControls.add(controlsView.getResumeButtonPane(), BorderLayout.NORTH);
       framesAndControls.add(framesAndSteps, BorderLayout.CENTER);
       mainSplit.setRightComponent(framesAndControls);
-      frame.setLocationRelativeTo(null);
       frame.pack();
+      frame.setLocationRelativeTo(null);
       frame.setVisible(true);
       return mainSplit;
     }

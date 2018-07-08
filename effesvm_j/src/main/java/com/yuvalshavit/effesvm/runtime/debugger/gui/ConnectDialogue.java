@@ -74,8 +74,8 @@ public class ConnectDialogue {
     connectButton.addActionListener(action -> tryConnect(portTextField.getText(), connectionWindow));
     content.add(connectButton, BorderLayout.SOUTH);
 
-    connectionWindow.setLocationRelativeTo(null);
     connectionWindow.pack();
+    connectionWindow.setLocationRelativeTo(null);
     connectionWindow.setVisible(true);
     // due to silliness, we have to wait a bit before we can select-all
     try {
