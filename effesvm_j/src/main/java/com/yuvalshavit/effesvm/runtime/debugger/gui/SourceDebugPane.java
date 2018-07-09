@@ -215,11 +215,11 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
       } else {
         // invariant in setHighlight ensures that highlight < text.length
         escaper
-          .escape(text.substring(0, highlight - 1))
+          .escape(text.substring(0, highlight))
           .append(HIGHLIGHT_TAG_START)
-          .escape(text.substring(highlight - 1, highlight))
+          .escape(text.substring(highlight, highlight + 1).replaceFirst(" $", "➥")) // replace the trailing space with something more visible
           .append(HIGHLIGHT_TAG_END)
-          .append(text.substring(highlight));
+          .append(text.substring(highlight + 1));
       }
       return escaper.append(SUFFIX).toString().replace(" ", "&nbsp;");
     }
