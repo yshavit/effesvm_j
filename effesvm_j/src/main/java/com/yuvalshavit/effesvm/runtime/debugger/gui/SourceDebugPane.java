@@ -139,7 +139,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
   }
 
   @Override
-  protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
+  protected IntStream getOpsIndexesWithinFunctionForLine(EffesFunctionId functionId, int lineWithinModel) {
     return lineToOpcodePerModule.get(functionId.getScope().getModuleId()).getOpcodeIndexesForLine(lineWithinModel);
   }
 

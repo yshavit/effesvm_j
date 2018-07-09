@@ -81,7 +81,7 @@ abstract class AbstractDebugLinePane<T> {
 
   protected abstract int showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
   protected abstract int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction);
-  protected abstract IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel);
+  protected abstract IntStream getOpsIndexesWithinFunctionForLine(EffesFunctionId functionId, int lineWithinModel);
 
   protected MsgGetModules.FunctionInfo getInfoFor(EffesFunctionId functionId) {
     return opsByFunction.get(functionId);
@@ -158,7 +158,7 @@ abstract class AbstractDebugLinePane<T> {
       EffesFunctionId currentlyRunningFunctionId = currentlyRunningFunction.get();
       int currentlyRunningOpLine = getLineForOp(currentlyRunningFunctionId, currentRunningOpIdx);
       boolean isCurrentlyRunning = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentlyRunningOpLine;
-      IntStream ops = getOpsForLine(visibleFunction, index);
+      IntStream ops = getOpsIndexesWithinFunctionForLine(visibleFunction, index);
       MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
       boolean isDebugEnabled = functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue);
       @SuppressWarnings("unchecked")

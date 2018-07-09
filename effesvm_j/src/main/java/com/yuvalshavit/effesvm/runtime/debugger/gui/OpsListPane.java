@@ -44,7 +44,7 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
   }
 
   @Override
-  protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
+  protected IntStream getOpsIndexesWithinFunctionForLine(EffesFunctionId functionId, int lineWithinModel) {
     return IntStream.of(lineWithinModel);
   }
 
