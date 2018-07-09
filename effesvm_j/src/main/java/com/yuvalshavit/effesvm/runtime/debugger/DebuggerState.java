@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
 
 import com.yuvalshavit.effesvm.load.EffesFunction;
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
@@ -84,14 +83,7 @@ public class DebuggerState {
   }
 
   public void stepPastLine(StepPast which) throws InterruptedException {
-    stepInternal(current -> {
-      Predicate<OpInfo> predicate = which.predcateFactory.apply(current.pc().getOp().info());
-      if (predicate == null) {
-        return always;
-      }
-      int currentDepth = current.frameDepth();
-      return state -> state.frameDepth() == currentDepth && predicate.test(state.pc().getOp().info());
-    });
+    stepInternal(which.predcateFactory);
   }
 
   public void setBreakpoint(EffesFunctionId fid, int opIdx, boolean on) {
@@ -183,27 +175,38 @@ public class DebuggerState {
 
   public enum StepPast {
     SOURCE_LINE(orig -> {
-      int origLineNumber = orig.sourceLineNumber();
-      return origLineNumber < 0 ? null : (current -> sameLine(current, origLineNumber));
+      int origFrameDepth = orig.frameDepth();
+      int origLineNumber = orig.pc().getOp().info().sourceLineNumber();
+      return origLineNumber < 0
+        ? always
+        : state -> {
+          int currentFrameDepth = state.frameDepth();
+          return currentFrameDepth < origFrameDepth // popped up a frame
+            || (currentFrameDepth == origFrameDepth && differentLine(state, origLineNumber)); // same frame, different line
+        };
     }),
     SOURCE_COLUMN(orig -> {
-      int origLineNumber = orig.sourceLineNumber();
-      int origColumn = orig.sourcePositionInLine();
-      return origLineNumber < 0 ? null : (current -> sameLine(current, origLineNumber) && samePositionInLine(current, origColumn));
+      int origFrameDepth = orig.frameDepth();
+      OpInfo origInfo = orig.pc().getOp().info();
+      int origLineNumber = origInfo.sourceLineNumber();
+      int origColumn = origInfo.sourcePositionInLine();
+      return origLineNumber < 0
+        ? always
+        : (state -> state.frameDepth() != origFrameDepth || differentLine(state, origLineNumber) || differentPositionInLine(state, origColumn));
     }),
     ;
 
-    private static boolean sameLine(OpInfo current, int origLineNumber) {
-      return current.sourceLineNumber() == origLineNumber;
+    private static boolean differentLine(EffesState current, int origLineNumber) {
+      return current.pc().getOp().info().sourceLineNumber() != origLineNumber;
     }
 
-    private static boolean samePositionInLine(OpInfo current, int origPositionInLine) {
-      return current.sourcePositionInLine() == origPositionInLine;
+    private static boolean differentPositionInLine(EffesState current, int origPositionInLine) {
+      return current.pc().getOp().info().sourcePositionInLine() != origPositionInLine;
     }
 
-    private final Function<OpInfo,Predicate<OpInfo>> predcateFactory;
+    private final Function<EffesState,Predicate<EffesState>> predcateFactory;
 
-    StepPast(Function<OpInfo, Predicate<OpInfo>> predcateFactory) {
+    StepPast(Function<EffesState, Predicate<EffesState>> predcateFactory) {
       this.predcateFactory = predcateFactory;
     }
   }
