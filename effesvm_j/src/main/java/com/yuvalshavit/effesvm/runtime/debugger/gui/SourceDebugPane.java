@@ -108,10 +108,11 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
   }
 
   @Override
-  protected void preprocessLine(SourceLine line, boolean isCurrentlyRunning) {
+  protected void preprocessLine(SourceLine line, boolean isCurrentlyRunning, boolean isDebugEnabled) {
     int highlight = isCurrentlyRunning
       ? getCurrentlyRunningOpInfo().sourcePositionInLine()
       : -1;
+    line.setDebugEnabled(isDebugEnabled);
     line.setHighlight(highlight);
   }
 
@@ -123,18 +124,26 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
 
   static class SourceLine {
     private static final String SUFFIX = "</html>";
-    private static final String HIGHLIGHT_TAG_START = "<font color=\"fuchsia\"><strong>";
+    private static final String HIGHLIGHT_TAG_START = "<font color=\"red\"><strong>";
     private static final String HIGHLIGHT_TAG_END = "</strong></font>";
-    private static final String LINE_NUMBER_TAG = "i";
-    private static final IntFunction<String> lineFormatFactory = totalLines ->
-      "<html><" + LINE_NUMBER_TAG +">%" + (Integer.toString(totalLines + 1).length()) + "d</" + LINE_NUMBER_TAG + ">: ";
-    private final String prefixAndLineNumber;
+    private static final String LINE_NUMBER_TAG_START = "<i>";
+    private static final String LINE_NUMBER_TAG_END = "</i>: ";
+    private static final String DEBUG_ENABLED_TAG_START = "<font color=\"red\">";
+    private static final String DEBUG_ENABLED_TAG_END = "</font>";
+    private static final IntFunction<String> lineFormatFactory = totalLines -> "%" + Integer.toString(totalLines + 1).length() + "d";
+    private final String lineNumber;
     private final String text;
+
+    private boolean debugEnabled;
     private int highlight = -1;
 
     public SourceLine(String lineNumberFormat, int lineNumber, String text) {
-      this.prefixAndLineNumber = String.format(lineNumberFormat, lineNumber);
+      this.lineNumber = String.format(lineNumberFormat, lineNumber);
       this.text = text;
+    }
+
+    public void setDebugEnabled(boolean debugEnabled) {
+      this.debugEnabled = debugEnabled;
     }
 
     public void setHighlight(int highlight) {
@@ -147,9 +156,15 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
     }
 
     @Override
-    public String toString() {
-      StringEscapeUtils.Builder escaper = StringEscapeUtils.builder(StringEscapeUtils.ESCAPE_HTML3);
-      escaper.append(prefixAndLineNumber);
+    public final String toString() { // final because it's called from the constructor
+      StringEscapeUtils.Builder escaper = StringEscapeUtils.builder(StringEscapeUtils.ESCAPE_HTML3)
+        .append("<html>" + LINE_NUMBER_TAG_START);
+      if (debugEnabled) {
+        escaper.append(DEBUG_ENABLED_TAG_START).append(lineNumber).append(DEBUG_ENABLED_TAG_END);
+      } else {
+        escaper.append(lineNumber);
+      }
+      escaper.append(LINE_NUMBER_TAG_END);
       if (highlight < 0) {
         escaper.escape(text);
       } else {

@@ -56,7 +56,11 @@ abstract class AbstractDebugLinePane<T> {
 
   protected abstract MsgSetBreakpoints.Breakpoint getBreakpoint(EffesFunctionId visibleFunction, int clickedItemInList);
 
-  protected void preprocessLine(T line, boolean isCurrentlyRunning) {
+  protected void preprocessLine(T line, boolean isCurrentlyRunning, boolean isDebugEnabled) {
+    // nothing
+  }
+
+  protected void postprocessLine(Component rendered, boolean isDebugEnabled) {
     // nothing
   }
 
@@ -154,18 +158,17 @@ abstract class AbstractDebugLinePane<T> {
       EffesFunctionId currentlyRunningFunctionId = currentlyRunningFunction.get();
       int currentlyRunningOpLine = getLineForOp(currentlyRunningFunctionId, currentRunningOpIdx);
       boolean isCurrentlyRunning = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentlyRunningOpLine;
+      IntStream ops = getOpsForLine(visibleFunction, index);
+      MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
+      boolean isDebugEnabled = functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue);
       @SuppressWarnings("unchecked")
       T line = (T) value;
-      preprocessLine(line, isCurrentlyRunning);
+      preprocessLine(line, isCurrentlyRunning, isDebugEnabled);
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
       if (isCurrentlyRunning) {
         fromSuper.setBackground(Color.LIGHT_GRAY);
       }
-      IntStream ops = getOpsForLine(visibleFunction, index);
-      MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
-      if (functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue)) {
-        fromSuper.setForeground(Color.RED);
-      }
+      postprocessLine(fromSuper, isDebugEnabled);
       return fromSuper;
     }
 

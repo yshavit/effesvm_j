@@ -1,5 +1,7 @@
 package com.yuvalshavit.effesvm.runtime.debugger.gui;
 
+import java.awt.Color;
+import java.awt.Component;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -44,5 +46,12 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
   @Override
   protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
     return IntStream.of(lineWithinModel);
+  }
+
+  @Override
+  protected void postprocessLine(Component rendered, boolean isDebugEnabled) {
+    if (isDebugEnabled) {
+      rendered.setForeground(Color.RED);
+    }
   }
 }
