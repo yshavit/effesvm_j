@@ -38,8 +38,8 @@ class FunctionsView {
       .stream()
       .flatMap(m -> m.entrySet().stream())
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    opsListPane = new OpsListPane(functionIdsToInfos, functionPicker::getActiveFunction);
-    sourceDebugPane = new SourceDebugPane(functionIdsToInfos, functionPicker::getActiveFunction);
+    opsListPane = new OpsListPane(functionIdsToInfos, functionPicker::getVisibleFunction);
+    sourceDebugPane = new SourceDebugPane(functionIdsToInfos, functionPicker::getVisibleFunction);
     functionPicker.addListener(opsListPane::showFunction);
     functionPicker.addListener(sourceDebugPane::showFunction);
 
@@ -83,11 +83,11 @@ class FunctionsView {
   }
 
   void activate(EffesFunctionId functionId, int opIdx) {
-    if (!functionId.equals(functionPicker.getActiveFunction())) {
-      functionPicker.setActiveFunctionForModule(functionId);
-      functionPicker.setActiveModule(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
+    if (!functionId.equals(functionPicker.getVisibleFunction())) {
+      functionPicker.setVisibleFunctionForModule(functionId);
+      functionPicker.setVisibleModule(functionId.getScope().getModuleId()); // will also update the function, and page in the ops
     }
-    opsListPane.setActiveFunction(functionId, opIdx);
-    sourceDebugPane.setActiveFunction(functionId, opIdx);
+    opsListPane.setCurrentlyRunningFunction(functionId, opIdx);
+    sourceDebugPane.setCurrentlyRunningFunction(functionId, opIdx);
   }
 }

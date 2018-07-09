@@ -52,7 +52,7 @@ class FunctionPicker {
         : SourceModeCoordinator.Mode.SOURCE;
       sourceModeCoordinator.setMode(mode);
     });
-    addListener(this::setActiveFunctionForModule);
+    addListener(this::setVisibleFunctionForModule);
     events.on(DebuggerEvents.Type.CLOSED, () -> {
       functionsChooserBox.setEnabled(false);
       functionChooserModel.removeAllElements();
@@ -80,17 +80,17 @@ class FunctionPicker {
     });
   }
 
-  void setActiveFunctionForModule(EffesFunctionId functionId) {
+  void setVisibleFunctionForModule(EffesFunctionId functionId) {
     if (functionId != null) {
       activeFunctionPerModule.put(functionId.getScope().getModuleId(), functionId);
     }
   }
 
-  public EffesFunctionId getActiveFunction() {
+  public EffesFunctionId getVisibleFunction() {
     return (EffesFunctionId) functionsChooserBox.getSelectedItem();
   }
 
-  void setActiveModule(EffesModule.Id module) {
+  void setVisibleModule(EffesModule.Id module) {
     modulesChooserBox.setSelectedItem(module);
   }
 

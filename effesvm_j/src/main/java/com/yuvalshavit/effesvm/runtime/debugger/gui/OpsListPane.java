@@ -17,8 +17,8 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
     Collections.singletonList(new OpInfo(new EffesModule.Id("<error>"), "????", Collections.emptyList(), -1, -1, -1)),
     null);
 
-  OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
-    super(opsByFunction, activeFunction);
+  OpsListPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> visibleFunction) {
+    super(opsByFunction, visibleFunction);
   }
 
   @Override

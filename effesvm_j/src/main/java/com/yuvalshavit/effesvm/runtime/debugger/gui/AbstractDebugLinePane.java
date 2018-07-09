@@ -34,29 +34,29 @@ abstract class AbstractDebugLinePane<T> {
 
   private final Map<EffesFunctionId,MsgGetModules.FunctionInfo> opsByFunction;
   private final JScrollPane scrollPane;
-  private final Supplier<EffesFunctionId> activeFunction;
-  private final JList<T> activeOpsList;
-  private final DefaultListModel<T> activeOpsModel;
+  private final Supplier<EffesFunctionId> visibleFunction;
+  private final JList<T> visibleOpsList;
+  private final DefaultListModel<T> visibleOpsModel;
 
-  private EffesFunctionId currentFunctionId; // that is, the one that's actually running on the evm
-  private int currentOpIdx;
+  private EffesFunctionId currentlyRunningFunctionId; // that is, the one that's actually running on the evm
+  private int currentRunningOpIdx;
 
-  protected AbstractDebugLinePane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
+  protected AbstractDebugLinePane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> visibleFunction) {
     this.opsByFunction = opsByFunction;
-    this.activeFunction = activeFunction;
-    activeOpsModel = new DefaultListModel<>();
-    activeOpsList = new JList<>(activeOpsModel);
+    this.visibleFunction = visibleFunction;
+    visibleOpsModel = new DefaultListModel<>();
+    visibleOpsList = new JList<>(visibleOpsModel);
 
-    scrollPane = new JScrollPane(activeOpsList);
+    scrollPane = new JScrollPane(visibleOpsList);
     scrollPane.setPreferredSize(new Dimension(600, 700));
-    activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+    visibleOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-    activeOpsList.setCellRenderer(new OpsListCellRenderer(activeFunction, () -> currentFunctionId));
+    visibleOpsList.setCellRenderer(new OpsListCellRenderer(visibleFunction, () -> currentlyRunningFunctionId));
   }
 
   protected abstract MsgSetBreakpoints.Breakpoint getBreakpoint(EffesFunctionId visibleFunction, int clickedItemInList);
 
-  protected void preprocessLine(T line, boolean active) {
+  protected void preprocessLine(T line, boolean isCurrentlyRunning) {
     // nothing
   }
 
@@ -64,14 +64,14 @@ abstract class AbstractDebugLinePane<T> {
     return scrollPane;
   }
 
-  protected OpInfo getActiveOpInfo() {
-    List<OpInfo> ops = getInfoFor(currentFunctionId).ops();
-    return ops.get(currentOpIdx);
+  protected OpInfo getCurrentlyRunningOpInfo() {
+    List<OpInfo> ops = getInfoFor(currentlyRunningFunctionId).ops();
+    return ops.get(currentRunningOpIdx);
   }
 
-  void setActiveFunction(EffesFunctionId functionId, int opIdx) {
-    currentFunctionId = functionId;
-    currentOpIdx = opIdx;
+  void setCurrentlyRunningFunction(EffesFunctionId functionId, int opIdx) {
+    currentlyRunningFunctionId = functionId;
+    currentRunningOpIdx = opIdx;
     showFunction(functionId);
   }
 
@@ -84,45 +84,45 @@ abstract class AbstractDebugLinePane<T> {
   }
 
   public void showFunction(EffesFunctionId functionId) {
-    activeOpsModel.clear();
+    visibleOpsModel.clear();
     if (functionId == null) {
       return;
     }
 
-    int scrollToLine = showFunction(functionId, activeOpsModel::addElement);
-    if (functionId.equals(currentFunctionId)) {
-      int modelIndex = getLineForOp(currentFunctionId, currentOpIdx);
+    int scrollToLine = showFunction(functionId, visibleOpsModel::addElement);
+    if (functionId.equals(currentlyRunningFunctionId)) {
+      int modelIndex = getLineForOp(currentlyRunningFunctionId, currentRunningOpIdx);
       if (modelIndex >= 0) {
-        activeOpsList.setSelectedIndex(modelIndex);
+        visibleOpsList.setSelectedIndex(modelIndex);
         scrollToLine = modelIndex;
       } else {
-        System.err.printf("Couldn't find display index for %s #%d%n", currentFunctionId, currentOpIdx);
+        System.err.printf("Couldn't find display index for %s #%d%n", currentlyRunningFunctionId, currentRunningOpIdx);
       }
     }
     if (scrollToLine >= 0) {
-      Rectangle cellBounds = activeOpsList.getCellBounds(
+      Rectangle cellBounds = visibleOpsList.getCellBounds(
         Math.max(scrollToLine - SCROLLTO_CONTEXT_BUFFER, 0),
-        Math.min(scrollToLine + SCROLLTO_CONTEXT_BUFFER, activeOpsList.getModel().getSize()));
+        Math.min(scrollToLine + SCROLLTO_CONTEXT_BUFFER, visibleOpsList.getModel().getSize()));
       if (cellBounds != null) {
-        activeOpsList.scrollRectToVisible(cellBounds);
+        visibleOpsList.scrollRectToVisible(cellBounds);
       }
     }
   }
 
   void onConnect(DebuggerEvents debuggerEvents, Set<MsgSetBreakpoints.Breakpoint> breakpoints, BiConsumer<MsgSetBreakpoints.Breakpoint,Boolean> save) {
-    debuggerEvents.on(DebuggerEvents.Type.CLOSED, activeOpsModel::clear);
+    debuggerEvents.on(DebuggerEvents.Type.CLOSED, visibleOpsModel::clear);
     for (MsgSetBreakpoints.Breakpoint breakpoint : breakpoints) {
       MsgGetModules.FunctionInfo fInfo = opsByFunction.get(breakpoint.getFid());
       if (fInfo != null) {
         fInfo.breakpoints().set(breakpoint.getOpIdx());
       }
     }
-    activeOpsList.addMouseListener(new MouseAdapter() {
+    visibleOpsList.addMouseListener(new MouseAdapter() {
       @Override
       public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2) {
-          EffesFunctionId visibleFunction = activeFunction.get();
-          int clickedItem = activeOpsList.locationToIndex(e.getPoint());
+          EffesFunctionId visibleFunction = AbstractDebugLinePane.this.visibleFunction.get();
+          int clickedItem = visibleOpsList.locationToIndex(e.getPoint());
           MsgSetBreakpoints.Breakpoint breakpoint = getBreakpoint(visibleFunction, clickedItem);
           if (breakpoint != null) {
             BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
@@ -131,7 +131,7 @@ abstract class AbstractDebugLinePane<T> {
             MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
             debuggerEvents.communicate(toggleMsg, ok -> {
               breakpoints.flip(clickedItem);
-              activeOpsList.repaint();
+              visibleOpsList.repaint();
             });
           }
         }
@@ -152,13 +152,13 @@ abstract class AbstractDebugLinePane<T> {
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
       EffesFunctionId visibleFunction = currentFunctionId.get();
       EffesFunctionId currentlyRunningFunctionId = currentlyRunningFunction.get();
-      int currentOpLine = getLineForOp(currentlyRunningFunctionId, currentOpIdx);
-      boolean isActive = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentOpLine;
+      int currentlyRunningOpLine = getLineForOp(currentlyRunningFunctionId, currentRunningOpIdx);
+      boolean isCurrentlyRunning = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentlyRunningOpLine;
       @SuppressWarnings("unchecked")
       T line = (T) value;
-      preprocessLine(line, isActive);
+      preprocessLine(line, isCurrentlyRunning);
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-      if (isActive) {
+      if (isCurrentlyRunning) {
         fromSuper.setBackground(Color.LIGHT_GRAY);
       }
       IntStream ops = getOpsForLine(visibleFunction, index);

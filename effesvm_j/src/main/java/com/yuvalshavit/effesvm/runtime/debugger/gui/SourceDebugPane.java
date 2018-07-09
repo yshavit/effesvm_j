@@ -29,8 +29,8 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
   private final Map<EffesModule.Id,List<SourceLine>> moduleLines;
   private final Map<EffesFunctionId,Integer> firstLinePerFunction;
 
-  protected SourceDebugPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> activeFunction) {
-    super(opsByFunction, activeFunction);
+  protected SourceDebugPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> visibleFunction) {
+    super(opsByFunction, visibleFunction);
     String sourcePath = System.getenv("EFFES_SOURCEPATH");
 
     if (sourcePath == null) {
@@ -108,9 +108,9 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
   }
 
   @Override
-  protected void preprocessLine(SourceLine line, boolean active) {
-    int highlight = active
-      ? getActiveOpInfo().sourcePositionInLine()
+  protected void preprocessLine(SourceLine line, boolean isCurrentlyRunning) {
+    int highlight = isCurrentlyRunning
+      ? getCurrentlyRunningOpInfo().sourcePositionInLine()
       : -1;
     line.setHighlight(highlight);
   }
