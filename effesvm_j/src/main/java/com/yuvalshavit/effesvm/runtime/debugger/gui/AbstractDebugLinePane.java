@@ -9,6 +9,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +24,7 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 
 import com.yuvalshavit.effesvm.load.EffesFunctionId;
+import com.yuvalshavit.effesvm.ops.OpInfo;
 import com.yuvalshavit.effesvm.runtime.debugger.DebuggerEvents;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgGetModules;
 import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
@@ -49,17 +51,22 @@ abstract class AbstractDebugLinePane<T> {
     scrollPane.setPreferredSize(new Dimension(600, 700));
     activeOpsList.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-    activeOpsList.setCellRenderer(new OpsListCellRenderer(activeFunction));
-  }
-
-  protected MsgGetModules.FunctionInfo getFunctionInfo(EffesFunctionId functionId) {
-    return opsByFunction.get(functionId);
+    activeOpsList.setCellRenderer(new OpsListCellRenderer(activeFunction, () -> currentFunctionId));
   }
 
   protected abstract MsgSetBreakpoints.Breakpoint getBreakpoint(EffesFunctionId visibleFunction, int clickedItemInList);
 
+  protected void preprocessLine(T line, boolean active) {
+    // nothing
+  }
+
   Component getScrollPane() {
     return scrollPane;
+  }
+
+  protected OpInfo getActiveOpInfo() {
+    List<OpInfo> ops = getInfoFor(currentFunctionId).ops();
+    return ops.get(currentOpIdx);
   }
 
   void setActiveFunction(EffesFunctionId functionId, int opIdx) {
@@ -134,26 +141,35 @@ abstract class AbstractDebugLinePane<T> {
 
   private class OpsListCellRenderer extends DefaultListCellRenderer {
     private final Supplier<EffesFunctionId> currentFunctionId;
+    private final Supplier<EffesFunctionId> currentlyRunningFunction;
 
-    public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId) {
+    public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId, Supplier<EffesFunctionId> currentlyRunningFunction) {
       this.currentFunctionId = currentFunctionId;
+      this.currentlyRunningFunction = currentlyRunningFunction;
     }
 
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+      EffesFunctionId visibleFunction = currentFunctionId.get();
+      EffesFunctionId currentlyRunningFunctionId = currentlyRunningFunction.get();
+      int currentOpLine = getLineForOp(currentlyRunningFunctionId, currentOpIdx);
+      boolean isActive = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentOpLine;
+      @SuppressWarnings("unchecked")
+      T line = (T) value;
+      preprocessLine(line, isActive);
       Component fromSuper = super.getListCellRendererComponent(list, value, index, false, cellHasFocus);
-      EffesFunctionId functionId = currentFunctionId.get();
-      int currentOpLine = getLineForOp(functionId, currentOpIdx);
-      if (Objects.equals(functionId, currentFunctionId.get()) && index == currentOpLine) {
+      if (isActive) {
         fromSuper.setBackground(Color.LIGHT_GRAY);
       }
-      IntStream ops = getOpsForLine(functionId, index);
-      MsgGetModules.FunctionInfo functionInfo = getFunctionInfo(functionId);
+      IntStream ops = getOpsForLine(visibleFunction, index);
+      MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
       if (functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue)) {
         fromSuper.setForeground(Color.RED);
       }
       return fromSuper;
     }
+
+
   }
 
 }

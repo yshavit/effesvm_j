@@ -22,6 +22,11 @@
       <artifactId>effesvm_j-common</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
+    <dependency>
+       <groupId>org.apache.commons</groupId>
+       <artifactId>commons-text</artifactId>
+       <version>1.4</version>
+    </dependency>
 
     <!-- test dependencies -->
     <dependency>
