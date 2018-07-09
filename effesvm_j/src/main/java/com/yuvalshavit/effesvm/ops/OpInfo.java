@@ -42,8 +42,8 @@ public class OpInfo implements Serializable {
     return efctLineNumber;
   }
 
-  public int sourceLineNumber() {
-    return sourceLineNumber;
+  public int sourceLineNumberIndexedAt0() {
+    return sourceLineNumber - 1;
   }
 
   public int sourcePositionInLine() {

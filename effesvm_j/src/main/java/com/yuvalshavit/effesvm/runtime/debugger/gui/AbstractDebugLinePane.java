@@ -130,11 +130,11 @@ abstract class AbstractDebugLinePane<T> {
           MsgSetBreakpoints.Breakpoint breakpoint = getBreakpoint(visibleFunction, clickedItem);
           if (breakpoint != null) {
             BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-            boolean on = !breakpoints.get(clickedItem);
+            boolean on = !breakpoints.get(breakpoint.getOpIdx());
             save.accept(breakpoint, on);
             MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
             debuggerEvents.communicate(toggleMsg, ok -> {
-              breakpoints.flip(clickedItem);
+              breakpoints.flip(breakpoint.getOpIdx());
               visibleOpsList.repaint();
             });
           }

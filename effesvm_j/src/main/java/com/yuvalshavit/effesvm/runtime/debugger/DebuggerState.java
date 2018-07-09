@@ -176,7 +176,7 @@ public class DebuggerState {
   public enum StepPast {
     SOURCE_LINE(orig -> {
       int origFrameDepth = orig.frameDepth();
-      int origLineNumber = orig.pc().getOp().info().sourceLineNumber();
+      int origLineNumber = orig.pc().getOp().info().sourceLineNumberIndexedAt0();
       return origLineNumber < 0
         ? always
         : state -> {
@@ -188,7 +188,7 @@ public class DebuggerState {
     SOURCE_COLUMN(orig -> {
       int origFrameDepth = orig.frameDepth();
       OpInfo origInfo = orig.pc().getOp().info();
-      int origLineNumber = origInfo.sourceLineNumber();
+      int origLineNumber = origInfo.sourceLineNumberIndexedAt0();
       int origColumn = origInfo.sourcePositionInLine();
       return origLineNumber < 0
         ? always
@@ -197,7 +197,7 @@ public class DebuggerState {
     ;
 
     private static boolean differentLine(EffesState current, int origLineNumber) {
-      return current.pc().getOp().info().sourceLineNumber() != origLineNumber;
+      return current.pc().getOp().info().sourceLineNumberIndexedAt0() != origLineNumber;
     }
 
     private static boolean differentPositionInLine(EffesState current, int origPositionInLine) {

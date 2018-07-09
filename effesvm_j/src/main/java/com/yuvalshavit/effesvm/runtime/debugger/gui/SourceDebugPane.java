@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -25,9 +27,10 @@ import com.yuvalshavit.effesvm.runtime.debugger.msg.MsgSetBreakpoints;
 import lombok.Data;
 
 public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.SourceLine> {
-  private final Map<ModuleLine,MsgSetBreakpoints.Breakpoint> breakpointsPerLine;
-  private final Map<EffesModule.Id,List<SourceLine>> moduleLines;
-  private final Map<EffesFunctionId,Integer> firstLinePerFunction;
+  private final Map<ModuleLine, MsgSetBreakpoints.Breakpoint> breakpointsPerLine; // the breakpoint to set/unset when we double-click the line
+  private final Map<EffesModule.Id, List<SourceLine>> moduleLines;
+  private final Map<EffesFunctionId, Integer> firstLinePerFunction;
+  private final Map<EffesModule.Id, LineToOpcodeLookup> lineToOpcodePerModule;
 
   protected SourceDebugPane(Map<EffesFunctionId, MsgGetModules.FunctionInfo> opsByFunction, Supplier<EffesFunctionId> visibleFunction) {
     super(opsByFunction, visibleFunction);
@@ -37,6 +40,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
       moduleLines = Collections.emptyMap();
       breakpointsPerLine = Collections.emptyMap();
       firstLinePerFunction = Collections.emptyMap();
+      lineToOpcodePerModule = Collections.emptyMap();
     } else {
       File sourceDir = new File(sourcePath);
       File[] files = sourceDir.listFiles(file -> file.isFile() && file.getName().endsWith(".ef"));
@@ -45,8 +49,10 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
         moduleLines = Collections.emptyMap();
         breakpointsPerLine = Collections.emptyMap();
         firstLinePerFunction = Collections.emptyMap();
+        lineToOpcodePerModule = Collections.emptyMap();
       } else {
         moduleLines = new HashMap<>(files.length);
+        lineToOpcodePerModule = new HashMap<>();
         for (File file : files) {
           try {
             List<String> lines = Files.lines(file.toPath()).collect(Collectors.toCollection(ArrayList::new));
@@ -57,27 +63,57 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
               lineObjects.add(label);
             }
             String moduleName = file.getName().replaceAll("\\.ef$", "");
-            moduleLines.put(new EffesModule.Id(moduleName), lineObjects);
+            EffesModule.Id moduleId = new EffesModule.Id(moduleName);
+            moduleLines.put(moduleId, lineObjects);
+            lineToOpcodePerModule.put(moduleId, new LineToOpcodeLookup(lineObjects.size()));
           } catch (IOException e) {
             e.printStackTrace();
           }
         }
-        breakpointsPerLine = new HashMap<>(opsByFunction.size());
+        breakpointsPerLine = new TreeMap<>(); // treemap just makes it a bit easier when debugging
         opsByFunction.forEach((functionId, functionInfo) -> {
-          // TODO!
+          LineToOpcodeLookup lookup = lineToOpcodePerModule.get(functionId.getScope().getModuleId());
+          List<OpInfo> ops = functionInfo.ops();
+          for (int i = 0; i < ops.size(); i++) {
+            int lineNumber = ops.get(i).sourceLineNumberIndexedAt0();
+            if (lineNumber >= 0) {
+              lookup.addOpcodeToLine(lineNumber, i);
+            }
+          }
         });
         firstLinePerFunction = new HashMap<>(opsByFunction.size());
-        opsByFunction.forEach((functionId, info) -> info.ops().stream()
-          .mapToInt(OpInfo::sourceLineNumber)
-          .min()
-          .ifPresent(line -> firstLinePerFunction.put(functionId, line)));
+        opsByFunction.forEach((functionId, functionInfo) -> {
+          int functionFirstLine = Integer.MAX_VALUE;
+          int functionLastLine = Integer.MIN_VALUE;
+          for (OpInfo opInfo : functionInfo.ops()) {
+            int opLineNumber = opInfo.sourceLineNumberIndexedAt0();
+            if (opLineNumber >= 0) {
+              functionFirstLine = Math.min(opLineNumber, functionFirstLine);
+              functionLastLine = Math.max(opLineNumber, functionLastLine);
+            }
+          }
+          if (functionLastLine >= 0) {
+            firstLinePerFunction.put(functionId, functionFirstLine);
+
+            EffesModule.Id moduleId = functionId.getScope().getModuleId();
+            LineToOpcodeLookup opsByLine = lineToOpcodePerModule.get(moduleId);
+            for (int lineWithinModule = functionFirstLine; lineWithinModule <= functionLastLine; ++lineWithinModule) {
+              BitSet opcodes = opsByLine.opcodesPerLine.get(lineWithinModule);
+              if (opcodes != null) {
+                ModuleLine moduleLine = new ModuleLine(moduleId, lineWithinModule);
+                MsgSetBreakpoints.Breakpoint breakpoint = new MsgSetBreakpoints.Breakpoint(functionId, opcodes.nextSetBit(0));
+                breakpointsPerLine.put(moduleLine, breakpoint);
+              }
+            }
+          }
+        });
       }
     }
   }
 
   @Override
   protected MsgSetBreakpoints.Breakpoint getBreakpoint(EffesFunctionId visibleFunction, int clickedItemInList) {
-    return breakpointsPerLine.get(new ModuleLine(visibleFunction, clickedItemInList));
+    return breakpointsPerLine.get(new ModuleLine(visibleFunction.getScope().getModuleId(), clickedItemInList));
   }
 
   @Override
@@ -99,12 +135,12 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
     }
 
     OpInfo opInfo = info.ops().get(opIdxWithinFunction);
-    return opInfo.sourceLineNumber() - 1; // -1 because the debug symbols are written as 1-indexed
+    return opInfo.sourceLineNumberIndexedAt0();
   }
 
   @Override
   protected IntStream getOpsForLine(EffesFunctionId functionId, int lineWithinModel) {
-    return IntStream.empty(); // TODO!
+    return lineToOpcodePerModule.get(functionId.getScope().getModuleId()).getOpcodeIndexesForLine(lineWithinModel);
   }
 
   @Override
@@ -117,9 +153,18 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
   }
 
   @Data
-  private static class ModuleLine {
-    private final EffesFunctionId functionId;
+  private static class ModuleLine implements Comparable<ModuleLine> {
+    private final EffesModule.Id moduleId;
     private final int line;
+
+    @Override
+    public int compareTo(ModuleLine o) {
+      int cmp = moduleId.compareTo(o.moduleId);
+      if (cmp == 0) {
+        cmp = Integer.compare(line, o.line);
+      }
+      return cmp;
+    }
   }
 
   static class SourceLine {
@@ -138,7 +183,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
     private int highlight = -1;
 
     public SourceLine(String lineNumberFormat, int lineNumber, String text) {
-      this.lineNumber = String.format(lineNumberFormat, lineNumber);
+      this.lineNumber = String.format(lineNumberFormat, lineNumber + 1); // +1 to translate from 0-indexing
       this.text = text;
     }
 
@@ -177,6 +222,37 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
           .append(text.substring(highlight));
       }
       return escaper.append(SUFFIX).toString().replace(" ", "&nbsp;");
+    }
+  }
+
+  private static class LineToOpcodeLookup {
+    final List<BitSet> opcodesPerLine;
+
+    LineToOpcodeLookup(int linesCount) {
+      opcodesPerLine = new ArrayList<>(linesCount);
+    }
+
+    void addOpcodeToLine(int line, int opcodeIndex) {
+      for (int i = opcodesPerLine.size(); i <= line; ++i) {
+        opcodesPerLine.add(null);
+      }
+      BitSet opcodes = opcodesPerLine.get(line);
+      if (opcodes == null) {
+        opcodes = new BitSet();
+        opcodesPerLine.set(line, opcodes);
+      }
+      opcodes.set(opcodeIndex);
+    }
+
+    IntStream getOpcodeIndexesForLine(int line) {
+      if (line >= 0 && line < opcodesPerLine.size()) {
+        BitSet indexes = opcodesPerLine.get(line);
+        return indexes == null
+          ? IntStream.empty()
+          : indexes.stream();
+      } else {
+        return IntStream.empty();
+      }
     }
   }
 }

@@ -75,6 +75,7 @@ class FunctionsView {
     Set<MsgSetBreakpoints.Breakpoint> breakpoints = saveState.getBreakpoints();
     debuggerEvents.communicate(new MsgSetBreakpoints(breakpoints, true), ok -> {
       opsListPane.onConnect(debuggerEvents, breakpoints, saveState::setBreakpoint);
+      sourceDebugPane.onConnect(debuggerEvents, breakpoints, saveState::setBreakpoint);
     });
   }
 
