@@ -14,10 +14,6 @@ import com.yuvalshavit.effesvm.runtime.DebugServerContext;
 import com.yuvalshavit.effesvm.runtime.EffesState;
 
 public class DebuggerState {
-  /**
-   * First key is a module id, second key is a function id. The BitSet is such that it has a True bit at the index one past its last op; that is,
-   * bitset.length() is the number of ops in the function.
-   */
   private final Map<EffesFunctionId,BitSet> functionIdToOpBreakPoints = new HashMap<>();
   private static final Predicate<EffesState> always = e -> true;
   private static final Predicate<EffesState> never = e -> false;
@@ -28,8 +24,7 @@ public class DebuggerState {
 
   public DebuggerState(DebugServerContext context) {
     context.modules().forEach((mid, module) -> module.functions().forEach(function -> {
-      BitSet bs = new BitSet(function.nOps() + 1);
-      bs.set(function.nOps());
+      BitSet bs = new BitSet(function.nOps());
       functionIdToOpBreakPoints.put(function.id(), bs);
     }));
   }
@@ -88,7 +83,7 @@ public class DebuggerState {
 
   public void setBreakpoint(EffesFunctionId fid, int opIdx, boolean on) {
     useBitSet(fid, bs -> {
-      if (opIdx < 0 || opIdx >= bs.length()) {
+      if (opIdx < 0) {
         throw new IndexOutOfBoundsException(fid.toString("@" + opIdx));
       }
       bs.set(opIdx, on);
