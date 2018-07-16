@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
@@ -81,7 +80,7 @@ abstract class AbstractDebugLinePane<T> {
 
   protected abstract int showFunction(EffesFunctionId functionId, Consumer<T> addToModel);
   protected abstract int getLineForOp(EffesFunctionId functionId, int opIdxWithinFunction);
-  protected abstract IntStream getOpsIndexesWithinFunctionForLine(EffesFunctionId functionId, int lineWithinModel);
+  protected abstract boolean isDebugEnabled(int indexWithinModel, EffesFunctionId visibleFunction);
 
   protected MsgGetModules.FunctionInfo getInfoFor(EffesFunctionId functionId) {
     return opsByFunction.get(functionId);
@@ -129,8 +128,8 @@ abstract class AbstractDebugLinePane<T> {
           int clickedItem = visibleOpsList.locationToIndex(e.getPoint());
           MsgSetBreakpoints.Breakpoint breakpoint = getBreakpoint(visibleFunction, clickedItem);
           if (breakpoint != null) {
-            BitSet breakpoints = opsByFunction.get(visibleFunction).breakpoints();
-            boolean on = !breakpoints.get(breakpoint.getOpIdx());
+            BitSet breakpoints = opsByFunction.get(breakpoint.getFid()).breakpoints();
+          boolean on = !breakpoints.get(breakpoint.getOpIdx());
             save.accept(breakpoint, on);
             MsgSetBreakpoints toggleMsg = new MsgSetBreakpoints(Collections.singleton(breakpoint), on);
             debuggerEvents.communicate(toggleMsg, ok -> {
@@ -144,23 +143,22 @@ abstract class AbstractDebugLinePane<T> {
   }
 
   private class OpsListCellRenderer extends DefaultListCellRenderer {
-    private final Supplier<EffesFunctionId> currentFunctionId;
+    private final Supplier<EffesFunctionId> visibleFunctionId;
     private final Supplier<EffesFunctionId> currentlyRunningFunction;
 
-    public OpsListCellRenderer(Supplier<EffesFunctionId> currentFunctionId, Supplier<EffesFunctionId> currentlyRunningFunction) {
-      this.currentFunctionId = currentFunctionId;
+    public OpsListCellRenderer(Supplier<EffesFunctionId> visibleFunctionId, Supplier<EffesFunctionId> currentlyRunningFunction) {
+      this.visibleFunctionId = visibleFunctionId;
       this.currentlyRunningFunction = currentlyRunningFunction;
     }
 
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-      EffesFunctionId visibleFunction = currentFunctionId.get();
+//       I can't be thinking in terms of functions here -- it just doesn't match for the source-based view, which thinks in terms of modules.
+      EffesFunctionId visibleFunction = visibleFunctionId.get();
       EffesFunctionId currentlyRunningFunctionId = currentlyRunningFunction.get();
       int currentlyRunningOpLine = getLineForOp(currentlyRunningFunctionId, currentRunningOpIdx);
       boolean isCurrentlyRunning = Objects.equals(visibleFunction, currentlyRunningFunctionId) && index == currentlyRunningOpLine;
-      IntStream ops = getOpsIndexesWithinFunctionForLine(visibleFunction, index);
-      MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
-      boolean isDebugEnabled = functionInfo != null && ops.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue);
+      boolean isDebugEnabled = isDebugEnabled(index, visibleFunction);
       @SuppressWarnings("unchecked")
       T line = (T) value;
       preprocessLine(line, isCurrentlyRunning, isDebugEnabled);

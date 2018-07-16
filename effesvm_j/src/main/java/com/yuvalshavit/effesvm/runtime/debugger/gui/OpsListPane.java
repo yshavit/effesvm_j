@@ -44,8 +44,10 @@ class OpsListPane extends AbstractDebugLinePane<OpInfo> {
   }
 
   @Override
-  protected IntStream getOpsIndexesWithinFunctionForLine(EffesFunctionId functionId, int lineWithinModel) {
-    return IntStream.of(lineWithinModel);
+  protected boolean isDebugEnabled(int indexWithinModel, EffesFunctionId visibleFunction) {
+    IntStream opsForVisibleFunction = IntStream.of(indexWithinModel);
+    MsgGetModules.FunctionInfo functionInfo = getInfoFor(visibleFunction);
+    return functionInfo != null && opsForVisibleFunction.mapToObj(opIdx -> functionInfo.breakpoints().get(opIdx)).anyMatch(Boolean::booleanValue);
   }
 
   @Override

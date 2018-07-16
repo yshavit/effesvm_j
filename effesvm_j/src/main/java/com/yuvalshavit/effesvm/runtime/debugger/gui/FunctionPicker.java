@@ -87,7 +87,8 @@ class FunctionPicker {
   }
 
   public EffesFunctionId getVisibleFunction() {
-    return (EffesFunctionId) functionsChooserBox.getSelectedItem();
+    EffesModule.Id visibleModule = (EffesModule.Id) modulesChooserBox.getSelectedItem();
+    return activeFunctionPerModule.get(visibleModule);
   }
 
   void setVisibleModule(EffesModule.Id module) {
