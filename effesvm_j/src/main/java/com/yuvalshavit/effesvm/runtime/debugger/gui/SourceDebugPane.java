@@ -130,7 +130,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
     }
 
     OpInfo opInfo = info.ops().get(opIdxWithinFunction);
-    return opInfo.sourceLineNumberIndexedAt0() + firstLinePerFunction.get(functionId);
+    return opInfo.sourceLineNumberIndexedAt0();
   }
 
   protected boolean isDebugEnabled(int indexWithinModel, EffesFunctionId visibleFunction) {
