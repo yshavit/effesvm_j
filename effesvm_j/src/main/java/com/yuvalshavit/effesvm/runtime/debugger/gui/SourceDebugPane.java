@@ -171,7 +171,7 @@ public class SourceDebugPane extends AbstractDebugLinePane<SourceDebugPane.Sourc
 
   static class SourceLine {
     private static final String SUFFIX = "</html>";
-    private static final String HIGHLIGHT_TAG_START = "<font color=\"red\"><strong>";
+    private static final String HIGHLIGHT_TAG_START = "<font bgcolor=\"#a9d5e8\"><strong>";
     private static final String HIGHLIGHT_TAG_END = "</strong></font>";
     private static final String LINE_NUMBER_TAG_START = "<i>";
     private static final String LINE_NUMBER_TAG_END = "</i>: ";
